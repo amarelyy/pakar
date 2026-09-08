@@ -1,4 +1,4 @@
-# PAKAR (Parkir Akurat Real Timr)
+# PAKAR (Parkir Akurat Real Time)
 
 
 This is a Senior Project Group 2 works. PAKAR is a program that will gives the user information on how many slots is left on certain parking spots. Now, you don't have to waste your time finding a spot!

@@ -5,4 +5,3 @@ This is a Senior Project Group 2 works. PAKAR is a program that will gives the u
 
 Team Members:
 1. Ursula Maurentti Amarely - 24/533008/TK/59050
-2. Deva Zukananda - 24/546873/TK/60780

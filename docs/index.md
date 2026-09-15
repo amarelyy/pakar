@@ -74,11 +74,11 @@ Agile (Scrum Framework) is used as our methodology, why?
 
 ### f. Low-Fidelity Wireframe
 User Interface
-![lofi1](img_lofi1.png)
-![lofi2](img_lofi2.png)
-![lofi3](img_lofi3.png)
+![lofi1](img_lofi1.jpeg)
+![lofi2](img_lofi2.jpeg)
+![lofi3](img_lofi3.jpeg)
 Admin Interface
-![lofi4](img_lofi4.png)
+![lofi4](img_lofi4.jpeg)
 
 ### g. Gantt-Chart of Project Execution over 1 semester
 ![timeline](img_timeline.png)

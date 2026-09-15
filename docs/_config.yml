@@ -1,3 +1,7 @@
 ﻿theme: jekyll-theme-leap-day
 title: "Pakar"
 description: "Pakar is a computer vision-based parking monitoring system that provides real-time mapping, occupancy detection, and smart space management using low or existing resources"
+#enable creating table
+markdown: kramdown
+kramdown:
+  input: GFM

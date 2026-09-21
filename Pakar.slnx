@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Pakar.AiInference/Pakar.AiInference.csproj" />
+    <Project Path="src/Pakar.Api/Pakar.Api.csproj" />
+    <Project Path="src/Pakar.Application/Pakar.Application.csproj" />
+    <Project Path="src/Pakar.Domain/Pakar.Domain.csproj" />
+    <Project Path="src/Pakar.Infrastructure/Pakar.Infrastructure.csproj" />
+    <Project Path="src/Pakar.Shared/Pakar.Shared.csproj" />
+    <Project Path="src/Pakar.Web/Pakar.Web.csproj" />
+  </Folder>
+</Solution>

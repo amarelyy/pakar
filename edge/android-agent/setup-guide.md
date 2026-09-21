@@ -1,0 +1,1 @@
+# Guide for IP Webcam app

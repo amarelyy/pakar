@@ -1,0 +1,1 @@
+// Available, Occupied, Reserved

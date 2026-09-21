@@ -1,0 +1,72 @@
+## .NET & Visual Studio / VS Code
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/
+.vs/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.dll
+*.exe
+*.pdb
+
+# .NET Core / .NET 10 specific
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+
+# Environment Variables & Secrets (RAHASIA!)
+.env
+.env.local
+appsettings.Development.json
+appsettings.Production.json
+*.pfx
+*.p12
+
+# AI Models (Gunakan Git LFS untuk file besar >100MB)
+*.onnx
+*.bin
+*.pt
+*.weights
+dl/datasets/raw/
+
+# Python (Untuk folder dl/)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.ipynb_checkpoints/
+dist/
+build/
+*.egg-info/
+
+# Node.js (Jika ada tooling frontend tambahan)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Azure Bicep & Infrastructure
+infra/bicep/main.parameters.json
+*.bicepparam
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing Coverage
+coverage/
+*.coveragexml

@@ -4,15 +4,12 @@ public class Camera
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
-    public string ConnectionType { get; set; } = string.Empty; // e.g., "Android-Wireless"
-    public string ApiKeyHash { get; set; } = string.Empty; // Untuk validasi di Middleware
-    public DateTime LastSeen { get; set; } = DateTime.UtcNow;
-    public bool IsActive { get; set; } = true;
+    public string StreamUrl { get; set; } = string.Empty; 
+    
+    // Properties required by Program.cs
+    public string ConnectionType { get; set; } = "IP"; 
+    public string ApiKeyHash { get; set; } = string.Empty; 
 
-    // Foreign Keys
     public Guid ZoneId { get; set; }
     public ParkingZone Zone { get; set; } = null!;
-
-    // Navigation
-    public ICollection<Detection> Detections { get; set; } = new List<Detection>();
 }

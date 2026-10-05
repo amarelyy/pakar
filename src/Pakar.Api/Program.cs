@@ -3,6 +3,8 @@ using Pakar.Infrastructure.Persistence;
 using Pakar.Application.DTOs;
 using Pakar.Domain.Entities;
 using System.Text.RegularExpressions;
+using Pakar.Api.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +15,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Tambahkan SignalR Service
+builder.Services.AddSignalR();
+
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await Pakar.Api.Data.DbSeeder.SeedAsync(app);
+}
 
 // 2. Middleware Configuration
 if (app.Environment.IsDevelopment())
@@ -99,5 +110,35 @@ app.MapDelete("/api/cameras/{id}", async (Guid id, AppDbContext db) =>
     await db.SaveChangesAsync();
     return Results.NoContent();
 }).WithTags("Admin - Cameras");
+
+// --- REAL-TIME EVENT BROADCASTING (AI Simulation) ---
+
+// Endpoint ini mensimulasikan AI yang mendeteksi perubahan status slot
+app.MapPost("/api/inference/trigger-update", async (
+    IHubContext<ParkingHub> hubContext, 
+    AppDbContext db,
+    Guid spotId, 
+    bool isOccupied) =>
+{
+    var spot = await db.Spots.FindAsync(spotId);
+    if (spot is null) return Results.NotFound("Spot not found");
+
+    // 1. Update Database
+    spot.IsOccupied = isOccupied;
+    await db.SaveChangesAsync();
+
+    // 2. Broadcast ke semua client yang terhubung via WebSocket/SignalR
+    await hubContext.Clients.All.SendAsync("ReceiveSpotUpdate", new 
+    {
+        SpotId = spot.Id,
+        IsOccupied = spot.IsOccupied,
+        UpdatedAt = DateTime.UtcNow
+    });
+
+    return Results.Ok(new { message = "Status updated and broadcasted" });
+}).WithTags("AI Inference");
+
+// Registrasi SignalR Hub Endpoint
+app.MapHub<ParkingHub>("/hubs/parking");
 
 app.Run();

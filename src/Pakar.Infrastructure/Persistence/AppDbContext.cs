@@ -44,5 +44,23 @@ public class AppDbContext : DbContext
             .HasOne(r => r.Spot)
             .WithMany(s => s.Reports)
             .HasForeignKey(r => r.SpotId);
+
+        // Konfigurasi Relasi: Detection terkait opsional dengan satu ParkingSpot
+        modelBuilder.Entity<Detection>()
+            .HasOne(d => d.Spot)
+            .WithMany()
+            .HasForeignKey(d => d.SpotId)
+            .IsRequired(false);
+
+        // Index untuk cepat lookup ExternalId (mapping AI int ↔ DB Guid)
+        modelBuilder.Entity<Camera>()
+            .HasIndex(c => c.ExternalId)
+            .IsUnique();
+        modelBuilder.Entity<ParkingZone>()
+            .HasIndex(z => z.ExternalId)
+            .IsUnique();
+        modelBuilder.Entity<ParkingSpot>()
+            .HasIndex(s => s.ExternalId)
+            .IsUnique(false);
     }
 }

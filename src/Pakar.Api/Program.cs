@@ -9,8 +9,6 @@ using Pakar.Api.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Services Configuration — SQLite untuk DEV (zero-config tanpa Docker/SQL Server).
-//    Nanti jika mau pindah ke SQL Server production: ganti UseSqlite -> UseSqlServer + ConnectionString di appsettings.json.
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var cs = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
@@ -26,11 +24,9 @@ builder.Services.AddSwaggerGen();
 // SignalR Service
 builder.Services.AddSignalR();
 
-// Realtime Parking Services (TAHAP 2-3)
 builder.Services.AddSingleton<ParkingStateStore>();
 builder.Services.AddHostedService<CameraWatchdog>();
 
-// CORS untuk frontend SignalR (wajib AllowCredentials + origin eksplisit, tidak boleh "*")
 builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
     .WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
                  ?? new[] { "http://localhost:5173" })
@@ -41,10 +37,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await Pakar.Api.Data.DbSeeder.SeedAsync(app);
+    await DbSeeder.SeedAsync(app);
 }
 
-// 2. Middleware Configuration
+// Middleware Configuration
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -55,7 +51,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// CORS HARUS di sini (SEBELUM MapHub / endpoint routing)
+// CORS 
 app.UseCors("frontend");
 
 // --- HEALTH CHECK ---
@@ -67,6 +63,31 @@ app.MapGet("/test-db", async (AppDbContext db) =>
         TotalZones = await db.Zones.CountAsync() 
     };
 }).WithTags("System");
+
+// --- FR 1: GET ALL ZONES (Public/User) ---
+app.MapGet("/api/parking/zones", async (AppDbContext db) =>
+{
+    var zones = await db.Zones
+        .Include(z => z.Spots)
+        .Select(z => new 
+        {
+            z.Id,
+            z.Name,
+            z.TotalCapacity,
+            AvailableSpots = z.Spots.Count(s => !s.IsOccupied), 
+            Spots = z.Spots.Select(s => new 
+            {
+                s.Id,
+                s.Name,
+                s.Latitude,
+                s.Longitude,
+                s.IsOccupied
+            }).ToList()
+        })
+        .ToListAsync();
+
+    return Results.Ok(zones);
+}).WithTags("Parking Info");
 
 // --- FR 13: PARKING ZONES MANAGEMENT (Admin Only) ---
 
@@ -132,7 +153,7 @@ app.MapDelete("/api/cameras/{id}", async (Guid id, AppDbContext db) =>
     return Results.NoContent();
 }).WithTags("Admin - Cameras");
 
-// --- REAL-TIME EVENT BROADCASTING (AI Simulation) ---
+// --- REAL-TIME EVENT BROADCASTING ---
 
 // Endpoint ini mensimulasikan AI yang mendeteksi perubahan status slot
 // (ParkingHub di sini = Hub LAWAS dari namespace Pakar.Api.Hubs; Hub BARU ada di Pakar.Api.Realtime)

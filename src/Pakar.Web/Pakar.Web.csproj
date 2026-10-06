@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pakar.Shared\Pakar.Shared.csproj" />
+    <ProjectReference Include="..\Pakar.Application\Pakar.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

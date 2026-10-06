@@ -15,7 +15,7 @@ public static class DbSeeder
 
         if (!await context.Zones.AnyAsync())
         {
-            // 1. Zone Gedung H (Teknik Sipil)
+            // Zone Gedung H (Teknik Sipil)
             var zoneH = new ParkingZone 
             { 
                 Id = Guid.NewGuid(), 
@@ -24,7 +24,7 @@ public static class DbSeeder
                 TotalCapacity = 10
             };
             
-            // 2. Zone Gedung I (Kantor Pusat)
+            // Zone Gedung I (SGLC)
             var zoneI = new ParkingZone 
             { 
                 Id = Guid.NewGuid(), 
@@ -33,7 +33,7 @@ public static class DbSeeder
                 TotalCapacity = 10
             };
 
-            // 3. Zone Barat Gedung E (Geologi)
+            // Zone Barat Gedung E (Geologi)
             var zoneE = new ParkingZone 
             { 
                 Id = Guid.NewGuid(), 
@@ -47,7 +47,7 @@ public static class DbSeeder
 
             var spots = new List<ParkingSpot>();
 
-            // --- Slot untuk Gedung H (10 Slot) ---
+            // Set Slot untuk Gedung H (10 Slot) 
             for (int i = 1; i <= 10; i++)
             {
                 spots.Add(new ParkingSpot
@@ -60,7 +60,7 @@ public static class DbSeeder
                 });
             }
 
-            // --- Slot untuk Gedung I (10 Slot) ---
+            //  Set Slot untuk Gedung I (10 Slot) 
             for (int i = 1; i <= 10; i++)
             {
                 spots.Add(new ParkingSpot
@@ -73,7 +73,7 @@ public static class DbSeeder
                 });
             }
 
-            // --- Slot untuk Barat Gedung E (10 Slot) ---
+            //  Set Slot untuk Gedung E (10 Slot)
             for (int i = 1; i <= 10; i++)
             {
                 spots.Add(new ParkingSpot

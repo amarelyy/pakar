@@ -5,28 +5,28 @@ using Pakar.Domain.Entities;
 using System.Text.RegularExpressions;
 using Pakar.Api.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Pakar.Api.Data; // Don't forget this for the Seeder
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Services Configuration
+// Services Configuration
+builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-// Tambahkan SignalR Service
 builder.Services.AddSignalR();
 
-var app = builder.Build();
+var app = builder.Build(); 
 
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await Pakar.Api.Data.DbSeeder.SeedAsync(app);
+    await DbSeeder.SeedAsync(app);
 }
 
-// 2. Middleware Configuration
+// Middleware Configuration
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -46,6 +46,31 @@ app.MapGet("/test-db", async (AppDbContext db) =>
         TotalZones = await db.Zones.CountAsync() 
     };
 }).WithTags("System");
+
+// --- FR 1: GET ALL ZONES (Public/User) ---
+app.MapGet("/api/parking/zones", async (AppDbContext db) =>
+{
+    var zones = await db.Zones
+        .Include(z => z.Spots)
+        .Select(z => new 
+        {
+            z.Id,
+            z.Name,
+            z.TotalCapacity,
+            AvailableSpots = z.Spots.Count(s => !s.IsOccupied), 
+            Spots = z.Spots.Select(s => new 
+            {
+                s.Id,
+                s.Name,
+                s.Latitude,
+                s.Longitude,
+                s.IsOccupied
+            }).ToList()
+        })
+        .ToListAsync();
+
+    return Results.Ok(zones);
+}).WithTags("Parking Info");
 
 // --- FR 13: PARKING ZONES MANAGEMENT (Admin Only) ---
 
@@ -111,7 +136,7 @@ app.MapDelete("/api/cameras/{id}", async (Guid id, AppDbContext db) =>
     return Results.NoContent();
 }).WithTags("Admin - Cameras");
 
-// --- REAL-TIME EVENT BROADCASTING (AI Simulation) ---
+// --- REAL-TIME EVENT BROADCASTING ---
 
 // Endpoint ini mensimulasikan AI yang mendeteksi perubahan status slot
 app.MapPost("/api/inference/trigger-update", async (

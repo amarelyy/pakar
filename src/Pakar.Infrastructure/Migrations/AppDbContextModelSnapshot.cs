@@ -66,13 +66,11 @@ namespace Pakar.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("LastSeen")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StreamUrl")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -154,8 +152,9 @@ namespace Pakar.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int?>("ManualOverrideCount")
-                        .HasColumnType("int");
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -242,7 +241,7 @@ namespace Pakar.Infrastructure.Migrations
             modelBuilder.Entity("Pakar.Domain.Entities.Detection", b =>
                 {
                     b.HasOne("Pakar.Domain.Entities.Camera", "Camera")
-                        .WithMany("Detections")
+                        .WithMany()
                         .HasForeignKey("CameraId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -289,7 +288,7 @@ namespace Pakar.Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Pakar.Domain.Entities.ParkingZone", "Zone")
-                        .WithMany("SavedZones")
+                        .WithMany()
                         .HasForeignKey("ZoneId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -306,11 +305,6 @@ namespace Pakar.Infrastructure.Migrations
                     b.Navigation("SavedZones");
                 });
 
-            modelBuilder.Entity("Pakar.Domain.Entities.Camera", b =>
-                {
-                    b.Navigation("Detections");
-                });
-
             modelBuilder.Entity("Pakar.Domain.Entities.ParkingSpot", b =>
                 {
                     b.Navigation("Reports");
@@ -319,8 +313,6 @@ namespace Pakar.Infrastructure.Migrations
             modelBuilder.Entity("Pakar.Domain.Entities.ParkingZone", b =>
                 {
                     b.Navigation("Cameras");
-
-                    b.Navigation("SavedZones");
 
                     b.Navigation("Spots");
                 });

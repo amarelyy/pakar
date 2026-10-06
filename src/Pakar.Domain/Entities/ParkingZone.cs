@@ -5,6 +5,7 @@ public class ParkingZone
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public int TotalCapacity { get; set; }
 
     /// <summary>Kapasitas total area (zona) dari DB — untuk BuildZone capacity</summary>
     public int TotalCapacity { get; set; }

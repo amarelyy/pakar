@@ -61,12 +61,6 @@ namespace Pakar.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ExternalId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset?>("LastActiveTime")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -74,6 +68,14 @@ namespace Pakar.Infrastructure.Migrations
                     b.Property<string>("StreamUrl")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("StreamUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StreamUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ZoneId")
                         .HasColumnType("TEXT");
@@ -177,8 +179,9 @@ namespace Pakar.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ExternalId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()

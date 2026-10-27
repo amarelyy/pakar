@@ -1,1 +1,67 @@
-@* Leaflet OSM Map *@ 
+@using System.Net.Http.Json
+@using Pakar.Application.DTOs
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div id="campus-map" style="height: 500px; width: 100%; border-radius: 8px;"></div>
+
+@if (errorMessage is not null)
+{
+    <p class="form-error">@errorMessage</p>
+}
+
+@code {
+    private List<ZoneDto>? zones;
+    private string? errorMessage;
+    private PeriodicTimer? timer;
+    private bool mapInitialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await LoadZones();
+        if (zones is not null)
+        {
+            await JS.InvokeVoidAsync("campusMap.init", "campus-map", zones);
+            mapInitialized = true;
+        }
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(4)); // FR1: update within 5 seconds
+        _ = PollLoop();
+    }
+
+    private async Task LoadZones()
+    {
+        try
+        {
+            zones = await HttpClientFactory.CreateClient("api").GetFromJsonAsync<List<ZoneDto>>("api/parking/zones");
+            errorMessage = null;
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not load parking zones.";
+        }
+    }
+
+    private async Task PollLoop()
+    {
+        try
+        {
+            while (await timer!.WaitForNextTickAsync())
+            {
+                await LoadZones();
+                if (zones is not null && mapInitialized)
+                    await JS.InvokeVoidAsync("campusMap.renderZones", zones);
+                StateHasChanged();
+            }
+        }
+        catch (ObjectDisposedException) { }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        timer?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

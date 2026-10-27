@@ -1,169 +1,128 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Pakar.Infrastructure.Persistence;
-using Pakar.Application.DTOs;
-using Pakar.Domain.Entities;
-using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
+using Pakar.Api.Data;
+using Pakar.Api.Endpoints;
 using Pakar.Api.Hubs;
-using Microsoft.AspNetCore.SignalR;
-using Pakar.Api.Data; // Don't forget this for the Seeder
+using Pakar.Api.Middlewares;
+using Pakar.Api.Realtime;
+using Pakar.Api.Security;
+using Pakar.Application.DTOs;
+using Pakar.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Services Configuration
-builder.Services.AddControllers();
+// Persistence. A connection string pointing at a ".db" file selects SQLite (local dev);
+// anything else selects SQL Server.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is not configured. Set it via user-secrets or environment variables.");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddSignalR();
-
-var app = builder.Build(); 
-
-using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await DbSeeder.SeedAsync(app);
-}
+    if (connectionString.Contains(".db", StringComparison.OrdinalIgnoreCase))
+        options.UseSqlite(connectionString);
+    else
+        options.UseSqlServer(connectionString);
+});
 
-// Middleware Configuration
+// Secrets are validated at startup so a misconfigured deployment fails fast instead of serving requests.
+builder.Services.AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .ValidateDataAnnotations()
+    .Validate(o => Encoding.UTF8.GetByteCount(o.Key) >= JwtOptions.MinKeyBytes,
+        $"Jwt:Key must be at least {JwtOptions.MinKeyBytes} bytes.")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<IngestOptions>()
+    .Bind(builder.Configuration.GetSection(IngestOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+// Authentication: bearer JWTs issued by AuthController.
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((bearer, jwt) =>
+        bearer.TokenValidationParameters = jwt.Value.CreateValidationParameters());
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthPolicies.AdminOnly, policy => policy.RequireRole(Roles.Admin));
+
+builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Paste the token returned by POST /api/auth/login."
+    });
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
+
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ParkingStateStore>();
+builder.Services.AddHostedService<CameraWatchdog>();
+
+builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
+    .WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+                 ?? ["http://localhost:5173"])
+    .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+
+var app = builder.Build();
+
+await DbSeeder.SeedAsync(app);
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Pakar API V1");
-        c.RoutePrefix = string.Empty; 
+        c.RoutePrefix = string.Empty;
     });
 }
-
-// --- HEALTH CHECK ---
-app.MapGet("/test-db", async (AppDbContext db) =>
+else
 {
-    return new HealthCheckDto 
-    { 
-        Message = "DB Connected!", 
-        TotalZones = await db.Zones.CountAsync() 
-    };
+    // Return RFC 7807 problem details instead of leaking exception details.
+    app.UseExceptionHandler();
+}
+
+app.UseCors("frontend");
+
+// Edge devices authenticate with an API key rather than a user JWT.
+app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api/ingest"),
+    branch => branch.UseMiddleware<CameraAuthMiddleware>());
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
+{
+    Message = "DB Connected!",
+    TotalZones = await db.Zones.CountAsync()
 }).WithTags("System");
 
-// --- FR 1: GET ALL ZONES (Public/User) ---
-app.MapGet("/api/parking/zones", async (AppDbContext db) =>
-{
-    var zones = await db.Zones
-        .Include(z => z.Spots)
-        .Select(z => new 
-        {
-            z.Id,
-            z.Name,
-            z.TotalCapacity,
-            AvailableSpots = z.Spots.Count(s => !s.IsOccupied), 
-            Spots = z.Spots.Select(s => new 
-            {
-                s.Id,
-                s.Name,
-                s.Latitude,
-                s.Longitude,
-                s.IsOccupied
-            }).ToList()
-        })
-        .ToListAsync();
+app.MapAdminEndpoints();
 
-    return Results.Ok(zones);
-}).WithTags("Parking Info");
+// Realtime: /hubs/parking, snapshot, and the API-key protected ingest endpoint.
+app.MapParkingRealtime();
 
-// --- FR 13: PARKING ZONES MANAGEMENT (Admin Only) ---
+// Legacy occupancy hub, still consumed by Pakar.Web (Park.razor).
+app.MapHub<OccupancyHub>("/occupancyHub");
 
-// POST: Add new zone
-app.MapPost("/api/zones", async (AppDbContext db, ZoneDto dto) =>
-{
-    if (string.IsNullOrWhiteSpace(dto.Name) || dto.TotalCapacity <= 0)
-        return Results.BadRequest("Name and valid Capacity are required.");
-
-    var zone = new ParkingZone { Name = dto.Name, TotalCapacity = dto.TotalCapacity };
-    db.Zones.Add(zone);
-    await db.SaveChangesAsync();
-    
-    return Results.Created($"/api/zones/{zone.Id}", new { zone.Id, zone.Name });
-}).WithTags("Admin - Zones");
-
-// DELETE: Remove a zone
-app.MapDelete("/api/zones/{id}", async (Guid id, AppDbContext db) =>
-{
-    var zone = await db.Zones.FindAsync(id);
-    if (zone is null) return Results.NotFound();
-
-    db.Zones.Remove(zone);
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-}).WithTags("Admin - Zones");
-
-// --- FR 14: CAMERA MANAGEMENT (Admin Only) ---
-
-// POST: Add camera to a zone
-app.MapPost("/api/cameras", async (AppDbContext db, CameraDto dto) =>
-{
-    // Validasi Format IP Address
-    var ipRegex = @"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
-    if (!Regex.IsMatch(dto.IpAddress, ipRegex))
-        return Results.BadRequest("Invalid IP Address format.");
-
-    // Validasi Zone Existence
-    if (!await db.Zones.AnyAsync(z => z.Id == dto.ZoneId))
-        return Results.BadRequest("Target Zone does not exist.");
-
-    var camera = new Camera 
-    { 
-        Name = dto.Name, 
-        ConnectionType = "IP", 
-        ApiKeyHash = "temp-hash", 
-        ZoneId = dto.ZoneId 
-    };
-    
-    db.Cameras.Add(camera);
-    await db.SaveChangesAsync();
-    return Results.Created($"/api/cameras/{camera.Id}", camera.Id);
-}).WithTags("Admin - Cameras");
-
-// DELETE: Remove camera
-app.MapDelete("/api/cameras/{id}", async (Guid id, AppDbContext db) =>
-{
-    var camera = await db.Cameras.FindAsync(id);
-    if (camera is null) return Results.NotFound();
-
-    db.Cameras.Remove(camera);
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-}).WithTags("Admin - Cameras");
-
-// --- REAL-TIME EVENT BROADCASTING ---
-
-// Endpoint ini mensimulasikan AI yang mendeteksi perubahan status slot
-app.MapPost("/api/inference/trigger-update", async (
-    IHubContext<ParkingHub> hubContext, 
-    AppDbContext db,
-    Guid spotId, 
-    bool isOccupied) =>
-{
-    var spot = await db.Spots.FindAsync(spotId);
-    if (spot is null) return Results.NotFound("Spot not found");
-
-    // 1. Update Database
-    spot.IsOccupied = isOccupied;
-    await db.SaveChangesAsync();
-
-    // 2. Broadcast ke semua client yang terhubung via WebSocket/SignalR
-    await hubContext.Clients.All.SendAsync("ReceiveSpotUpdate", new 
-    {
-        SpotId = spot.Id,
-        IsOccupied = spot.IsOccupied,
-        UpdatedAt = DateTime.UtcNow
-    });
-
-    return Results.Ok(new { message = "Status updated and broadcasted" });
-}).WithTags("AI Inference");
-
-// Registrasi SignalR Hub Endpoint
-app.MapHub<ParkingHub>("/hubs/parking");
+if (app.Environment.IsDevelopment())
+    app.MapDevEndpoints();
 
 app.Run();

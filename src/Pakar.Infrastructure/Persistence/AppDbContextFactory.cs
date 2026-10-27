@@ -20,13 +20,22 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
         // 3. Masuk ke folder Pakar.Api untuk mengambil appsettings
         var apiPath = Path.Combine(rootPath, "src", "Pakar.Api");
 
+        // Mirror the API's configuration sources so `dotnet ef` sees the same connection string.
+        // The id must match <UserSecretsId> in Pakar.Api.csproj.
         var configuration = new ConfigurationBuilder()
             .SetBasePath(apiPath)
             .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddUserSecrets("6ea7defb-9323-4a28-9a3c-7bb1d533757f")
+            .AddEnvironmentVariables()
             .Build();
 
+        var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-        optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
+        if (connectionString.Contains(".db", StringComparison.OrdinalIgnoreCase))
+            optionsBuilder.UseSqlite(connectionString);
+        else
+            optionsBuilder.UseSqlServer(connectionString);
 
         return new AppDbContext(optionsBuilder.Options);
     }

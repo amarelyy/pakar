@@ -8,3 +8,30 @@ Team Members:
 
 UI/UX Design Prototype:
 https://www.figma.com/design/Auql4Y3M0MsSFPgexF73C1/PAKAR?node-id=2-2&t=FBpHGCQJNRwiXnIt-1
+
+
+## API Configuration
+
+`Pakar.Api` refuses to start until its secrets are configured. Secrets are never committed;
+`appsettings.json` only holds empty placeholders.
+
+| Key | Purpose |
+| --- | --- |
+| `ConnectionStrings:DefaultConnection` | Database. A path ending in `.db` uses SQLite, otherwise SQL Server. |
+| `Jwt:Key` | JWT signing key, at least 32 bytes. |
+| `Ingest:ApiKey` | Shared key edge devices send in the `X-Api-Key` header, at least 32 characters. |
+| `Admin:Email`, `Admin:Password` | Optional. Creates the first Admin account on startup if it does not exist. |
+
+Local development (stored outside the repo via user-secrets):
+
+```bash
+cd src/Pakar.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Data Source=PakarDev.db"
+dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)"
+dotnet user-secrets set "Ingest:ApiKey" "$(openssl rand -hex 32)"
+dotnet user-secrets set "Admin:Email" "admin@example.com"
+dotnet user-secrets set "Admin:Password" "<at least 12 characters>"
+```
+
+Deployed environments use environment variables with `__` as the separator
+(for example `Jwt__Key`), sourced from Azure Key Vault.

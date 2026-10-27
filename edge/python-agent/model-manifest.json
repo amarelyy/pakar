@@ -1,0 +1,18 @@
+{
+  "runtime_approach": "vehicle detection followed by polygon ROI occupancy",
+  "baseline": {
+    "filename": "yolov8n.pt",
+    "family": "Ultralytics YOLOv8 nano",
+    "task": "detect",
+    "training_labels": "COCO 80 classes",
+    "selected_classes": ["car", "motorcycle", "bus", "truck"],
+    "sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+    "status": "verified loadable and compatible; not validated on campus CCTV"
+  },
+  "reported_custom_model": {
+    "filename": "best.pt",
+    "reported_labels": ["empty", "occupied"],
+    "status": "not present in the supplied source folder; metrics not revalidated",
+    "runtime_compatibility": "requires a separate slot-classification adapter and evaluation"
+  }
+}

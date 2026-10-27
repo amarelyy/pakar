@@ -8,3 +8,5 @@ Team Members:
 
 UI/UX Design Prototype:
 https://www.figma.com/design/Auql4Y3M0MsSFPgexF73C1/PAKAR?node-id=2-2&t=FBpHGCQJNRwiXnIt-1
+
+Python camera inference agent and local validation: [edge/python-agent](edge/python-agent/README.md).

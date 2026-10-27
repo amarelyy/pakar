@@ -1,0 +1,725 @@
+{
+  "source_kind": "synthetic_two_slot_animation_not_real_CCTV",
+  "source_sha256": "f14d56838d6bc3b244cb06577a5f163790bfbd1073c9be958b09856cb02786d1",
+  "model_sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+  "roi_sha256": "3f1855eb741e364fad0b82acb6d377ac1a089036c0c61f1088bda312285c27ef",
+  "environment": {
+    "ultralytics": "8.4.173",
+    "torch": "2.14.1",
+    "opencv-python": "5.0.0.93",
+    "numpy": "2.4.3",
+    "requests": "2.33.0",
+    "pytest": "9.1.1"
+  },
+  "yolo_baseline": {
+    "sampled_frames": 60,
+    "vehicle_detections": 0,
+    "final_zone": {
+      "areaId": 1,
+      "capacity": 2,
+      "occupied": 0,
+      "available": 2
+    },
+    "inference_ms_mean_including_warmup": 94.19310833339598,
+    "inference_ms_p95": 45.14843500001005,
+    "interpretation": "Rectangles are not cars. This is not model accuracy evidence."
+  },
+  "fixture_only_logic": {
+    "expected_transitions": [
+      [
+        0.0,
+        "available"
+      ],
+      [
+        6.0,
+        "occupied"
+      ],
+      [
+        11.0,
+        "available"
+      ],
+      [
+        14.0,
+        "occupied"
+      ],
+      [
+        19.0,
+        "available"
+      ],
+      [
+        22.0,
+        "occupied"
+      ],
+      [
+        27.0,
+        "available"
+      ]
+    ],
+    "actual_transitions": [
+      [
+        0.0,
+        "available"
+      ],
+      [
+        6.0,
+        "occupied"
+      ],
+      [
+        11.0,
+        "available"
+      ],
+      [
+        14.0,
+        "occupied"
+      ],
+      [
+        19.0,
+        "available"
+      ],
+      [
+        22.0,
+        "occupied"
+      ],
+      [
+        27.0,
+        "available"
+      ]
+    ],
+    "http_accepted": 7,
+    "slot_2_always_available": true,
+    "note": "Red-rectangle stub replaces neural inference ONLY in this fixture check."
+  },
+  "ingestion": {
+    "black_clip": {
+      "black": 8
+    },
+    "black_clip_payloads": 0,
+    "frozen_clip": {
+      "valid": 4,
+      "frozen": 4
+    },
+    "frozen_after_test_s": 1,
+    "frozen_after_runtime_default_s": 30,
+    "local_eof_terminates": true
+  },
+  "not_tested": [
+    "real CCTV/RTSP transport",
+    "production 120-second CameraWatchdog",
+    "ASP.NET persistence and SignalR UI",
+    "custom trained best.pt",
+    "real-world occupancy accuracy",
+    "camera-to-UI latency"
+  ],
+  "followup_2026_10_28": {
+    "source_kind": "real_parking_video_user_supplied_not_FT_UGM",
+    "source": {
+      "source": "C:\\Users\\Nabil Abrian Aryo P\\Downloads\\YTDown.com_YouTube_Media_U7HRKjlXK-Y_BLK-HDPTZ12-Security-Camera-Parkng-Lot-Surveillance-Video_002_720p.mp4",
+      "fps": 30.0,
+      "frames": 9484,
+      "duration_seconds": 316.1333333333333,
+      "width": 1280.0,
+      "height": 720.0
+    },
+    "segment": {
+      "source_sha256": "cb206a38d655cef2e5983fffcf9c86d5f1ff3af211f1ac7460a434a417c2b2e7",
+      "clip_sha256": "bab6a16d4f72231ca352715797d8035a669fc8714a70a2acdba1a64c45cca96e",
+      "source_start_seconds": 5,
+      "source_end_seconds_exclusive": 150,
+      "clip_seconds": 145,
+      "frames": 4350,
+      "fps": 30,
+      "resolution": [
+        1280,
+        720
+      ],
+      "audio": false,
+      "reencoded": "OpenCV mp4v",
+      "method": "1Hz consecutive background optical flow; 5-second reference registration; visual candidate montage",
+      "limitations": "Not ground truth occupancy or a guarantee of subsecond camera stability"
+    },
+    "labels": {
+      "path": "docs/ai/real-video-sampled-labels.csv",
+      "annotator": "Codex visual inspection; not human reviewed",
+      "sample_times_seconds": [
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        100,
+        105,
+        110,
+        115,
+        120,
+        125,
+        130,
+        135,
+        140
+      ],
+      "scope": "6 selected slots, 29 frames, sparse intervals; not full-video ground truth",
+      "sha256": "ada6dfb675ca70aa9519a6be7eac30f41202ead6e40363ea3d5d57afb0a5d53b"
+    },
+    "roi": {
+      "path": "edge/python-agent/configs/real-video-demo.json",
+      "sha256": "03bb347476fe147dcbc495cc9161a57b8ac854da5137ceaea33f738632699613",
+      "ids": "demo-only 9001 camera/area; spots 9001..9006; not production"
+    },
+    "slot_evaluation": {
+      "scope": "annotated_slots_only",
+      "weighting": "sample_based_not_duration",
+      "confusion": {
+        "tp": 129,
+        "tn": 43,
+        "fp": 2,
+        "fn": 0
+      },
+      "per_slot": {
+        "VIDEO-01": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-02": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-03": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-04": {
+          "tp": 13,
+          "tn": 15,
+          "fp": 1,
+          "fn": 0
+        },
+        "VIDEO-05": {
+          "tp": 0,
+          "tn": 28,
+          "fp": 1,
+          "fn": 0
+        },
+        "VIDEO-06": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "labelled_frames": 29,
+      "expected_slot_samples": 174,
+      "scored_slot_samples": 174,
+      "coverage": 1.0,
+      "accuracy": 0.9885057471264368,
+      "occupied_precision": 0.9847328244274809,
+      "occupied_recall": 1.0,
+      "count_complete_frames": 29,
+      "occupancy_count_mae": 0.06896551724137931,
+      "limitations": [
+        "No detection mAP or camera-to-UI latency measured",
+        "Coverage excludes times absent from the input journal"
+      ]
+    },
+    "sample_errors": [
+      {
+        "clip_seconds": 65.0,
+        "spot": "VIDEO-04",
+        "label": "available",
+        "predicted": "occupied"
+      },
+      {
+        "clip_seconds": 110.0,
+        "spot": "VIDEO-05",
+        "label": "available",
+        "predicted": "occupied"
+      }
+    ],
+    "backend_integration": {
+      "scope": "ASP.NET + disposable SQLite + SignalR protocol; no browser UI or RTSP",
+      "events": [
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 1,
+              "spotNumber": "H-01",
+              "areaId": 1,
+              "status": "occupied",
+              "confidence": 0.9,
+              "updatedAt": "2026-10-27T18:53:59.636305+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 1,
+              "capacity": 10,
+              "occupied": 1,
+              "available": 9,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 1,
+              "spotNumber": "H-01",
+              "areaId": 1,
+              "status": "available",
+              "confidence": 0.9,
+              "updatedAt": "2026-10-27T18:54:00.008103+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 1,
+              "spotNumber": "H-01",
+              "areaId": 1,
+              "status": "occupied",
+              "confidence": 0.9,
+              "updatedAt": "2026-10-27T18:54:00.125498+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 1,
+              "capacity": 10,
+              "occupied": 1,
+              "available": 9,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 1,
+              "spotNumber": "H-01",
+              "areaId": 1,
+              "status": "available",
+              "confidence": 0.9,
+              "updatedAt": "2026-10-27T18:54:00.142632+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 1,
+              "capacity": 10,
+              "occupied": 0,
+              "available": 10,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 9001,
+              "capacity": 6,
+              "occupied": 5,
+              "available": 1,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 9001,
+              "capacity": 6,
+              "occupied": 4,
+              "available": 2,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 9001,
+              "capacity": 6,
+              "occupied": 5,
+              "available": 1,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 9001,
+              "capacity": 6,
+              "occupied": 4,
+              "available": 2,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "CameraStatusChanged",
+          "arguments": [
+            {
+              "cameraId": 1,
+              "areaId": 1,
+              "active": false,
+              "lastSeen": "2026-10-27T18:54:00.1666697+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "CameraStatusChanged",
+          "arguments": [
+            {
+              "cameraId": 1,
+              "areaId": 1,
+              "active": true,
+              "lastSeen": "2026-10-27T18:56:09.4933379+00:00"
+            }
+          ]
+        }
+      ],
+      "checks": {
+        "auth_rejection": true,
+        "hub_occupied": true,
+        "database_occupied": true,
+        "hub_available": true,
+        "database_available": true,
+        "signalr_reconnect_snapshot_rejoin": true,
+        "invalid_mapping_no_state_mutation": true,
+        "failed_commit_503_no_state_mutation": true,
+        "recovery_after_commit_failure": true,
+        "watchdog_120s_poll_15s": true,
+        "camera_reactivation": true
+      },
+      "http_send_to_hub_seconds": [
+        0.019058600002608728,
+        0.009644400000979658
+      ],
+      "watchdog_seconds": 129.31971239999984,
+      "untested": [
+        "browser UI",
+        "camera-to-UI latency",
+        "real RTSP fault recovery",
+        "camera never sending data",
+        "Azure/SQL Server",
+        "restart snapshot recovery"
+      ]
+    },
+    "real_video_backend": {
+      "scope": "Real clip replay -> Python YOLO -> ASP.NET -> SQLite -> SignalR; no UI",
+      "http_accepted": 8,
+      "http_failures": 0,
+      "signalr_spot_events": 9,
+      "database_detection_rows": 9,
+      "final_states": {
+        "VIDEO-01": "occupied",
+        "VIDEO-02": "occupied",
+        "VIDEO-03": "occupied",
+        "VIDEO-04": "available",
+        "VIDEO-05": "available",
+        "VIDEO-06": "occupied"
+      },
+      "database_and_snapshot_match": true,
+      "hub_events": [
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9001,
+              "spotNumber": "VIDEO-01",
+              "areaId": 9001,
+              "status": "occupied",
+              "confidence": 0.709,
+              "updatedAt": "2026-10-27T18:55:11.996647+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9002,
+              "spotNumber": "VIDEO-02",
+              "areaId": 9001,
+              "status": "occupied",
+              "confidence": 0.726,
+              "updatedAt": "2026-10-27T18:55:11.996647+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9003,
+              "spotNumber": "VIDEO-03",
+              "areaId": 9001,
+              "status": "occupied",
+              "confidence": 0.634,
+              "updatedAt": "2026-10-27T18:55:11.996647+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9004,
+              "spotNumber": "VIDEO-04",
+              "areaId": 9001,
+              "status": "occupied",
+              "confidence": 0.66,
+              "updatedAt": "2026-10-27T18:55:11.996647+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9005,
+              "spotNumber": "VIDEO-05",
+              "areaId": 9001,
+              "status": "available",
+              "confidence": 0,
+              "updatedAt": "2026-10-27T18:55:11.996647+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9006,
+              "spotNumber": "VIDEO-06",
+              "areaId": 9001,
+              "status": "occupied",
+              "confidence": 0.642,
+              "updatedAt": "2026-10-27T18:55:11.996647+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 9001,
+              "capacity": 6,
+              "occupied": 5,
+              "available": 1,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9004,
+              "spotNumber": "VIDEO-04",
+              "areaId": 9001,
+              "status": "available",
+              "confidence": 0.379,
+              "updatedAt": "2026-10-27T18:55:23.938901+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 9001,
+              "capacity": 6,
+              "occupied": 4,
+              "available": 2,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9005,
+              "spotNumber": "VIDEO-05",
+              "areaId": 9001,
+              "status": "occupied",
+              "confidence": 0.477,
+              "updatedAt": "2026-10-27T18:55:31.294544+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 9001,
+              "capacity": 6,
+              "occupied": 5,
+              "available": 1,
+              "status": "available"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "SpotStatusChanged",
+          "arguments": [
+            {
+              "spotId": 9005,
+              "spotNumber": "VIDEO-05",
+              "areaId": 9001,
+              "status": "available",
+              "confidence": 0.585,
+              "updatedAt": "2026-10-27T18:55:32.297777+00:00"
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "target": "ZoneUpdated",
+          "arguments": [
+            {
+              "areaId": 9001,
+              "capacity": 6,
+              "occupied": 4,
+              "available": 2,
+              "status": "available"
+            }
+          ]
+        }
+      ],
+      "limitations": [
+        "Accelerated replay, not end-to-end latency",
+        "Demo IDs only, no FT UGM calibration",
+        "No browser UI checked"
+      ]
+    },
+    "automated_tests": {
+      "passed": 17,
+      "junit": "output/ai-validation/pytest-2026-10-28-final.xml"
+    },
+    "remaining": [
+      "human review of sparse labels and ROI",
+      "independent clip and full interval annotations",
+      "motorcycle/occlusion/night/rain evaluation",
+      "real RTSP/network faults",
+      "camera-to-UI latency",
+      "never-seen camera and restart recovery",
+      "Azure/SQL Server migration and deployment",
+      "browser network reconnect and per-camera/per-slot freshness"
+    ],
+    "ui": {
+      "status": "browser smoke test passed",
+      "url": "http://127.0.0.1:5091/park",
+      "build": "0 errors; 2 existing BL0008 warnings",
+      "observed": [
+        "map and slot list render",
+        "live connection message",
+        "VIDEO-04 Occupied/Available without page reload",
+        "available count 1/6 -> 2/6",
+        "inactive camera warning"
+      ],
+      "input": "real YOLO replay and recorded inference initial/final payload replay",
+      "proof": [
+        "output/ai-validation/real-video/ui-before-ax.txt",
+        "output/ai-validation/real-video/ui-after-ax.txt",
+        "output/ai-validation/real-video/ui-final.png"
+      ],
+      "latency_measured": false,
+      "browser_network_reconnect_tested": false
+    }
+  },
+  "practical_demo": {
+    "scope": "User clarified: practical application exercise, not production daily-use parking",
+    "launcher": "demo.py",
+    "command": "py demo.py",
+    "default_speed": 2,
+    "fresh_database_per_run": true,
+    "existing_services_preserved": true,
+    "smoke_test": "passed: API + Web + real YOLO + HTTP + DB and service cleanup",
+    "unit_tests": 18,
+    "junit": "output/ai-validation/pytest-demo.xml",
+    "full_loop_check": {
+      "status": "passed",
+      "speed": 4,
+      "cycles": 2,
+      "http_accepted_per_cycle": [
+        8,
+        8
+      ],
+      "http_failures_per_cycle": [
+        0,
+        0
+      ],
+      "samples_per_cycle": [
+        290,
+        290
+      ],
+      "services_stopped_after_exit": true,
+      "run_directory": "output\\ai-validation\\demo\\20261028-025451-7ab721"
+    }
+  }
+}

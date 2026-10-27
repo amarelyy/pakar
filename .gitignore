@@ -70,3 +70,10 @@ desktop.ini
 # Testing Coverage
 coverage/
 *.coveragexml
+
+# Python inference runtime and local evaluation inputs/outputs
+.venv/
+.pytest_cache/
+edge/python-agent/assets/*
+!edge/python-agent/assets/.gitkeep
+output/ai-validation/

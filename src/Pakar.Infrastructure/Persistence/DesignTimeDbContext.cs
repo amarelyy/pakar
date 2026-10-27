@@ -13,10 +13,9 @@ public static class DesignTimeDbContext
     private const string ApiUserSecretsId = "6ea7defb-9323-4a28-9a3c-7bb1d533757f";
 
     // Used only when no connection string is configured; enough for `migrations add`, which never connects.
-    private const string PlaceholderSqlServer = "Server=localhost;Database=PakarDb;Trusted_Connection=True;TrustServerCertificate=True";
-    private const string PlaceholderSqlite = "Data Source=PakarDev.db";
+    private const string PlaceholderConnection = "Server=(localdb)\\MSSQLLocalDB;Database=PakarDb;Trusted_Connection=True;TrustServerCertificate=True";
 
-    public static AppDbContext Create(DatabaseProvider provider)
+    public static AppDbContext Create()
     {
         var configuration = new ConfigurationBuilder()
             .SetBasePath(FindApiProjectDirectory())
@@ -27,13 +26,11 @@ public static class DesignTimeDbContext
             .Build();
 
         var connectionString = configuration.GetConnectionString(DatabaseSetup.ConnectionStringName);
-
-        // A configured connection string only applies when it targets the provider being migrated.
-        if (string.IsNullOrWhiteSpace(connectionString) || DatabaseSetup.GetProvider(configuration) != provider)
-            connectionString = provider == DatabaseProvider.SqlServer ? PlaceholderSqlServer : PlaceholderSqlite;
+        if (string.IsNullOrWhiteSpace(connectionString))
+            connectionString = PlaceholderConnection;
 
         var options = new DbContextOptionsBuilder<AppDbContext>();
-        DatabaseSetup.Configure(options, provider, connectionString);
+        DatabaseSetup.Configure(options, connectionString);
         return new AppDbContext(options.Options);
     }
 

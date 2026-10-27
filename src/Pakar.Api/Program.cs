@@ -14,15 +14,17 @@ using Pakar.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Persistence. Database:Provider selects SqlServer (Azure SQL, the default) or Sqlite (local development).
-var databaseProvider = DatabaseSetup.GetProvider(builder.Configuration);
+// Persistence: Azure SQL Database (SQL Server engine).
 var connectionString = builder.Configuration.GetConnectionString(DatabaseSetup.ConnectionStringName);
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(
         "ConnectionStrings:DefaultConnection is not configured. Set it via user-secrets or environment variables.");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    DatabaseSetup.Configure(options, databaseProvider, connectionString));
+builder.Services.AddDbContext<AppDbContext>(options => DatabaseSetup.Configure(options, connectionString));
+
+// Container Apps probes: /health/live (process up) and /health/ready (database reachable).
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("database", tags: ["ready"]);
 
 // Secrets are validated at startup so a misconfigured deployment fails fast instead of serving requests.
 builder.Services.AddOptions<JwtOptions>()
@@ -128,6 +130,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
 
 app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
 {

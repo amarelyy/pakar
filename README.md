@@ -20,31 +20,32 @@ variables with `__` as the separator (for example `Jwt__Key`), sourced from Azur
 
 | Key | Purpose |
 | --- | --- |
-| `Database:Provider` | `SqlServer` (Azure SQL, default) or `Sqlite` (local development). |
-| `ConnectionStrings:DefaultConnection` | Connection string for the selected provider. |
+| `ConnectionStrings:DefaultConnection` | Azure SQL Database connection string (SQL Server engine). |
 | `Database:ApplyMigrationsOnStartup` | Defaults to `true` in Development and `false` elsewhere. |
 | `Jwt:Key` | JWT signing key, at least 32 bytes. |
 | `Ingest:ApiKey` | Shared key edge devices send in the `X-Api-Key` header, at least 32 characters. |
 | `Inference:BaseUrl`, `Inference:ApiKey` | Optional. Pakar.AiInference address and key; live scanning is disabled when empty. |
 | `Admin:Email`, `Admin:Password` | Optional. Creates the first Admin account on startup if it does not exist. |
 
-Local development with SQLite (stored outside the repo via user-secrets):
+Production (Azure SQL, passwordless through the Container App's managed identity):
+
+```
+Server=tcp:<server>.database.windows.net,1433;Database=PakarDb;Authentication=Active Directory Default;Encrypt=True;
+```
+
+Local testing uses the same SQL Server engine, either LocalDB (Windows) or the container in
+`infra/docker-compose.yml`. Secrets are stored outside the repo via user-secrets:
 
 ```bash
 cd src/Pakar.Api
-dotnet user-secrets set "Database:Provider" "Sqlite"
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Data Source=PakarDev.db"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=(localdb)\MSSQLLocalDB;Database=PakarDb;Trusted_Connection=True;TrustServerCertificate=True;"
 dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)"
 dotnet user-secrets set "Ingest:ApiKey" "$(openssl rand -hex 32)"
 dotnet user-secrets set "Admin:Email" "admin@example.com"
 dotnet user-secrets set "Admin:Password" "<at least 12 characters>"
 ```
 
-Azure SQL connection string (passwordless, using the Container App's managed identity):
-
-```
-Server=tcp:<server>.database.windows.net,1433;Database=PakarDb;Authentication=Active Directory Default;Encrypt=True;
-```
+Health endpoints for Container Apps probes: `/health/live` (process) and `/health/ready` (database).
 
 ### Pakar.AiInference
 
@@ -60,17 +61,19 @@ Server=tcp:<server>.database.windows.net,1433;Database=PakarDb;Authentication=Ac
 
 ## Database Migrations
 
-Each provider keeps its own migration history, because column types differ between engines.
-Change the model once, then add a migration to both projects:
+Migrations live in `src/Pakar.Migrations.SqlServer`. After changing an entity or a file in
+`Persistence/Configurations`, add a migration:
 
 ```bash
 dotnet ef migrations add <Name> --project src/Pakar.Migrations.SqlServer --startup-project src/Pakar.Migrations.SqlServer
-dotnet ef migrations add <Name> --project src/Pakar.Migrations.Sqlite --startup-project src/Pakar.Migrations.Sqlite
 ```
 
-Production applies migrations as a deployment step:
+Production applies migrations as a deployment step with a migration bundle:
 
 ```bash
 dotnet ef migrations bundle --project src/Pakar.Migrations.SqlServer --startup-project src/Pakar.Migrations.SqlServer -o efbundle --self-contained
 ./efbundle --connection "<Azure SQL connection string>"
 ```
+
+Zones and cameras are soft-deleted (`DeletedAt`) so detection history is kept; queries hide them
+automatically, and `IgnoreQueryFilters()` reads them for history.

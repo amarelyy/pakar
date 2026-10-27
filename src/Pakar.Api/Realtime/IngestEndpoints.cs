@@ -75,7 +75,7 @@ public static class IngestEndpoints
                 return;
             }
 
-            camera.LastActiveTime = now;
+            camera.LastActiveTime = now.UtcDateTime;
 
             if (detections.Count > 0)
             {

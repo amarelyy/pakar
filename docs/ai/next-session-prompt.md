@@ -1,3 +1,20 @@
+Update default model: pipeline.py sekarang default assets/best.pt dan mode auto
+memilih adapter slot empty/occupied. COCO tetap bisa dipilih eksplisit. Adapter
+HTTP mengirim hanya slot yang teramati, unknown tidak dijadikan available dan
+backend mempertahankan last-known. Demo.py lokal juga default best.pt tetapi
+launcher/backend/UI tetap di luar commit AI. File best.pt di Drive, tidak diGit.
+25 tes lulus. Lihat docs/ai/best-default-2026-10-28.md untuk bukti terbaru.
+Bagian di bawah berisi riwayat sebelum perubahan default ini.
+
+Pembaruan model custom (28 Oktober): file Downloads pakarmodelsenpro.pt dan
+pakarmodel1.pt identik; disalin ke assets/best.pt. Task detect, kelas empty/occupied,
+metadata baseyolov8n/epochs50 (bukan verifikasi riwayat training). Adapter offline
+slot_labels.py dan runner validate_custom_model.py ditambahkan. Uji145s/290sampel
+selesai:156 benar,1 beda,17 unknown dari174 label; coverage90,23%. 23 tes lulus.
+Baca custom-model-validation-2026-10-28.md dan custom-model-evidence.json.
+Demo.py/website masih COCO, custom belum diuji HTTP/UI. File .pt diabaikan Git.
+Perubahan custom-model belum di-commit/push; commit AI sebelumnya db35f30 tetap.
+
 SCOPE TERBARU DARI NABIL: proyek untuk praktikum/latihan, bukan pemakaian
 sehari-hari. AI inti sudah berfungsi untuk lingkup ini; jangan menjadikan RTSP
 FT UGM, Azure, cuaca, atau model custom syarat selesai. Launcher py demo.py

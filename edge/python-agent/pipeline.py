@@ -1,4 +1,4 @@
-"""YOLO vehicle detector -> slot ROI occupancy -> HTTP ingest -> backend SignalR.
+"""YOLO slot/vehicle detector -> slot ROI occupancy -> HTTP ingest -> backend SignalR.
 
 Local replay uses media time (never wall-clock skipping) and stops at EOF.
 No requests are made unless --backend-url is explicitly provided.
@@ -22,6 +22,7 @@ import requests
 from ingestion import FrameValidator, iter_frames
 from occupancy import DEFAULT_VEHICLE_CLASSES, Detection, OccupancyEngine
 from roi_mapping import CameraROIConfig
+from slot_labels import SlotOccupancyAdapter, validate_slot_classes
 
 
 def validate_model_classes(names, requested):
@@ -45,6 +46,8 @@ class YOLODetector:
             raise FileNotFoundError(f"Local model not found: {model_path}")
         self.model = YOLO(str(model_path))
         self.names = self.model.names
+        if set(self.names.values()) == {"empty", "occupied"}:
+            self.kind = "ultralytics_slot_detector"
         self.conf = conf
         self.imgsz = imgsz
 
@@ -80,12 +83,14 @@ def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--source", required=True)
     p.add_argument("--source-kind", choices=["auto", "file", "live"], default="auto")
-    p.add_argument("--model", required=True, help="Existing local .pt path; no implicit download")
+    p.add_argument("--model", default=str(Path(__file__).parent / "assets/best.pt"),
+                   help="Existing weights; defaults to custom assets/best.pt; no implicit download")
+    p.add_argument("--mode", choices=["auto", "slots", "vehicles"], default="auto")
     p.add_argument("--roi", required=True)
     p.add_argument("--backend-url")
     p.add_argument("--vehicle-classes", nargs="+", default=list(DEFAULT_VEHICLE_CLASSES))
     p.add_argument("--conf", type=float, default=0.25)
-    p.add_argument("--min-conf", type=float, default=0.35)
+    p.add_argument("--min-conf", type=float, default=None, help="Default .25 slots / .35 vehicles")
     p.add_argument("--imgsz", type=int, default=640)
     p.add_argument("--infer-fps", type=float, default=2)
     p.add_argument("--occupy-after", type=float, default=2)
@@ -117,9 +122,16 @@ def run_pipeline(args, detector=None, client=None):
     cfg = CameraROIConfig.load(args.roi)
     detector = detector if detector is not None else YOLODetector(args.model, args.conf, args.imgsz)
     requested = tuple(c.lower() for c in args.vehicle_classes)
-    validate_model_classes(detector.names, requested)
-    engine = OccupancyEngine(cfg, requested, min_conf=args.min_conf,
-                             occupy_after_s=args.occupy_after, free_after_s=args.free_after)
+    labels = {str(n).lower() for n in (detector.names.values() if isinstance(detector.names, dict) else detector.names)}
+    mode = args.mode if args.mode != "auto" else ("slots" if labels == {"empty", "occupied"} else "vehicles")
+    min_conf = args.min_conf if args.min_conf is not None else (.25 if mode == "slots" else .35)
+    if mode == "slots":
+        validate_slot_classes(detector.names, getattr(getattr(detector, "model", None), "task", "detect"))
+        engine = SlotOccupancyAdapter(cfg, min_conf, args.occupy_after, args.free_after)
+    else:
+        validate_model_classes(detector.names, requested)
+        engine = OccupancyEngine(cfg, requested, min_conf=min_conf,
+                                 occupy_after_s=args.occupy_after, free_after_s=args.free_after)
     validator = FrameValidator(args.frozen_after)
     if client is None and args.backend_url:
         client = BackendClient(args.backend_url, os.getenv("PAKAR_API_KEY"))
@@ -180,7 +192,7 @@ def run_pipeline(args, detector=None, client=None):
             changes += len(events)
             beat_due = last_beat is None or now - last_beat >= args.heartbeat
             payload = None
-            if events or beat_due or needs_snapshot:
+            if (events or beat_due or needs_snapshot) and engine.snapshot(now):
                 full = beat_due or needs_snapshot
                 stamp = datetime.now(timezone.utc).isoformat()
                 spots = [dict(e.to_dict(), timestamp=stamp)
@@ -200,6 +212,7 @@ def run_pipeline(args, detector=None, client=None):
                    "detections": [{"xyxy": d.xyxy, "confidence": d.conf, "class": d.cls_name}
                                   for d in detections],
                    "states": {e.spot_number: e.status for e in engine.snapshot(now)},
+                   "unknown": getattr(engine, "unknown", {}),
                    "zone": engine.zone_counts(), "payload": payload})
             if args.annotated_video:
                 if writer is None:
@@ -209,7 +222,9 @@ def run_pipeline(args, detector=None, client=None):
                         raise RuntimeError("Could not open annotated video writer")
                 overlay = sample.image.copy()
                 for spot in cfg.spots:
-                    color = (0, 0, 255) if engine.states[spot.spot_id].occupied else (0, 220, 0)
+                    states = {e.spot_number:e.status for e in engine.snapshot(now)}
+                    status = states.get(spot.spot_number, "unknown")
+                    color = (0, 0, 255) if status == "occupied" else (0, 220, 0) if status == "available" else (0,180,255)
                     cv2.polylines(overlay, [spot.to_pixels(w, h)], True, color, 3)
                 cv2.putText(overlay, f"{detector.kind} | {now:.1f}s | {engine.zone_counts()['occupied']}/{len(cfg.spots)}",
                             (8, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
@@ -226,6 +241,7 @@ def run_pipeline(args, detector=None, client=None):
             writer.release()
     summary = {
         "detector_kind": detector.kind,
+        "mode": mode, "min_conf": min_conf,
         "source": str(args.source),
         "source_sha256": sha256(args.source) if Path(args.source).is_file() else None,
         "model": str(args.model),

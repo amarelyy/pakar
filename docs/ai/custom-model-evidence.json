@@ -1,0 +1,574 @@
+{
+  "inspection": [
+    {
+      "file": "C:\\Users\\Nabil Abrian Aryo P\\Downloads\\pakarmodelsenpro.pt",
+      "bytes": 6251050,
+      "sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+      "task": "detect",
+      "names": {
+        "0": "empty",
+        "1": "occupied"
+      },
+      "training": {
+        "model": "yolov8n.pt",
+        "data": "/content/Parking-Space-1/data.yaml",
+        "epochs": 50,
+        "imgsz": 640,
+        "task": "detect",
+        "single_cls": false
+      },
+      "epoch": -1
+    },
+    {
+      "file": "C:\\Users\\Nabil Abrian Aryo P\\Downloads\\pakarmodel1.pt",
+      "bytes": 6251050,
+      "sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+      "task": "detect",
+      "names": {
+        "0": "empty",
+        "1": "occupied"
+      },
+      "training": {
+        "model": "yolov8n.pt",
+        "data": "/content/Parking-Space-1/data.yaml",
+        "epochs": 50,
+        "imgsz": 640,
+        "task": "detect",
+        "single_cls": false
+      },
+      "epoch": -1
+    }
+  ],
+  "test": {
+    "model": "edge\\python-agent\\assets\\best.pt",
+    "model_sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+    "video_sha256": "bab6a16d4f72231ca352715797d8035a669fc8714a70a2acdba1a64c45cca96e",
+    "roi_sha256": "03bb347476fe147dcbc495cc9161a57b8ac854da5137ceaea33f738632699613",
+    "labels_sha256": "ada6dfb675ca70aa9519a6be7eac30f41202ead6e40363ea3d5d57afb0a5d53b",
+    "model_classes": {
+      "0": "empty",
+      "1": "occupied"
+    },
+    "sampled_frames": 290,
+    "frame_health": {
+      "valid": 290
+    },
+    "raw_detection_counts": {
+      "occupied": 3587,
+      "empty": 657
+    },
+    "inference_ms_mean": 58.124154482783496,
+    "inference_ms_p95": 98.16123499986138,
+    "parameters": {
+      "infer_fps": 2,
+      "imgsz": 640,
+      "conf": 0.25,
+      "min_iou": 0.1,
+      "conflict_margin": 0.1,
+      "occupy_after": 2,
+      "free_after": 3
+    },
+    "evaluation_conf025": {
+      "scope": "annotated_slots_only",
+      "weighting": "sample_based_not_duration",
+      "confusion": {
+        "tp": 128,
+        "tn": 28,
+        "fp": 1,
+        "fn": 0
+      },
+      "per_slot": {
+        "VIDEO-01": {
+          "tp": 28,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-02": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-03": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-04": {
+          "tp": 13,
+          "tn": 14,
+          "fp": 1,
+          "fn": 0
+        },
+        "VIDEO-05": {
+          "tp": 0,
+          "tn": 14,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-06": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "labelled_frames": 29,
+      "expected_slot_samples": 174,
+      "scored_slot_samples": 157,
+      "coverage": 0.9022988505747126,
+      "accuracy": 0.9936305732484076,
+      "occupied_precision": 0.9922480620155039,
+      "occupied_recall": 1.0,
+      "count_complete_frames": 13,
+      "occupancy_count_mae": 0.0,
+      "limitations": [
+        "No detection mAP or camera-to-UI latency measured",
+        "Coverage excludes times absent from the input journal"
+      ]
+    },
+    "sensitivity_conf035": {
+      "scope": "annotated_slots_only",
+      "weighting": "sample_based_not_duration",
+      "confusion": {
+        "tp": 129,
+        "tn": 17,
+        "fp": 1,
+        "fn": 0
+      },
+      "per_slot": {
+        "VIDEO-01": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-02": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-03": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-04": {
+          "tp": 13,
+          "tn": 14,
+          "fp": 1,
+          "fn": 0
+        },
+        "VIDEO-05": {
+          "tp": 0,
+          "tn": 3,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-06": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "labelled_frames": 29,
+      "expected_slot_samples": 174,
+      "scored_slot_samples": 147,
+      "coverage": 0.8448275862068966,
+      "accuracy": 0.9931972789115646,
+      "occupied_precision": 0.9923076923076923,
+      "occupied_recall": 1.0,
+      "count_complete_frames": 3,
+      "occupancy_count_mae": 0.0,
+      "limitations": [
+        "No detection mAP or camera-to-UI latency measured",
+        "Coverage excludes times absent from the input journal"
+      ]
+    },
+    "mismatches_or_unknown_labelled_samples": [
+      {
+        "seconds": 15.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 20.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 30.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 40.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 45.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 50.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 55.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 60.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 65.0,
+        "spot": "VIDEO-04",
+        "expected": "available",
+        "predicted": "occupied"
+      },
+      {
+        "seconds": 65.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 95.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 100.0,
+        "spot": "VIDEO-04",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 100.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 105.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 115.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 120.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 130.0,
+        "spot": "VIDEO-05",
+        "expected": "available",
+        "predicted": "unknown"
+      },
+      {
+        "seconds": 135.0,
+        "spot": "VIDEO-01",
+        "expected": "occupied",
+        "predicted": "unknown"
+      }
+    ],
+    "transitions": [
+      {
+        "spot": "VIDEO-01",
+        "previous": null,
+        "status": "occupied",
+        "seconds": 0.0
+      },
+      {
+        "spot": "VIDEO-02",
+        "previous": null,
+        "status": "occupied",
+        "seconds": 0.0
+      },
+      {
+        "spot": "VIDEO-03",
+        "previous": null,
+        "status": "occupied",
+        "seconds": 0.0
+      },
+      {
+        "spot": "VIDEO-04",
+        "previous": null,
+        "status": "occupied",
+        "seconds": 0.0
+      },
+      {
+        "spot": "VIDEO-05",
+        "previous": null,
+        "status": "available",
+        "seconds": 0.0
+      },
+      {
+        "spot": "VIDEO-06",
+        "previous": null,
+        "status": "occupied",
+        "seconds": 0.0
+      },
+      {
+        "spot": "VIDEO-04",
+        "previous": "occupied",
+        "status": "available",
+        "seconds": 66.5
+      }
+    ],
+    "final_observation": {
+      "kind": "observation",
+      "frame": 4335,
+      "media_seconds": 144.5,
+      "states": {
+        "VIDEO-01": "occupied",
+        "VIDEO-02": "occupied",
+        "VIDEO-03": "occupied",
+        "VIDEO-04": "available",
+        "VIDEO-05": "available",
+        "VIDEO-06": "occupied"
+      },
+      "raw_states": {
+        "VIDEO-01": "occupied",
+        "VIDEO-02": "occupied",
+        "VIDEO-03": "occupied",
+        "VIDEO-04": "available",
+        "VIDEO-05": "available",
+        "VIDEO-06": "occupied"
+      },
+      "unknown": {},
+      "changes": []
+    },
+    "limitations": [
+      "Sparse Codex visual labels, not independently reviewed",
+      "Unknown predictions excluded from accuracy; inspect coverage and errors together",
+      "No held-out training split or detection mAP reproduced",
+      "No HTTP/backend/UI test in this offline custom-model run",
+      "Different adapter from COCO; not a controlled model-only superiority claim"
+    ]
+  },
+  "comparison": {
+    "scope": "same 29 selected frames / 6 ROIs; different model label contracts and adapters, no superiority claim",
+    "baseline_coco": {
+      "scope": "annotated_slots_only",
+      "weighting": "sample_based_not_duration",
+      "confusion": {
+        "tp": 129,
+        "tn": 43,
+        "fp": 2,
+        "fn": 0
+      },
+      "per_slot": {
+        "VIDEO-01": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-02": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-03": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-04": {
+          "tp": 13,
+          "tn": 15,
+          "fp": 1,
+          "fn": 0
+        },
+        "VIDEO-05": {
+          "tp": 0,
+          "tn": 28,
+          "fp": 1,
+          "fn": 0
+        },
+        "VIDEO-06": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "labelled_frames": 29,
+      "expected_slot_samples": 174,
+      "scored_slot_samples": 174,
+      "coverage": 1.0,
+      "accuracy": 0.9885057471264368,
+      "occupied_precision": 0.9847328244274809,
+      "occupied_recall": 1.0,
+      "count_complete_frames": 29,
+      "occupancy_count_mae": 0.06896551724137931,
+      "limitations": [
+        "No detection mAP or camera-to-UI latency measured",
+        "Coverage excludes times absent from the input journal"
+      ]
+    },
+    "custom_slot_model": {
+      "scope": "annotated_slots_only",
+      "weighting": "sample_based_not_duration",
+      "confusion": {
+        "tp": 128,
+        "tn": 28,
+        "fp": 1,
+        "fn": 0
+      },
+      "per_slot": {
+        "VIDEO-01": {
+          "tp": 28,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-02": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-03": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-04": {
+          "tp": 13,
+          "tn": 14,
+          "fp": 1,
+          "fn": 0
+        },
+        "VIDEO-05": {
+          "tp": 0,
+          "tn": 14,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-06": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "labelled_frames": 29,
+      "expected_slot_samples": 174,
+      "scored_slot_samples": 157,
+      "coverage": 0.9022988505747126,
+      "accuracy": 0.9936305732484076,
+      "occupied_precision": 0.9922480620155039,
+      "occupied_recall": 1.0,
+      "count_complete_frames": 13,
+      "occupancy_count_mae": 0.0,
+      "limitations": [
+        "No detection mAP or camera-to-UI latency measured",
+        "Coverage excludes times absent from the input journal"
+      ]
+    },
+    "custom_threshold035": {
+      "scope": "annotated_slots_only",
+      "weighting": "sample_based_not_duration",
+      "confusion": {
+        "tp": 129,
+        "tn": 17,
+        "fp": 1,
+        "fn": 0
+      },
+      "per_slot": {
+        "VIDEO-01": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-02": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-03": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-04": {
+          "tp": 13,
+          "tn": 14,
+          "fp": 1,
+          "fn": 0
+        },
+        "VIDEO-05": {
+          "tp": 0,
+          "tn": 3,
+          "fp": 0,
+          "fn": 0
+        },
+        "VIDEO-06": {
+          "tp": 29,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "labelled_frames": 29,
+      "expected_slot_samples": 174,
+      "scored_slot_samples": 147,
+      "coverage": 0.8448275862068966,
+      "accuracy": 0.9931972789115646,
+      "occupied_precision": 0.9923076923076923,
+      "occupied_recall": 1.0,
+      "count_complete_frames": 3,
+      "occupancy_count_mae": 0.0,
+      "limitations": [
+        "No detection mAP or camera-to-UI latency measured",
+        "Coverage excludes times absent from the input journal"
+      ]
+    },
+    "custom_unknown_frames_per_slot": {
+      "VIDEO-05": 134,
+      "VIDEO-06": 2,
+      "VIDEO-04": 5,
+      "VIDEO-01": 7
+    },
+    "custom_labeled_match_fraction_including_unknown_as_unresolved": 0.896551724137931
+  },
+  "outputs": "output/ai-validation/custom-model/",
+  "backend_tested_with_custom_model": false,
+  "default_demo_model_changed": false
+}

@@ -1,18 +1,47 @@
 {
-  "runtime_approach": "vehicle detection followed by polygon ROI occupancy",
+  "runtime_approach": "custom slot empty/occupied detection -> explicit polygon mapping/debounce; COCO vehicles remain optional",
   "baseline": {
     "filename": "yolov8n.pt",
     "family": "Ultralytics YOLOv8 nano",
     "task": "detect",
     "training_labels": "COCO 80 classes",
-    "selected_classes": ["car", "motorcycle", "bus", "truck"],
+    "selected_classes": [
+      "car",
+      "motorcycle",
+      "bus",
+      "truck"
+    ],
     "sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
     "status": "verified loadable and compatible; not validated on campus CCTV"
   },
   "reported_custom_model": {
     "filename": "best.pt",
-    "reported_labels": ["empty", "occupied"],
-    "status": "not present in the supplied source folder; metrics not revalidated",
-    "runtime_compatibility": "requires a separate slot-classification adapter and evaluation"
-  }
+    "reported_labels": [
+      "empty",
+      "occupied"
+    ],
+    "status": "artifact available, labels inspected, offline real-video test completed; training mAP not reproduced",
+    "runtime_compatibility": "pipeline.py auto/slots mode with partial HTTP snapshots; local demo defaults to best.pt",
+    "local_filename": "best.pt",
+    "original_filenames": [
+      "pakarmodelsenpro.pt",
+      "pakarmodel1.pt"
+    ],
+    "sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+    "observed_labels": [
+      "empty",
+      "occupied"
+    ],
+    "task": "detect",
+    "training_metadata": {
+      "base_model": "yolov8n.pt",
+      "epochs_argument": 50,
+      "imgsz": 640,
+      "dataset_path": "/content/Parking-Space-1/data.yaml",
+      "checkpoint_epoch": -1
+    },
+    "provenance_limit": "identical files found in Downloads; filename best.pt is local alias; dataset/split, original best-epoch history and authorship not independently established"
+  },
+  "default_model": "best.pt",
+  "default_mode": "slots"
 }

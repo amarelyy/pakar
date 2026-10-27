@@ -1,5 +1,28 @@
 # Python camera agent
 
+Default weights are now **assets/best.pt**, the custom empty/occupied detector.
+`pipeline.py` selects the slot adapter for these labels and retains the vehicle
+adapter when COCO weights are explicitly passed. Missing slot detections are
+unknown, never automatically available. HTTP snapshots omit unknown slots;
+the backend/UI retain last-known status for those slots, not fresh certainty.
+An entirely unknown frame sends no heartbeat. ROI/debounce/retry/file timing
+remain available. No weights are bundled or downloaded automatically.
+
+Standalone run (repository root, after downloading assets):
+
+```powershell
+py -X utf8 edge/python-agent/pipeline.py --source edge/python-agent/assets/parking-demo.mp4 --roi edge/python-agent/configs/real-video-demo.json --replay-speed 2 --events output/ai-validation/best/events.jsonl --summary output/ai-validation/best/summary.json --annotated-video output/ai-validation/best/overlay.mp4
+```
+
+This command defaults to best.pt. For the previous baseline, explicitly add
+`--model edge/python-agent/assets/yolov8n.pt --mode vehicles`. Custom defaults
+use confidence0.25; vehicle defaults retain0.35. `--mode slots` can enforce the
+custom label contract. A checkpoint with incompatible classes fails explicitly.
+
+The custom offline evaluation and its limitations are documented in
+[the custom model report](../../docs/ai/custom-model-validation-2026-10-28.md).
+The following older COCO examples remain usable when weights are explicit.
+
 Download links for the local model/video (to be filled by Nabil):
 [ASSETS.md](ASSETS.md). Branch preparation and scope:
 [AI-PAKAR handoff](../../docs/ai/AI-PAKAR-handoff.md).
@@ -16,9 +39,8 @@ This agent is the working Python implementation. The existing
 `src/Pakar.AiInference` C# project remains a scaffold; an ONNX/.NET port is a
 separate decision, not a prerequisite for testing this agent.
 
-Read [MODEL_CARD.md](MODEL_CARD.md) before selecting weights. The supported
-baseline is `yolov8n.pt` with COCO vehicle labels, not the unprovided custom
-empty/occupied model from the training report.
+Read [MODEL_CARD.md](MODEL_CARD.md) before selecting weights. The current default is custom `best.pt`; `yolov8n.pt` remains the comparison
+baseline with COCO vehicle labels. Both model contracts have explicit adapters.
 
 ## Install and run (PowerShell, repository root)
 

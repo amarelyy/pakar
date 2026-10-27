@@ -721,5 +721,19 @@
       "services_stopped_after_exit": true,
       "run_directory": "output\\ai-validation\\demo\\20261028-025451-7ab721"
     }
+  },
+  "custom_model_followup": {
+    "model_sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+    "report": "docs/ai/custom-model-validation-2026-10-28.md",
+    "evidence": "docs/ai/custom-model-evidence.json",
+    "samples": 290,
+    "labelled_slot_samples": 174,
+    "correct": 156,
+    "incorrect": 1,
+    "unknown": 17,
+    "coverage": 0.9022988505747126,
+    "pytest_passed": 23,
+    "default_demo_model_changed": false,
+    "backend_tested_with_custom": false
   }
 }

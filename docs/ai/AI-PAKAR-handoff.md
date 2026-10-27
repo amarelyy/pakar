@@ -1,5 +1,10 @@
 # Penyerahan bagian AI — branch AI-PAKAR
 
+Default terbaru adalah **best.pt** (model custom empty/occupied), dengan adapter
+slot dan HTTP snapshot parsial. COCO tetap pilihan pembanding. Binary model
+dibagikan melalui Google Drive, bukan GitHub. Lihat
+[laporan switch default](best-default-2026-10-28.md).
+
 Branch `AI-PAKAR` dibuat dari `codex/ai-local-validation` untuk penyerahan
 pekerjaan AI Nabil. Branch sudah dipublikasikan. Commit AI inti berisi kode
 Python, tes, konfigurasi, dokumentasi dan aturan ignore. Perubahan backend/UI

@@ -1,0 +1,27 @@
+{
+  "model_sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+  "model_mode": "slots",
+  "sampled_frames": 290,
+  "http_accepted": 6,
+  "http_failures": 0,
+  "database_detection_rows": 7,
+  "database_final_states": {
+    "VIDEO-01": 1,
+    "VIDEO-02": 1,
+    "VIDEO-03": 1,
+    "VIDEO-04": 0,
+    "VIDEO-05": 0,
+    "VIDEO-06": 1
+  },
+  "final_zone": {
+    "areaId": 9001,
+    "capacity": 6,
+    "occupied": 4,
+    "available": 2,
+    "unknown": 0
+  },
+  "replay_speed": 4.0,
+  "run_directory": "output\\ai-validation\\demo\\20261028-035241-f7de34",
+  "browser_live_updates_retested": false,
+  "pytest_passed": 25
+}

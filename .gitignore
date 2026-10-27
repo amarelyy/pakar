@@ -77,8 +77,3 @@ coverage/
 *.db
 *.db-shm
 *.db-wal
-
-# AI assistant instruction files are local only
-CLAUDE.md
-CLAUDE.local.md
-.claude/

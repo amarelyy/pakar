@@ -1,0 +1,60 @@
+@page "/login"
+@using Microsoft.AspNetCore.Components.Forms
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+@using System.ComponentModel.DataAnnotations
+
+<h1>Log in</h1>
+
+<EditForm Model="model" OnValidSubmit="HandleLogin" FormName="login-form">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-field">
+        <label>Email</label>
+        <InputText @bind-Value="model.Email" />
+    </div>
+
+    <div class="form-field">
+        <label>Password</label>
+        <InputText type="password" @bind-Value="model.Password" />
+    </div>
+
+    @if (errorMessage is not null)
+    {
+        <p class="form-error">@errorMessage</p>
+    }
+
+    <button type="submit" disabled="@isSubmitting">
+        @(isSubmitting ? "Logging in..." : "Log in")
+    </button>
+</EditForm>
+
+<p>No account yet? <a href="/register">Register</a></p>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel model { get; set; } = new();
+
+    private bool isSubmitting;
+    private string? errorMessage;
+
+    private async Task HandleLogin()
+    {
+        isSubmitting = true;
+        errorMessage = null;
+
+        // TODO: replace with real call once rere's POST /login endpoint exists
+        // returns a JWT — store it (e.g. in a cookie or browser storage) for
+        // later requests, and to check role for RBAC-gated pages
+        await Task.Delay(500);
+
+        isSubmitting = false;
+        // TODO: on real success, store the token and redirect to "/"
+    }
+
+    public class LoginModel
+    {
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required] public string Password { get; set; } = "";
+    }
+}

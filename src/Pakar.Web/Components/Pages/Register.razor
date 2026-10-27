@@ -1,0 +1,65 @@
+@page "/register"
+@using Microsoft.AspNetCore.Components.Forms
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+@using System.ComponentModel.DataAnnotations
+
+<h1>Create an account</h1>
+
+<EditForm Model="model" OnValidSubmit="HandleRegister" FormName="register-form">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-field">
+        <label>Name</label>
+        <InputText @bind-Value="model.Name" />
+    </div>
+
+    <div class="form-field">
+        <label>Email</label>
+        <InputText @bind-Value="model.Email" />
+    </div>
+
+    <div class="form-field">
+        <label>Password</label>
+        <InputText type="password" @bind-Value="model.Password" />
+    </div>
+
+    @if (errorMessage is not null)
+    {
+        <p class="form-error">@errorMessage</p>
+    }
+
+    <button type="submit" disabled="@isSubmitting">
+        @(isSubmitting ? "Creating account..." : "Register")
+    </button>
+</EditForm>
+
+<p>Already have an account? <a href="/login">Log in</a></p>
+
+@code {
+    [SupplyParameterFromForm]
+    private RegisterModel model { get; set; } = new();
+
+    private bool isSubmitting;
+    private string? errorMessage;
+
+    private async Task HandleRegister()
+    {
+        isSubmitting = true;
+        errorMessage = null;
+
+        // TODO: replace with real call once rere's POST /register endpoint exists
+        // var result = await Http.CreateClient("api").PostAsJsonAsync("api/register", model);
+        await Task.Delay(500); // simulates a network call
+
+        isSubmitting = false;
+        // TODO: on real success, redirect to /login or auto-login
+    }
+
+    public class RegisterModel
+    {
+        [Required] public string Name { get; set; } = "";
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required, MinLength(8)] public string Password { get; set; } = "";
+    }
+}

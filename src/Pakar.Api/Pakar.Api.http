@@ -1,6 +1,18 @@
-@Pakar.Api_HostAddress = http://localhost:5249
+@host = http://localhost:5249
+@adminToken = paste-token-from-login
 
-GET {{Pakar.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Log in and copy the returned token into @adminToken
+POST {{host}}/api/auth/login
+Content-Type: application/json
 
-###
+{ "email": "admin@example.com", "password": "change-me-please" }
+
+### Public zone listing
+GET {{host}}/api/parking/zones
+
+### Admin: create a zone (requires the Admin role)
+POST {{host}}/api/zones
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "name": "Example Zone", "totalCapacity": 10 }

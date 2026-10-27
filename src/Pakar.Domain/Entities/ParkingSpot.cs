@@ -11,6 +11,9 @@ public class ParkingSpot
     public bool IsOccupied { get; set; } = false;
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Integer ID dari konfigurasi AI pipeline / ROI config (spot_id int ↔ Guid)</summary>
+    public int ExternalId { get; set; }
+
     public Guid ZoneId { get; set; }
     public ParkingZone Zone { get; set; } = null!;
 

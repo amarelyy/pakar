@@ -151,6 +151,7 @@ public static class DbSeeder
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             return;
 
+        email = EmailAddresses.Normalize(email);
         if (await context.Users.AnyAsync(u => u.Email == email))
             return;
 

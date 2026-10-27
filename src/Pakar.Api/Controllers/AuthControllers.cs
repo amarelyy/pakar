@@ -28,14 +28,15 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+        var email = EmailAddresses.Normalize(request.Email);
+        if (await _context.Users.AnyAsync(u => u.Email == email))
             return BadRequest("Email already registered.");
 
         // Self-registration always yields a regular user; admins are provisioned via DbSeeder.
         var user = new AppUser
         {
-            Name = request.Name,
-            Email = request.Email,
+            Name = request.Name.Trim(),
+            Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Role = Roles.User
         };
@@ -48,7 +49,8 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var email = EmailAddresses.Normalize(request.Email);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized("Invalid credentials.");
 

@@ -23,7 +23,7 @@ Open work from the codebase audit, highest priority first.
 
 - [ ] FR 2, 4: zone search and nearest alternate zone suggestion.
 - [ ] FR 5, 6: report submission endpoint and UI with submission status.
-- [ ] FR 7, 8: connect `Login.razor` and `Register.razor` to `/api/auth`; store the token.
+- [x] FR 7, 8: connect `Login.razor` and `Register.razor` to `/api/auth`; store the token.
 - [ ] FR 13, 14: edit (PUT) endpoints for zones and cameras; persist `CameraDto.IpAddress`.
 - [ ] FR 13 / section 3.4: store spot polygons (normalized X, Y points) and build the Blazor SVG zone mapping page with `MouseEventArgs` (no canvas, no JS drawing).
 - [ ] FR 15: user management (list, edit, deactivate); add `AppUser.IsActive` and block deactivated logins.

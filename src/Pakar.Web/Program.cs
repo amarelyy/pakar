@@ -6,6 +6,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Named client used by components to call Pakar.Api. Development falls back to the API's local
+// launch profile; every other environment must set Api:BaseUrl.
+var apiBaseUrl = builder.Configuration["Api:BaseUrl"];
+if (string.IsNullOrWhiteSpace(apiBaseUrl) && builder.Environment.IsDevelopment())
+    apiBaseUrl = "http://localhost:5249/";
+if (string.IsNullOrWhiteSpace(apiBaseUrl))
+    throw new InvalidOperationException("Api:BaseUrl is not configured.");
+
+builder.Services.AddHttpClient("api", client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

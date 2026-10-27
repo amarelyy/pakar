@@ -1,0 +1,44 @@
+/* Campus parking map (CampusMap.razor) */
+.campus-map {
+    height: 500px;
+    width: 100%;
+    border-radius: 8px;
+}
+
+.map-error {
+    color: #c62828;
+    margin-top: 0.5rem;
+}
+
+.map-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-left: 0.75rem;
+}
+
+.legend-dot.available {
+    background: #2e7d32;
+}
+
+.legend-dot.occupied {
+    background: #c62828;
+}
+
+.zone-summary {
+    margin-top: 1rem;
+    max-width: 480px;
+}
+
+.zone-summary .zone-full td {
+    color: #c62828;
+    font-weight: 600;
+}

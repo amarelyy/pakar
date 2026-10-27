@@ -23,6 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Pakar.Infrastructure\Pakar.Infrastructure.csproj" />
     <ProjectReference Include="..\Pakar.Application\Pakar.Application.csproj" />
+    <ProjectReference Include="..\Pakar.Migrations.SqlServer\Pakar.Migrations.SqlServer.csproj" />
+    <ProjectReference Include="..\Pakar.Migrations.Sqlite\Pakar.Migrations.Sqlite.csproj" />
   </ItemGroup>
 
 </Project>

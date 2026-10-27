@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Pakar.Infrastructure.Migrations
+namespace Pakar.Migrations.Sqlite.Migrations
 {
     /// <inheritdoc />
     public partial class SqliteInitialSchema : Migration

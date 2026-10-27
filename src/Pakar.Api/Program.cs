@@ -14,20 +14,15 @@ using Pakar.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Persistence. A connection string pointing at a ".db" file selects SQLite (local dev);
-// anything else selects SQL Server.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Persistence. Database:Provider selects SqlServer (Azure SQL, the default) or Sqlite (local development).
+var databaseProvider = DatabaseSetup.GetProvider(builder.Configuration);
+var connectionString = builder.Configuration.GetConnectionString(DatabaseSetup.ConnectionStringName);
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(
         "ConnectionStrings:DefaultConnection is not configured. Set it via user-secrets or environment variables.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    if (connectionString.Contains(".db", StringComparison.OrdinalIgnoreCase))
-        options.UseSqlite(connectionString);
-    else
-        options.UseSqlServer(connectionString);
-});
+    DatabaseSetup.Configure(options, databaseProvider, connectionString));
 
 // Secrets are validated at startup so a misconfigured deployment fails fast instead of serving requests.
 builder.Services.AddOptions<JwtOptions>()
@@ -46,7 +41,20 @@ builder.Services.AddOptions<IngestOptions>()
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
     .Configure<IOptions<JwtOptions>>((bearer, jwt) =>
-        bearer.TokenValidationParameters = jwt.Value.CreateValidationParameters());
+    {
+        bearer.TokenValidationParameters = jwt.Value.CreateValidationParameters();
+        bearer.Events = new JwtBearerEvents
+        {
+            // Browsers cannot set headers on WebSocket requests, so SignalR sends the token in the query string.
+            OnMessageReceived = context =>
+            {
+                var token = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) && context.Request.Path.StartsWithSegments(FrameHub.Route))
+                    context.Token = token;
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AuthPolicies.AdminOnly, policy => policy.RequireRole(Roles.Admin));
@@ -69,7 +77,20 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-builder.Services.AddSignalR();
+// Live scanning: frames arrive over SignalR and are forwarded to the inference service by HTTP POST.
+builder.Services.AddSignalR()
+    .AddHubOptions<FrameHub>(o => o.MaximumReceiveMessageSize = FrameHub.MaxFrameBytes + 64 * 1024);
+
+var inference = builder.Configuration.GetSection(InferenceOptions.SectionName).Get<InferenceOptions>() ?? new();
+builder.Services.AddHttpClient<InferenceClient>(client =>
+{
+    if (!string.IsNullOrWhiteSpace(inference.BaseUrl))
+        client.BaseAddress = new Uri(inference.BaseUrl);
+    if (!string.IsNullOrWhiteSpace(inference.ApiKey))
+        client.DefaultRequestHeaders.Add(CameraAuthMiddleware.HeaderName, inference.ApiKey);
+    client.Timeout = TimeSpan.FromSeconds(inference.TimeoutSeconds);
+});
+
 builder.Services.AddSingleton<ParkingStateStore>();
 builder.Services.AddHostedService<CameraWatchdog>();
 

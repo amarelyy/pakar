@@ -1,0 +1,50 @@
+{
+  "selected_confidence": 0.1,
+  "alternative": 0.15,
+  "reason": "Higher coverage with unchanged labelled errors on this demo clip",
+  "roi": "edge/python-agent/configs/real-video-demo-v2.json",
+  "roi_sha256": "2232b7cd54fd3e1de4f66d2d6f13e124a0d87d46882a74e4423481682cee2002",
+  "model_sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+  "comparison": {
+    "0.15": {
+      "correct": 168,
+      "different": 1,
+      "unknown_labelled": 5,
+      "unknown_all_samples": {
+        "VIDEO-05": 40,
+        "VIDEO-06": 1,
+        "VIDEO-04": 2,
+        "VIDEO-03": 2,
+        "VIDEO-02": 1,
+        "VIDEO-01": 3
+      }
+    },
+    "0.10": {
+      "correct": 170,
+      "different": 1,
+      "unknown_labelled": 3,
+      "unknown_all_samples": {
+        "VIDEO-05": 12,
+        "VIDEO-06": 1,
+        "VIDEO-04": 1,
+        "VIDEO-03": 2,
+        "VIDEO-02": 1,
+        "VIDEO-01": 1
+      }
+    }
+  },
+  "verification": {
+    "cached_pipeline_frames": 290,
+    "cached_states_exact_match": true,
+    "real_default_inference_frames": 4,
+    "real_boxes_match_cached_floor": true,
+    "min_conf": 0.1,
+    "inference_conf": 0.1,
+    "http_tested": false
+  },
+  "limitations": [
+    "Selected using the same demo clip; not held-out or human-reviewed",
+    "Low-confidence boxes can be misplaced; debounce can mask raw label changes",
+    "Launcher change stays local; backend/UI patches excluded from AI commit"
+  ]
+}

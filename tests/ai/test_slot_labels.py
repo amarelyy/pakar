@@ -66,7 +66,7 @@ def test_pipeline_custom_defaults_and_partial_payload(tmp_path):
         kind = 'slot_fixture'
         names = {0:'empty',1:'occupied'}
         def __call__(self, frame):
-            return [box('occupied')]
+            return [box('occupied', .12)]
     class Client:
         payloads = []
         def send(self, payload):
@@ -77,7 +77,7 @@ def test_pipeline_custom_defaults_and_partial_payload(tmp_path):
     assert Path(args.model).name == 'best.pt'
     client = Client()
     summary = run_pipeline(args,detector=Detector(),client=client)
-    assert summary['mode'] == 'slots' and summary['min_conf'] == .25
+    assert summary['mode'] == 'slots' and summary['min_conf'] == .10
     assert summary['final_zone'] == dict(areaId=1,capacity=2,occupied=1,available=0,unknown=1)
     assert [s['spotId'] for s in client.payloads[0]['spots']] == [1]
 
@@ -97,3 +97,21 @@ def test_pipeline_no_slot_evidence_sends_no_heartbeat(tmp_path):
     result = run_pipeline(args,detector=Detector())
     assert result['emitted_payloads'] == 0
     assert result['final_zone']['unknown'] == 2
+
+
+@pytest.mark.parametrize('names, explicit, expected', [
+    ({0:'empty',1:'occupied'}, None, .10),
+    ({0:'car'}, None, .25),
+    ({0:'empty',1:'occupied'}, .15, .15),
+])
+def test_detector_floor_follows_model_contract_and_explicit_override(tmp_path, monkeypatch, names, explicit, expected):
+    import ultralytics
+    from pipeline import YOLODetector
+    class Model:
+        def __init__(self, path):
+            self.names = names
+    monkeypatch.setattr(ultralytics, 'YOLO', Model)
+    weights = tmp_path/'fixture.pt'
+    weights.touch()
+    detector = YOLODetector(weights, conf=explicit)
+    assert detector.conf == expected

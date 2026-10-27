@@ -28,7 +28,7 @@ C:\Users\Nabil Abrian Aryo P\OneDrive\Dokumen\ChatGPT\Pakar - Senpro\pakar\edge\
 
 `parking-demo.mp4` adalah clip stabil sumber 00:05–02:30, durasi145 detik,
 1280x720, 30FPS, tanpa audio. Waktu di dalam clip dimulai dari0. ROI yang sesuai
-adalah `configs/real-video-demo.json` (VIDEO-01..06, ID khusus demo9001..9006).
+adalah `configs/real-video-demo-v2.json` (VIDEO-01..06, ID khusus demo9001..9006).
 Video sumber penuh memiliki gerakan pan/zoom dan tidak boleh langsung dipakai
 dengan satu konfigurasi ROI ini.
 
@@ -60,10 +60,11 @@ Get-FileHash edge/python-agent/assets/yolov8n.pt, edge/python-agent/assets/parki
 Siapkan Python dan dependensi dari README agent, lalu dari root repo:
 
 ```powershell
-py -X utf8 edge/python-agent/pipeline.py --source edge/python-agent/assets/parking-demo.mp4 --model edge/python-agent/assets/best.pt --mode slots --roi edge/python-agent/configs/real-video-demo.json --replay-speed 2 --events output/ai-validation/handoff/events.jsonl --summary output/ai-validation/handoff/summary.json --annotated-video output/ai-validation/handoff/overlay.mp4
+py -X utf8 edge/python-agent/pipeline.py --source edge/python-agent/assets/parking-demo.mp4 --model edge/python-agent/assets/best.pt --mode slots --roi edge/python-agent/configs/real-video-demo-v2.json --replay-speed 2 --events output/ai-validation/handoff/events.jsonl --summary output/ai-validation/handoff/summary.json --annotated-video output/ai-validation/handoff/overlay.mp4
 ```
 
-Perintah di atas memakai model custom default. Baseline COCO tetap bisa dipilih
+Perintah di atas memakai model custom default, confidence YOLO/assignment0,10
+dan ROI v2. Kalibrasi ini dipilih pada clip yang sama, belum validasi held-out. Baseline COCO tetap bisa dipilih
 dengan --model assets/yolov8n.pt (path lengkap relatif root) dan --mode vehicles.
 Perintah tersebut tidak memerlukan backend dan tidak mengirim HTTP. Hasilnya
 journal status, summary, dan video overlay ROI. Untuk mengirim hasil ke backend

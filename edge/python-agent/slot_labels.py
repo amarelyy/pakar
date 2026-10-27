@@ -108,7 +108,7 @@ class SlotOccupancyAdapter:
 
     Counts describe current known observations, not guaranteed whole-zone truth.
     """
-    def __init__(self, config, min_conf=.25, occupy_after=2, free_after=3):
+    def __init__(self, config, min_conf=.10, occupy_after=2, free_after=3):
         self.cfg = config
         self.engine = SlotLabelEngine(config, min_conf=min_conf, occupy_after=occupy_after, free_after=free_after)
         self.visible = {}

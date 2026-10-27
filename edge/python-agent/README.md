@@ -11,13 +11,21 @@ remain available. No weights are bundled or downloaded automatically.
 Standalone run (repository root, after downloading assets):
 
 ```powershell
-py -X utf8 edge/python-agent/pipeline.py --source edge/python-agent/assets/parking-demo.mp4 --roi edge/python-agent/configs/real-video-demo.json --replay-speed 2 --events output/ai-validation/best/events.jsonl --summary output/ai-validation/best/summary.json --annotated-video output/ai-validation/best/overlay.mp4
+py -X utf8 edge/python-agent/pipeline.py --source edge/python-agent/assets/parking-demo.mp4 --roi edge/python-agent/configs/real-video-demo-v2.json --replay-speed 2 --events output/ai-validation/best/events.jsonl --summary output/ai-validation/best/summary.json --annotated-video output/ai-validation/best/overlay.mp4
 ```
 
 This command defaults to best.pt. For the previous baseline, explicitly add
 `--model edge/python-agent/assets/yolov8n.pt --mode vehicles`. Custom defaults
-use confidence0.25; vehicle defaults retain0.35. `--mode slots` can enforce the
+use YOLO/assignment confidence0.10 for the calibrated practical demo; vehicle
+defaults retain YOLO0.25 / assignment0.35. `--mode slots` can enforce the
 custom label contract. A checkpoint with incompatible classes fails explicitly.
+
+Confidence0.10 was selected over0.15 on this demo:170 matching,1 different,
+3 unknown of174 sparse labels (coverage98.28%). This is clip-specific calibration,
+not held-out validation. See [selection evidence](../../docs/ai/selected-confidence-2026-10-28.md).
+To reproduce the prior confidence, pass both `--conf 0.25 --min-conf 0.25`.
+Explicit `--conf` controls the inference floor; `--min-conf` controls assignment.
+The historical ROI is retained as `configs/real-video-demo.json`.
 
 The custom offline evaluation and its limitations are documented in
 [the custom model report](../../docs/ai/custom-model-validation-2026-10-28.md).
@@ -162,7 +170,7 @@ The integration commands below document the separately tested local backend/UI
 setup. They require its supporting changes, which are not part of this AI-only
 commit. Use the standalone agent command in ASSETS.md to review this commit.
 
-`configs/real-video-demo.json` is calibrated only for the user-supplied stable
+`configs/real-video-demo-v2.json` is calibrated only for the user-supplied stable
 clip (source 00:05–02:30). IDs 9001..9006 are **demo-only**, not production
 ExternalIds. Labels in `docs/ai/real-video-sampled-labels.csv` cover 29 selected
 frames, visually annotated by Codex, pending human review. They are not dense

@@ -1,0 +1,983 @@
+{
+  "cache_sha256": "712cb0db70017de3427d9f91ef1416ce887d0ab87438f86e22f97ad669cc9533",
+  "labels_sha256": "ada6dfb675ca70aa9519a6be7eac30f41202ead6e40363ea3d5d57afb0a5d53b",
+  "video_sha256": "bab6a16d4f72231ca352715797d8035a669fc8714a70a2acdba1a64c45cca96e",
+  "sampled_frames": 290,
+  "model_sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+  "model_hash_matches_prior_evidence": true,
+  "inspected_full_resolution_seconds": [
+    0,
+    15,
+    65,
+    100,
+    110,
+    135,
+    140
+  ],
+  "labels_changed": false,
+  "human_reviewed": false,
+  "parameters": {
+    "conf": 0.25,
+    "min_iou": 0.1,
+    "conflict_margin": 0.1,
+    "occupy_after": 2,
+    "free_after": 3
+  },
+  "variants": {
+    "old": {
+      "roi_sha256": "03bb347476fe147dcbc495cc9161a57b8ac854da5137ceaea33f738632699613",
+      "evaluation": {
+        "scope": "annotated_slots_only",
+        "weighting": "sample_based_not_duration",
+        "confusion": {
+          "tp": 128,
+          "tn": 28,
+          "fp": 1,
+          "fn": 0
+        },
+        "per_slot": {
+          "VIDEO-01": {
+            "tp": 28,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "VIDEO-02": {
+            "tp": 29,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "VIDEO-03": {
+            "tp": 29,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "VIDEO-04": {
+            "tp": 13,
+            "tn": 14,
+            "fp": 1,
+            "fn": 0
+          },
+          "VIDEO-05": {
+            "tp": 0,
+            "tn": 14,
+            "fp": 0,
+            "fn": 0
+          },
+          "VIDEO-06": {
+            "tp": 29,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0
+          }
+        },
+        "labelled_frames": 29,
+        "expected_slot_samples": 174,
+        "scored_slot_samples": 157,
+        "coverage": 0.9022988505747126,
+        "accuracy": 0.9936305732484076,
+        "occupied_precision": 0.9922480620155039,
+        "occupied_recall": 1.0,
+        "count_complete_frames": 13,
+        "occupancy_count_mae": 0.0,
+        "limitations": [
+          "No detection mAP or camera-to-UI latency measured",
+          "Coverage excludes times absent from the input journal"
+        ]
+      },
+      "correct": 156,
+      "different": 1,
+      "unknown_labelled": 17,
+      "unknown_all_samples": {
+        "VIDEO-05": 134,
+        "VIDEO-06": 2,
+        "VIDEO-04": 5,
+        "VIDEO-01": 7
+      },
+      "unknown_diagnostic": {
+        "VIDEO-05": {
+          "no_cached_empty_overlap": 101,
+          "center_outside": 29,
+          "conflicting_labels": 4
+        },
+        "VIDEO-06": {
+          "no_cached_empty_overlap": 1,
+          "center_outside": 1
+        },
+        "VIDEO-04": {
+          "no_cached_empty_overlap": 2,
+          "conflicting_labels": 3
+        },
+        "VIDEO-01": {
+          "no_cached_empty_overlap": 6,
+          "conflicting_labels": 1
+        }
+      },
+      "unknown_with_no_cached_box_center_in_v2": {
+        "VIDEO-05": 130,
+        "VIDEO-06": 2,
+        "VIDEO-04": 2,
+        "VIDEO-01": 6
+      },
+      "assigned_boxes_center_outside_physical_v2": {
+        "VIDEO-03": 12,
+        "VIDEO-06": 111,
+        "VIDEO-01": 1,
+        "VIDEO-04": 65,
+        "VIDEO-05": 66,
+        "VIDEO-02": 1
+      },
+      "debounce_pending_samples": {
+        "VIDEO-04": 7,
+        "VIDEO-05": 3
+      },
+      "transitions": [
+        {
+          "spot": "VIDEO-01",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-02",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-03",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-04",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-05",
+          "previous": null,
+          "status": "available",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-06",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-04",
+          "previous": "occupied",
+          "status": "available",
+          "seconds": 66.5
+        }
+      ],
+      "examples": [
+        {
+          "seconds": 0.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {},
+          "video05_pairs": [
+            {
+              "detection": 11,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.30468064546585083,
+              "xyxy": [
+                554.463623046875,
+                478.10955810546875,
+                639.48486328125,
+                542.3598022460938
+              ],
+              "center": [
+                596.5,
+                510.0
+              ],
+              "center_inside": true,
+              "intersection_pixels": 4295,
+              "iou": 0.48318146023174713,
+              "reason": "assigned"
+            }
+          ]
+        },
+        {
+          "seconds": 15.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-05": "no_matching_detection"
+          },
+          "video05_pairs": []
+        },
+        {
+          "seconds": 65.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-05": "no_matching_detection"
+          },
+          "video05_pairs": []
+        },
+        {
+          "seconds": 100.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-04": "conflicting_labels",
+            "VIDEO-05": "no_matching_detection"
+          },
+          "video05_pairs": []
+        },
+        {
+          "seconds": 110.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {},
+          "video05_pairs": [
+            {
+              "detection": 1,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.672157883644104,
+              "xyxy": [
+                441.730224609375,
+                489.47216796875,
+                554.1234741210938,
+                550.699462890625
+              ],
+              "center": [
+                497.5,
+                519.5
+              ],
+              "center_inside": false,
+              "intersection_pixels": 51,
+              "iou": 0.0034965034965034965,
+              "reason": "center_outside"
+            },
+            {
+              "detection": 8,
+              "spot": "VIDEO-05",
+              "label": "occupied",
+              "confidence": 0.5368168354034424,
+              "xyxy": [
+                492.1341857910156,
+                413.3965759277344,
+                579.5374755859375,
+                484.0320739746094
+              ],
+              "center": [
+                535.5,
+                448.5
+              ],
+              "center_inside": true,
+              "intersection_pixels": 2419,
+              "iou": 0.2103112502173535,
+              "reason": "assigned"
+            }
+          ]
+        },
+        {
+          "seconds": 135.0,
+          "states": {
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-01": "conflicting_labels"
+          },
+          "video05_pairs": [
+            {
+              "detection": 0,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.7088162899017334,
+              "xyxy": [
+                440.69610595703125,
+                490.361083984375,
+                561.9270629882812,
+                551.5205078125
+              ],
+              "center": [
+                500.5,
+                520.5
+              ],
+              "center_inside": false,
+              "intersection_pixels": 173,
+              "iou": 0.01157035848047084,
+              "reason": "center_outside"
+            },
+            {
+              "detection": 15,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.2672586441040039,
+              "xyxy": [
+                536.9564208984375,
+                479.5227355957031,
+                643.3470458984375,
+                542.65673828125
+              ],
+              "center": [
+                589.5,
+                510.5
+              ],
+              "center_inside": true,
+              "intersection_pixels": 4504,
+              "iou": 0.45125738903917445,
+              "reason": "assigned"
+            }
+          ]
+        },
+        {
+          "seconds": 140.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {},
+          "video05_pairs": [
+            {
+              "detection": 12,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.28203636407852173,
+              "xyxy": [
+                503.02740478515625,
+                435.3826904296875,
+                596.8831176757812,
+                493.0828857421875
+              ],
+              "center": [
+                549.5,
+                464.0
+              ],
+              "center_inside": true,
+              "intersection_pixels": 3404,
+              "iou": 0.34970207520032875,
+              "reason": "assigned"
+            },
+            {
+              "detection": 13,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.27947574853897095,
+              "xyxy": [
+                541.9237670898438,
+                480.2205810546875,
+                634.4409790039062,
+                540.2528076171875
+              ],
+              "center": [
+                587.5,
+                510.0
+              ],
+              "center_inside": true,
+              "intersection_pixels": 4149,
+              "iou": 0.45220708446866487,
+              "reason": "assigned"
+            }
+          ]
+        }
+      ]
+    },
+    "v2": {
+      "roi_sha256": "2232b7cd54fd3e1de4f66d2d6f13e124a0d87d46882a74e4423481682cee2002",
+      "evaluation": {
+        "scope": "annotated_slots_only",
+        "weighting": "sample_based_not_duration",
+        "confusion": {
+          "tp": 128,
+          "tn": 27,
+          "fp": 1,
+          "fn": 0
+        },
+        "per_slot": {
+          "VIDEO-01": {
+            "tp": 28,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "VIDEO-02": {
+            "tp": 29,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "VIDEO-03": {
+            "tp": 29,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0
+          },
+          "VIDEO-04": {
+            "tp": 13,
+            "tn": 15,
+            "fp": 1,
+            "fn": 0
+          },
+          "VIDEO-05": {
+            "tp": 0,
+            "tn": 12,
+            "fp": 0,
+            "fn": 0
+          },
+          "VIDEO-06": {
+            "tp": 29,
+            "tn": 0,
+            "fp": 0,
+            "fn": 0
+          }
+        },
+        "labelled_frames": 29,
+        "expected_slot_samples": 174,
+        "scored_slot_samples": 156,
+        "coverage": 0.896551724137931,
+        "accuracy": 0.9935897435897436,
+        "occupied_precision": 0.9922480620155039,
+        "occupied_recall": 1.0,
+        "count_complete_frames": 11,
+        "occupancy_count_mae": 0.0,
+        "limitations": [
+          "No detection mAP or camera-to-UI latency measured",
+          "Coverage excludes times absent from the input journal"
+        ]
+      },
+      "correct": 155,
+      "different": 1,
+      "unknown_labelled": 18,
+      "unknown_all_samples": {
+        "VIDEO-05": 151,
+        "VIDEO-06": 2,
+        "VIDEO-04": 3,
+        "VIDEO-03": 2,
+        "VIDEO-02": 1,
+        "VIDEO-01": 7
+      },
+      "unknown_diagnostic": {
+        "VIDEO-05": {
+          "no_cached_empty_overlap": 68,
+          "center_outside": 83
+        },
+        "VIDEO-06": {
+          "no_cached_empty_overlap": 1,
+          "center_outside": 1
+        },
+        "VIDEO-04": {
+          "no_cached_empty_overlap": 3
+        },
+        "VIDEO-03": {
+          "center_outside": 2
+        },
+        "VIDEO-02": {
+          "no_cached_empty_overlap": 1
+        },
+        "VIDEO-01": {
+          "no_cached_empty_overlap": 6,
+          "conflicting_labels": 1
+        }
+      },
+      "unknown_with_no_cached_box_center_in_v2": {
+        "VIDEO-05": 151,
+        "VIDEO-06": 2,
+        "VIDEO-04": 3,
+        "VIDEO-03": 2,
+        "VIDEO-02": 1,
+        "VIDEO-01": 6
+      },
+      "assigned_boxes_center_outside_physical_v2": {},
+      "debounce_pending_samples": {
+        "VIDEO-04": 6,
+        "VIDEO-05": 1
+      },
+      "transitions": [
+        {
+          "spot": "VIDEO-01",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-02",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-03",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-04",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-05",
+          "previous": null,
+          "status": "available",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-06",
+          "previous": null,
+          "status": "occupied",
+          "seconds": 0.0
+        },
+        {
+          "spot": "VIDEO-04",
+          "previous": "occupied",
+          "status": "available",
+          "seconds": 66.5
+        }
+      ],
+      "examples": [
+        {
+          "seconds": 0.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {},
+          "video05_pairs": [
+            {
+              "detection": 11,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.30468064546585083,
+              "xyxy": [
+                554.463623046875,
+                478.10955810546875,
+                639.48486328125,
+                542.3598022460938
+              ],
+              "center": [
+                596.5,
+                510.0
+              ],
+              "center_inside": true,
+              "intersection_pixels": 4517,
+              "iou": 0.6657332350773766,
+              "reason": "assigned"
+            }
+          ]
+        },
+        {
+          "seconds": 15.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-05": "no_matching_detection"
+          },
+          "video05_pairs": []
+        },
+        {
+          "seconds": 65.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "occupied",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-05": "no_matching_detection"
+          },
+          "video05_pairs": [
+            {
+              "detection": 3,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.6411733627319336,
+              "xyxy": [
+                445.5482177734375,
+                488.97802734375,
+                533.590576171875,
+                549.6416015625
+              ],
+              "center": [
+                489.0,
+                518.5
+              ],
+              "center_inside": false,
+              "intersection_pixels": 39,
+              "iou": 0.0034849432579751585,
+              "reason": "center_outside"
+            }
+          ]
+        },
+        {
+          "seconds": 100.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-05": "no_matching_detection"
+          },
+          "video05_pairs": [
+            {
+              "detection": 6,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.45283469557762146,
+              "xyxy": [
+                442.45648193359375,
+                488.9052734375,
+                532.7708129882812,
+                553.30908203125
+              ],
+              "center": [
+                487.0,
+                520.5
+              ],
+              "center_inside": false,
+              "intersection_pixels": 30,
+              "iou": 0.0025680534155110425,
+              "reason": "center_outside"
+            }
+          ]
+        },
+        {
+          "seconds": 110.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-05": "no_matching_detection"
+          },
+          "video05_pairs": [
+            {
+              "detection": 1,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.672157883644104,
+              "xyxy": [
+                441.730224609375,
+                489.47216796875,
+                554.1234741210938,
+                550.699462890625
+              ],
+              "center": [
+                497.5,
+                519.5
+              ],
+              "center_inside": false,
+              "intersection_pixels": 480,
+              "iou": 0.039103869653767824,
+              "reason": "center_outside"
+            }
+          ]
+        },
+        {
+          "seconds": 135.0,
+          "states": {
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {
+            "VIDEO-01": "conflicting_labels"
+          },
+          "video05_pairs": [
+            {
+              "detection": 0,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.7088162899017334,
+              "xyxy": [
+                440.69610595703125,
+                490.361083984375,
+                561.9270629882812,
+                551.5205078125
+              ],
+              "center": [
+                500.5,
+                520.5
+              ],
+              "center_inside": false,
+              "intersection_pixels": 725,
+              "iou": 0.057916600095861956,
+              "reason": "center_outside"
+            },
+            {
+              "detection": 15,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.2672586441040039,
+              "xyxy": [
+                536.9564208984375,
+                479.5227355957031,
+                643.3470458984375,
+                542.65673828125
+              ],
+              "center": [
+                589.5,
+                510.5
+              ],
+              "center_inside": true,
+              "intersection_pixels": 5091,
+              "iou": 0.6777156549520766,
+              "reason": "assigned"
+            }
+          ]
+        },
+        {
+          "seconds": 140.0,
+          "states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "raw_states": {
+            "VIDEO-01": "occupied",
+            "VIDEO-02": "occupied",
+            "VIDEO-03": "occupied",
+            "VIDEO-04": "available",
+            "VIDEO-05": "available",
+            "VIDEO-06": "occupied"
+          },
+          "unknown": {},
+          "video05_pairs": [
+            {
+              "detection": 0,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.6903476715087891,
+              "xyxy": [
+                440.14447021484375,
+                489.6058349609375,
+                545.6257934570312,
+                549.4716796875
+              ],
+              "center": [
+                492.5,
+                519.0
+              ],
+              "center_inside": false,
+              "intersection_pixels": 232,
+              "iou": 0.01944677284157586,
+              "reason": "center_outside"
+            },
+            {
+              "detection": 12,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.28203636407852173,
+              "xyxy": [
+                503.02740478515625,
+                435.3826904296875,
+                596.8831176757812,
+                493.0828857421875
+              ],
+              "center": [
+                549.5,
+                464.0
+              ],
+              "center_inside": false,
+              "intersection_pixels": 297,
+              "iou": 0.027101012866137423,
+              "reason": "center_outside"
+            },
+            {
+              "detection": 13,
+              "spot": "VIDEO-05",
+              "label": "empty",
+              "confidence": 0.27947574853897095,
+              "xyxy": [
+                541.9237670898438,
+                480.2205810546875,
+                634.4409790039062,
+                540.2528076171875
+              ],
+              "center": [
+                587.5,
+                510.0
+              ],
+              "center_inside": true,
+              "intersection_pixels": 4536,
+              "iou": 0.6568201563857515,
+              "reason": "assigned"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "availability_changes_all_samples": {
+    "unknown_to_known": {
+      "VIDEO-04": 3,
+      "VIDEO-05": 4
+    },
+    "known_to_unknown": {
+      "VIDEO-05": 21,
+      "VIDEO-03": 2,
+      "VIDEO-02": 1,
+      "VIDEO-04": 1
+    }
+  },
+  "old_replay_exact_match": true,
+  "limitations": [
+    "Cached detections contain only confidence >= .25; lower-confidence absence cannot be diagnosed",
+    "Manual floor geometry and sparse visual labels reviewed by Codex, not human ground truth",
+    "No new inference, threshold tuning, retraining, HTTP or UI test",
+    "Same clip used for calibration and evaluation; no generalization claim"
+  ]
+}

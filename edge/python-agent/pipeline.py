@@ -40,7 +40,7 @@ def validate_model_classes(names, requested):
 class YOLODetector:
     kind = "ultralytics_vehicle_detector"
 
-    def __init__(self, model_path, conf=0.25, imgsz=640):
+    def __init__(self, model_path, conf=None, imgsz=640):
         from ultralytics import YOLO
         if not Path(model_path).is_file():
             raise FileNotFoundError(f"Local model not found: {model_path}")
@@ -48,7 +48,7 @@ class YOLODetector:
         self.names = self.model.names
         if set(self.names.values()) == {"empty", "occupied"}:
             self.kind = "ultralytics_slot_detector"
-        self.conf = conf
+        self.conf = conf if conf is not None else (.10 if self.kind == "ultralytics_slot_detector" else .25)
         self.imgsz = imgsz
 
     def __call__(self, frame):
@@ -89,8 +89,8 @@ def parse_args(argv=None):
     p.add_argument("--roi", required=True)
     p.add_argument("--backend-url")
     p.add_argument("--vehicle-classes", nargs="+", default=list(DEFAULT_VEHICLE_CLASSES))
-    p.add_argument("--conf", type=float, default=0.25)
-    p.add_argument("--min-conf", type=float, default=None, help="Default .25 slots / .35 vehicles")
+    p.add_argument("--conf", type=float, default=None, help="YOLO floor: default .10 custom slots / .25 vehicles")
+    p.add_argument("--min-conf", type=float, default=None, help="Assignment: default .10 slots / .35 vehicles")
     p.add_argument("--imgsz", type=int, default=640)
     p.add_argument("--infer-fps", type=float, default=2)
     p.add_argument("--occupy-after", type=float, default=2)
@@ -124,7 +124,7 @@ def run_pipeline(args, detector=None, client=None):
     requested = tuple(c.lower() for c in args.vehicle_classes)
     labels = {str(n).lower() for n in (detector.names.values() if isinstance(detector.names, dict) else detector.names)}
     mode = args.mode if args.mode != "auto" else ("slots" if labels == {"empty", "occupied"} else "vehicles")
-    min_conf = args.min_conf if args.min_conf is not None else (.25 if mode == "slots" else .35)
+    min_conf = args.min_conf if args.min_conf is not None else (.10 if mode == "slots" else .35)
     if mode == "slots":
         validate_slot_classes(detector.names, getattr(getattr(detector, "model", None), "task", "detect"))
         engine = SlotOccupancyAdapter(cfg, min_conf, args.occupy_after, args.free_after)
@@ -241,7 +241,7 @@ def run_pipeline(args, detector=None, client=None):
             writer.release()
     summary = {
         "detector_kind": detector.kind,
-        "mode": mode, "min_conf": min_conf,
+        "mode": mode, "min_conf": min_conf, "inference_conf": getattr(detector, "conf", args.conf),
         "source": str(args.source),
         "source_sha256": sha256(args.source) if Path(args.source).is_file() else None,
         "model": str(args.model),

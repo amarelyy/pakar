@@ -1,4 +1,5 @@
 using Pakar.Web.Components;
+using Pakar.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,10 @@ builder.Services.AddHttpClient("api", client =>
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(10);
 });
+
+// Account registration and login (FR 7, FR 8). Scoped = one instance per browser circuit.
+builder.Services.AddScoped<AuthApiClient>();
+builder.Services.AddScoped<UserSession>();
 
 var app = builder.Build();
 

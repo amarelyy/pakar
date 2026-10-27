@@ -1,60 +1,84 @@
 @page "/login"
-@using Microsoft.AspNetCore.Components.Forms
-@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+@rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using Pakar.Web.Services
+@inject AuthApiClient Auth
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<PageTitle>Log in</PageTitle>
 
 <h1>Log in</h1>
 
-<EditForm Model="model" OnValidSubmit="HandleLogin" FormName="login-form">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+@if (Registered)
+{
+    <p class="text-success" role="status">Account created. Please log in.</p>
+}
 
-    <div class="form-field">
-        <label>Email</label>
-        <InputText @bind-Value="model.Email" />
+<EditForm Model="model" OnValidSubmit="HandleLogin" class="auth-form">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <InputText id="email" type="email" class="form-control" @bind-Value="model.Email" autocomplete="email" />
+        <ValidationMessage For="() => model.Email" />
     </div>
 
-    <div class="form-field">
-        <label>Password</label>
-        <InputText type="password" @bind-Value="model.Password" />
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <InputText id="password" type="password" class="form-control" @bind-Value="model.Password" autocomplete="current-password" />
+        <ValidationMessage For="() => model.Password" />
     </div>
 
     @if (errorMessage is not null)
     {
-        <p class="form-error">@errorMessage</p>
+        <p class="text-danger" role="alert">@errorMessage</p>
     }
 
-    <button type="submit" disabled="@isSubmitting">
+    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
         @(isSubmitting ? "Logging in..." : "Log in")
     </button>
 </EditForm>
 
-<p>No account yet? <a href="/register">Register</a></p>
+<p class="mt-3">No account yet? <a href="register">Register</a></p>
 
 @code {
-    [SupplyParameterFromForm]
-    private LoginModel model { get; set; } = new();
+    [SupplyParameterFromQuery(Name = "registered")]
+    public bool Registered { get; set; }
 
+    private readonly LoginModel model = new();
     private bool isSubmitting;
     private string? errorMessage;
 
+    // FR 8: log in with email and password; the token is kept for later authorized requests.
     private async Task HandleLogin()
     {
         isSubmitting = true;
         errorMessage = null;
+        try
+        {
+            var result = await Auth.LoginAsync(model.Email.Trim(), model.Password);
+            if (result is { Succeeded: true, Token: not null })
+            {
+                await Session.SignInAsync(result.Token);
+                Navigation.NavigateTo("park");
+                return;
+            }
 
-        // TODO: replace with real call once rere's POST /login endpoint exists
-        // returns a JWT — store it (e.g. in a cookie or browser storage) for
-        // later requests, and to check role for RBAC-gated pages
-        await Task.Delay(500);
-
-        isSubmitting = false;
-        // TODO: on real success, store the token and redirect to "/"
+            errorMessage = result.Error ?? "Login failed. Please try again.";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
     }
 
-    public class LoginModel
+    private sealed class LoginModel
     {
-        [Required, EmailAddress] public string Email { get; set; } = "";
-        [Required] public string Password { get; set; } = "";
+        [Required, EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        public string Password { get; set; } = "";
     }
 }

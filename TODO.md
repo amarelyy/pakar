@@ -33,10 +33,10 @@ Open work from the codebase audit, highest priority first.
 ## Security and configuration
 
 - [ ] Rotate the secrets still visible in git history (old SQL `sa` password, JWT key, ingest key).
-- [ ] Move the SQL password in `infra/docker-compose.yml` to an `.env` file.
+- [x] Move the SQL password in `infra/docker-compose.yml` to an `.env` file.
 - [ ] Remove `admin:admin` RTSP credentials from seeded cameras in `DbSeeder.cs`.
 - [ ] Replace the shared ingest key with per-camera keys (`Camera.ApiKeyHash` is always `"temp-hash"`).
-- [ ] Add a unique index and max length on `AppUser.Email`.
+- [x] Add a unique index and max length on `AppUser.Email`.
 
 ## Architecture and cleanup
 

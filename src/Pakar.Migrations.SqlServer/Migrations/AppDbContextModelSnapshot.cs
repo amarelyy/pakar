@@ -33,23 +33,30 @@ namespace Pakar.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Pakar.Domain.Entities.Camera", b =>
@@ -60,25 +67,32 @@ namespace Pakar.Migrations.SqlServer.Migrations
 
                     b.Property<string>("ApiKeyHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ConnectionType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("ExternalId")
                         .HasColumnType("int");
 
-                    b.Property<DateTimeOffset?>("LastActiveTime")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("LastActiveTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("StreamUrl")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid>("ZoneId")
                         .HasColumnType("uniqueidentifier");
@@ -111,7 +125,8 @@ namespace Pakar.Migrations.SqlServer.Migrations
 
                     b.Property<string>("SnapshotUrl")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("SpotExternalId")
                         .HasColumnType("int");
@@ -121,7 +136,8 @@ namespace Pakar.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("datetime2");
@@ -131,6 +147,8 @@ namespace Pakar.Migrations.SqlServer.Migrations
                     b.HasIndex("CameraId");
 
                     b.HasIndex("SpotId");
+
+                    b.HasIndex("Timestamp");
 
                     b.ToTable("Detections");
                 });
@@ -158,7 +176,8 @@ namespace Pakar.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ZoneId")
                         .HasColumnType("uniqueidentifier");
@@ -169,7 +188,7 @@ namespace Pakar.Migrations.SqlServer.Migrations
 
                     b.HasIndex("ZoneId");
 
-                    b.ToTable("Spots");
+                    b.ToTable("Spots", (string)null);
                 });
 
             modelBuilder.Entity("Pakar.Domain.Entities.ParkingZone", b =>
@@ -178,16 +197,21 @@ namespace Pakar.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("ExternalId")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("TotalCapacity")
                         .HasColumnType("int");
@@ -197,7 +221,7 @@ namespace Pakar.Migrations.SqlServer.Migrations
                     b.HasIndex("ExternalId")
                         .IsUnique();
 
-                    b.ToTable("Zones");
+                    b.ToTable("Zones", (string)null);
                 });
 
             modelBuilder.Entity("Pakar.Domain.Entities.Report", b =>
@@ -208,17 +232,20 @@ namespace Pakar.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("EvidenceImageUrl")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid>("SpotId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("datetime2");
@@ -264,7 +291,7 @@ namespace Pakar.Migrations.SqlServer.Migrations
                     b.HasOne("Pakar.Domain.Entities.ParkingZone", "Zone")
                         .WithMany("Cameras")
                         .HasForeignKey("ZoneId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Zone");
@@ -275,12 +302,13 @@ namespace Pakar.Migrations.SqlServer.Migrations
                     b.HasOne("Pakar.Domain.Entities.Camera", "Camera")
                         .WithMany()
                         .HasForeignKey("CameraId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Pakar.Domain.Entities.ParkingSpot", "Spot")
                         .WithMany()
-                        .HasForeignKey("SpotId");
+                        .HasForeignKey("SpotId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Camera");
 
@@ -292,7 +320,7 @@ namespace Pakar.Migrations.SqlServer.Migrations
                     b.HasOne("Pakar.Domain.Entities.ParkingZone", "Zone")
                         .WithMany("Spots")
                         .HasForeignKey("ZoneId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Zone");

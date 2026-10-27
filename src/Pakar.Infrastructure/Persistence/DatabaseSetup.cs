@@ -1,58 +1,30 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Pakar.Infrastructure.Persistence;
 
-/// <summary>Supported database engines. Azure SQL uses <see cref="SqlServer"/>.</summary>
-public enum DatabaseProvider
-{
-    SqlServer,
-    Sqlite
-}
-
 /// <summary>
-/// Single place that maps a provider to its EF Core configuration and migrations assembly.
-/// Each provider keeps its own migration history because column types differ between engines.
+/// Single place that configures EF Core for Azure SQL Database (SQL Server engine).
+/// Local testing uses SQL Server LocalDB or a SQL Server container, so behavior matches production.
 /// </summary>
 public static class DatabaseSetup
 {
-    public const string ProviderKey = "Database:Provider";
     public const string ConnectionStringName = "DefaultConnection";
 
-    private const string SqlServerMigrationsAssembly = "Pakar.Migrations.SqlServer";
-    private const string SqliteMigrationsAssembly = "Pakar.Migrations.Sqlite";
+    private const string MigrationsAssembly = "Pakar.Migrations.SqlServer";
 
-    /// <summary>Reads Database:Provider; defaults to SqlServer so production never silently falls back to SQLite.</summary>
-    public static DatabaseProvider GetProvider(IConfiguration configuration)
+    public static void Configure(DbContextOptionsBuilder options, string connectionString)
     {
-        var value = configuration[ProviderKey];
-        if (string.IsNullOrWhiteSpace(value))
-            return DatabaseProvider.SqlServer;
-
-        return Enum.TryParse<DatabaseProvider>(value, ignoreCase: true, out var provider)
-            ? provider
-            : throw new InvalidOperationException($"{ProviderKey} '{value}' is not supported. Use SqlServer or Sqlite.");
-    }
-
-    public static void Configure(DbContextOptionsBuilder options, DatabaseProvider provider, string connectionString)
-    {
-        switch (provider)
+        options.UseSqlServer(connectionString, sql =>
         {
-            case DatabaseProvider.SqlServer:
-                options.UseSqlServer(connectionString, sql =>
-                {
-                    sql.MigrationsAssembly(SqlServerMigrationsAssembly);
-                    // Azure SQL drops connections during failovers and scaling; retry transient errors.
-                    sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
-                });
-                break;
+            sql.MigrationsAssembly(MigrationsAssembly);
+            // Azure SQL drops connections during failovers and scaling; retry transient errors.
+            sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
+        });
 
-            case DatabaseProvider.Sqlite:
-                options.UseSqlite(connectionString, sqlite => sqlite.MigrationsAssembly(SqliteMigrationsAssembly));
-                break;
-
-            default:
-                throw new ArgumentOutOfRangeException(nameof(provider), provider, null);
-        }
+        // Detections are history and intentionally unfiltered while cameras are soft-deleted.
+        // History queries that include Detection.Camera must call IgnoreQueryFilters().
+        options.ConfigureWarnings(w =>
+            w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
     }
 }

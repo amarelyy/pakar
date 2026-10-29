@@ -1,65 +1,84 @@
 @page "/register"
-@using Microsoft.AspNetCore.Components.Forms
-@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+@rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using Pakar.Web.Services
+@inject AuthApiClient Auth
+@inject NavigationManager Navigation
+
+<PageTitle>Create an account</PageTitle>
 
 <h1>Create an account</h1>
 
-<EditForm Model="model" OnValidSubmit="HandleRegister" FormName="register-form">
+<EditForm Model="model" OnValidSubmit="HandleRegister" class="auth-form">
     <DataAnnotationsValidator />
-    <ValidationSummary />
 
-    <div class="form-field">
-        <label>Name</label>
-        <InputText @bind-Value="model.Name" />
+    <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <InputText id="name" class="form-control" @bind-Value="model.Name" autocomplete="name" />
+        <ValidationMessage For="() => model.Name" />
     </div>
 
-    <div class="form-field">
-        <label>Email</label>
-        <InputText @bind-Value="model.Email" />
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <InputText id="email" type="email" class="form-control" @bind-Value="model.Email" autocomplete="email" />
+        <ValidationMessage For="() => model.Email" />
     </div>
 
-    <div class="form-field">
-        <label>Password</label>
-        <InputText type="password" @bind-Value="model.Password" />
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <InputText id="password" type="password" class="form-control" @bind-Value="model.Password" autocomplete="new-password" />
+        <ValidationMessage For="() => model.Password" />
     </div>
 
     @if (errorMessage is not null)
     {
-        <p class="form-error">@errorMessage</p>
+        <p class="text-danger" role="alert">@errorMessage</p>
     }
 
-    <button type="submit" disabled="@isSubmitting">
+    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
         @(isSubmitting ? "Creating account..." : "Register")
     </button>
 </EditForm>
 
-<p>Already have an account? <a href="/login">Log in</a></p>
+<p class="mt-3">Already have an account? <a href="login">Log in</a></p>
 
 @code {
-    [SupplyParameterFromForm]
-    private RegisterModel model { get; set; } = new();
-
+    private readonly RegisterModel model = new();
     private bool isSubmitting;
     private string? errorMessage;
 
+    // FR 7: create an account with name, email and password.
     private async Task HandleRegister()
     {
         isSubmitting = true;
         errorMessage = null;
+        try
+        {
+            var result = await Auth.RegisterAsync(model.Name.Trim(), model.Email.Trim(), model.Password);
+            if (result.Succeeded)
+            {
+                Navigation.NavigateTo("login?registered=true");
+                return;
+            }
 
-        // TODO: replace with real call once rere's POST /register endpoint exists
-        // var result = await Http.CreateClient("api").PostAsJsonAsync("api/register", model);
-        await Task.Delay(500); // simulates a network call
-
-        isSubmitting = false;
-        // TODO: on real success, redirect to /login or auto-login
+            errorMessage = result.Error;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
     }
 
-    public class RegisterModel
+    // Mirrors the API's RegisterRequest rules so most mistakes are caught before submitting.
+    private sealed class RegisterModel
     {
-        [Required] public string Name { get; set; } = "";
-        [Required, EmailAddress] public string Email { get; set; } = "";
-        [Required, MinLength(8)] public string Password { get; set; } = "";
+        [Required, MaxLength(100)]
+        public string Name { get; set; } = "";
+
+        [Required, EmailAddress, MaxLength(256)]
+        public string Email { get; set; } = "";
+
+        [Required, MinLength(8, ErrorMessage = "Password must be at least 8 characters."), MaxLength(128)]
+        public string Password { get; set; } = "";
     }
 }

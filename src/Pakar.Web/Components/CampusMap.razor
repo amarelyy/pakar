@@ -2,16 +2,48 @@
 @using Pakar.Application.DTOs
 @inject IHttpClientFactory HttpClientFactory
 @inject IJSRuntime JS
+@inject ILogger<CampusMap> Logger
 @implements IAsyncDisposable
 
-<div id="campus-map" style="height: 500px; width: 100%; border-radius: 8px;"></div>
+<div id="campus-map" class="campus-map"></div>
 
 @if (errorMessage is not null)
 {
-    <p class="form-error">@errorMessage</p>
+    <p class="map-error" role="alert">@errorMessage</p>
 }
 
+@if (zones is { Count: > 0 })
+{
+    <table class="table zone-summary">
+        <thead>
+            <tr>
+                <th>Zone</th>
+                <th>Available</th>
+                <th>Capacity</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var zone in zones)
+            {
+                <tr class="@(zone.AvailableSpots == 0 ? "zone-full" : null)">
+                    <td>@zone.Name</td>
+                    <td>@zone.AvailableSpots</td>
+                    <td>@zone.TotalCapacity</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<div class="map-legend">
+    <span class="legend-dot available"></span> Available
+    <span class="legend-dot occupied"></span> Occupied
+</div>
+
 @code {
+    // FR 1: occupancy must be visible within 5 seconds of a change.
+    private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(4);
+
     private List<ZoneDto>? zones;
     private string? errorMessage;
     private PeriodicTimer? timer;
@@ -22,13 +54,12 @@
         if (!firstRender) return;
 
         await LoadZones();
-        if (zones is not null)
-        {
-            await JS.InvokeVoidAsync("campusMap.init", "campus-map", zones);
-            mapInitialized = true;
-        }
-        timer = new PeriodicTimer(TimeSpan.FromSeconds(4)); // FR1: update within 5 seconds
-        _ = PollLoop();
+        await JS.InvokeVoidAsync("campusMap.init", "campus-map", zones ?? []);
+        mapInitialized = true;
+        StateHasChanged();
+
+        timer = new PeriodicTimer(RefreshInterval);
+        _ = RefreshLoop();
     }
 
     private async Task LoadZones()
@@ -38,13 +69,14 @@
             zones = await HttpClientFactory.CreateClient("api").GetFromJsonAsync<List<ZoneDto>>("api/parking/zones");
             errorMessage = null;
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
-            errorMessage = "Could not load parking zones.";
+            Logger.LogWarning(ex, "Could not load parking zones.");
+            errorMessage = "Could not load parking zones. Retrying...";
         }
     }
 
-    private async Task PollLoop()
+    private async Task RefreshLoop()
     {
         try
         {
@@ -53,15 +85,26 @@
                 await LoadZones();
                 if (zones is not null && mapInitialized)
                     await JS.InvokeVoidAsync("campusMap.renderZones", zones);
-                StateHasChanged();
+                await InvokeAsync(StateHasChanged);
             }
         }
-        catch (ObjectDisposedException) { }
+        catch (Exception ex) when (ex is ObjectDisposedException or JSDisconnectedException)
+        {
+            // The page was closed or the circuit dropped; stop refreshing.
+        }
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         timer?.Dispose();
-        return ValueTask.CompletedTask;
+        try
+        {
+            if (mapInitialized)
+                await JS.InvokeVoidAsync("campusMap.dispose");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone; nothing to clean up in the browser.
+        }
     }
 }

@@ -1,10 +1,12 @@
+# Local SQL Server for testing against the same engine as Azure SQL.
+# Usage: copy infra/.env.example to infra/.env, set a password, then `docker compose -f infra/docker-compose.yml up -d`.
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: pakar-sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in infra/.env}
       - MSSQL_PID=Developer
     ports:
       - "1433:1433"
@@ -12,7 +14,7 @@ services:
       - pakar-sql-data:/var/opt/mssql
     restart: unless-stopped
     healthcheck:
-      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "YourStrong@Passw0rd" -Q "SELECT 1" || exit 1
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
       interval: 15s
       timeout: 10s
       retries: 10

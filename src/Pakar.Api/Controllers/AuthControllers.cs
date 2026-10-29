@@ -1,39 +1,44 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Pakar.Infrastructure.Persistence;
-using Pakar.Domain.Entities;
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Pakar.Api.Security;
+using Pakar.Domain.Entities;
+using Pakar.Infrastructure.Persistence;
 
 namespace Pakar.Api.Controllers;
 
+/// <summary>Account registration and JWT login (FR 7, 8).</summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly IConfiguration _config;
+    private readonly JwtOptions _jwt;
 
-    public AuthController(AppDbContext context, IConfiguration config)
+    public AuthController(AppDbContext context, IOptions<JwtOptions> jwt)
     {
         _context = context;
-        _config = config;
+        _jwt = jwt.Value;
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+        var email = EmailAddresses.Normalize(request.Email);
+        if (await _context.Users.AnyAsync(u => u.Email == email))
             return BadRequest("Email already registered.");
 
+        // Self-registration always yields a regular user; admins are provisioned via DbSeeder.
         var user = new AppUser
         {
-            Name = request.Name,
-            Email = request.Email,
+            Name = request.Name.Trim(),
+            Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            Role = "User"
+            Role = Roles.User
         };
 
         _context.Users.Add(user);
@@ -44,19 +49,17 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var email = EmailAddresses.Normalize(request.Email);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized("Invalid credentials.");
 
-        var token = GenerateJwtToken(user);
-        return Ok(new { token });
+        return Ok(new { token = GenerateJwtToken(user) });
     }
 
     private string GenerateJwtToken(AppUser user)
     {
-        // Added '!' to tell C# the Key will definitely exist
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!)); 
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var creds = new SigningCredentials(_jwt.GetSigningKey(), SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {
@@ -66,10 +69,10 @@ public class AuthController : ControllerBase
         };
 
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: _jwt.Issuer,
+            audience: _jwt.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(24),
+            expires: DateTime.UtcNow.AddMinutes(_jwt.ExpiryMinutes),
             signingCredentials: creds
         );
 
@@ -77,5 +80,11 @@ public class AuthController : ControllerBase
     }
 }
 
-public record RegisterRequest(string Name, string Email, string Password);
-public record LoginRequest(string Email, string Password);
+public record RegisterRequest(
+    [Required, MaxLength(100)] string Name,
+    [Required, EmailAddress, MaxLength(256)] string Email,
+    [Required, MinLength(8), MaxLength(128)] string Password);
+
+public record LoginRequest(
+    [Required, EmailAddress] string Email,
+    [Required] string Password);

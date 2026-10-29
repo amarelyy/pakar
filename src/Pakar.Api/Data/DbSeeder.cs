@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Pakar.Api.Security;
 using Pakar.Domain.Entities;
 using Pakar.Infrastructure.Persistence;
 
@@ -11,36 +12,41 @@ public static class DbSeeder
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        await context.Database.MigrateAsync();
+        // Development migrates automatically. Production applies schema changes as a deployment step
+        // (migration bundle) unless Database:ApplyMigrationsOnStartup is set to true.
+        var applyMigrations = app.Configuration.GetValue<bool?>("Database:ApplyMigrationsOnStartup")
+                              ?? app.Environment.IsDevelopment();
+        if (applyMigrations)
+            await context.Database.MigrateAsync();
 
         if (!await context.Zones.AnyAsync())
         {
-            // Zone Gedung H (Teknik Sipil)
+            // Building H (Civil Engineering)
             var zoneH = new ParkingZone 
             { 
                 Id = Guid.NewGuid(), 
-                Name = "Parkir Gedung H (Sipil)", 
-                Description = "Area depan Departemen Teknik Sipil dan Lingkungan",
+                Name = "Building H Parking (Civil Engineering)", 
+                Description = "Front area of the Department of Civil and Environmental Engineering",
                 TotalCapacity = 10,
                 ExternalId = 1
             };
             
-            // Zone Gedung I (SGLC)
+            // Building I (SGLC)
             var zoneI = new ParkingZone 
             { 
                 Id = Guid.NewGuid(), 
-                Name = "Parkir Gedung I (Pusat)", 
-                Description = "Area lobby utama Kantor Pusat Fakultas",
+                Name = "Building I Parking (Faculty Office)", 
+                Description = "Main lobby area of the Faculty central office",
                 TotalCapacity = 10,
                 ExternalId = 2
             };
 
-            // Zone Barat Gedung E (Geologi)
+            // West of Building E (Geological Engineering)
             var zoneE = new ParkingZone 
             { 
                 Id = Guid.NewGuid(), 
-                Name = "Parkir Barat Gedung E (Geologi)", 
-                Description = "Area 100m ke barat dari Departemen Teknik Geologi",
+                Name = "Building E West Parking (Geological Engineering)", 
+                Description = "Area 100 m west of the Department of Geological Engineering",
                 TotalCapacity = 10,
                 ExternalId = 3
             };
@@ -50,7 +56,7 @@ public static class DbSeeder
 
             var spots = new List<ParkingSpot>();
 
-            // Set Slot untuk Gedung H (10 Slot) 
+            // Building H: 10 spots
             for (int i = 1; i <= 10; i++)
             {
                 spots.Add(new ParkingSpot
@@ -64,7 +70,7 @@ public static class DbSeeder
                 });
             }
 
-            //  Set Slot untuk Gedung I (10 Slot) 
+            // Building I: 10 spots
             for (int i = 1; i <= 10; i++)
             {
                 spots.Add(new ParkingSpot
@@ -78,7 +84,7 @@ public static class DbSeeder
                 });
             }
 
-            //  Set Slot untuk Gedung E (10 Slot)
+            // Building E West: 10 spots
             for (int i = 1; i <= 10; i++)
             {
                 spots.Add(new ParkingSpot
@@ -94,12 +100,12 @@ public static class DbSeeder
 
             await context.Spots.AddRangeAsync(spots);
 
-            // --- Seed Camera (satu per zona untuk mapping AI pipeline) ---
+            // One camera per zone; ExternalId matches the AI pipeline configuration.
             var cameras = new List<Camera>
             {
                 new Camera
                 {
-                    Name = "CCTV Gedung H",
+                    Name = "Building H Camera",
                     StreamUrl = "rtsp://admin:admin@192.168.1.101:554/stream1",
                     ConnectionType = "IP",
                     ApiKeyHash = "temp-hash",
@@ -108,7 +114,7 @@ public static class DbSeeder
                 },
                 new Camera
                 {
-                    Name = "CCTV Gedung I",
+                    Name = "Building I Camera",
                     StreamUrl = "rtsp://admin:admin@192.168.1.102:554/stream1",
                     ConnectionType = "IP",
                     ApiKeyHash = "temp-hash",
@@ -117,7 +123,7 @@ public static class DbSeeder
                 },
                 new Camera
                 {
-                    Name = "CCTV Barat Gedung E",
+                    Name = "Building E West Camera",
                     StreamUrl = "rtsp://admin:admin@192.168.1.103:554/stream1",
                     ConnectionType = "IP",
                     ApiKeyHash = "temp-hash",
@@ -129,5 +135,37 @@ public static class DbSeeder
 
             await context.SaveChangesAsync();
         }
+
+        await SeedAdminAsync(context, app.Configuration, app.Logger);
+    }
+
+    /// <summary>
+    /// Creates the initial administrator from the "Admin" configuration section (Admin:Email,
+    /// Admin:Password, optional Admin:Name). Skipped when unset or when the account already exists,
+    /// so credentials can be removed from configuration after first start.
+    /// </summary>
+    private static async Task SeedAdminAsync(AppDbContext context, IConfiguration config, ILogger logger)
+    {
+        var email = config["Admin:Email"];
+        var password = config["Admin:Password"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            return;
+
+        email = EmailAddresses.Normalize(email);
+        if (await context.Users.AnyAsync(u => u.Email == email))
+            return;
+
+        if (password.Length < 12)
+            throw new InvalidOperationException("Admin:Password must be at least 12 characters.");
+
+        context.Users.Add(new AppUser
+        {
+            Name = config["Admin:Name"] ?? "Administrator",
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            Role = Roles.Admin
+        });
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded administrator account {Email}.", email);
     }
 }

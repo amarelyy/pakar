@@ -1,5 +1,6 @@
 namespace Pakar.Domain.Entities;
 
+/// <summary>One detection result from a camera; kept as history for statistics and prediction.</summary>
 public class Detection
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -8,16 +9,16 @@ public class Detection
     public string BoundingBoxJson { get; set; } = string.Empty;
     public string SnapshotUrl { get; set; } = string.Empty;
 
-    /// <summary>Status okupansi: "occupied" atau "available" pada saat deteksi ini</summary>
+    /// <summary>Occupancy at detection time: "occupied" or "available".</summary>
     public string Status { get; set; } = string.Empty;
 
-    /// <summary>External Spot ID (int dari AI pipeline / ROI config) untuk logging cepat</summary>
+    /// <summary>Spot ID as reported by the AI pipeline, kept even when no database spot matches.</summary>
     public int SpotExternalId { get; set; }
 
     public Guid CameraId { get; set; }
     public Camera Camera { get; set; } = null!;
 
-    /// <summary>FK opsional ke ParkingSpot (nullable karena detection bisa tanpa mapping ke DB spot)</summary>
+    /// <summary>Matching database spot, if any.</summary>
     public Guid? SpotId { get; set; }
     public ParkingSpot? Spot { get; set; }
 }

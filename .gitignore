@@ -70,3 +70,10 @@ desktop.ini
 # Testing Coverage
 coverage/
 *.coveragexml
+.fake
+
+# Local runtime artifacts
+*.log
+*.db
+*.db-shm
+*.db-wal

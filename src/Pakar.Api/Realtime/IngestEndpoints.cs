@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,26 +11,28 @@ public static class IngestEndpoints
     public static void MapParkingRealtime(this WebApplication app)
     {
         app.MapHub<ParkingHub>("/hubs/parking");
+        app.MapHub<FrameHub>(FrameHub.Route);
 
         app.MapGet("/api/parking/snapshot", (ParkingStateStore store) => store.GetSnapshot());
 
+        // Authenticated by CameraAuthMiddleware, which guards every /api/ingest route.
         app.MapPost("/api/ingest/detections", async (
-            HttpRequest http,
             IngestRequest req,
+            AppDbContext db,
             ParkingStateStore store,
             IHubContext<ParkingHub> hub,
-            IConfiguration cfg,
             IServiceScopeFactory scopeFactory,
             ILogger<ParkingStateStore> log) =>
         {
-            var expected = cfg["Ingest:ApiKey"] ?? "";
-            var given = http.Headers["X-Api-Key"].ToString();
-            if (expected.Length == 0 ||
-                !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(given)))
-                return Results.Unauthorized();
-
             if (req.Spots is null || req.Spots.Count > 500)
-                return Results.BadRequest("spots kosong atau terlalu banyak");
+                return Results.BadRequest("Spots must contain between 0 and 500 entries.");
+
+            // Every detection row references a camera, so data from unregistered cameras is rejected up front.
+            if (!await db.Cameras.AnyAsync(c => c.ExternalId == req.CameraId))
+            {
+                log.LogWarning("Rejected ingest from unregistered camera {Cam}.", req.CameraId);
+                return Results.NotFound($"Camera {req.CameraId} is not registered.");
+            }
 
             var (changed, zone, cam, reactivated, dbDetections) = store.Apply(req);
 
@@ -67,15 +67,15 @@ public static class IngestEndpoints
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var now = DateTimeOffset.UtcNow;
 
+            // The camera may have been deleted after the request was validated.
             var camera = await db.Cameras.FirstOrDefaultAsync(c => c.ExternalId == req.CameraId);
-            if (camera != null)
+            if (camera is null)
             {
-                camera.LastActiveTime = now;
+                log.LogWarning("Camera {Cam} was removed before its detections were saved.", req.CameraId);
+                return;
             }
-            else
-            {
-                log.LogWarning("Camera ExternalId={Cam} tidak ditemukan di DB; skip update last_active", req.CameraId);
-            }
+
+            camera.LastActiveTime = now.UtcDateTime;
 
             if (detections.Count > 0)
             {
@@ -94,7 +94,7 @@ public static class IngestEndpoints
                         SpotExternalId = d.SpotExtId,
                         BoundingBoxJson = string.Empty,
                         SnapshotUrl = string.Empty,
-                        CameraId = camera?.Id ?? Guid.Empty,
+                        CameraId = camera.Id,
                         SpotId = spotMap.TryGetValue(d.SpotExtId, out var sp) ? sp.Id : null,
                     };
                     db.Detections.Add(detection);
@@ -111,7 +111,7 @@ public static class IngestEndpoints
         }
         catch (Exception ex)
         {
-            log.LogError(ex, "Gagal persist ingest cam={Cam} type={Type} ke DB", req.CameraId, req.Type);
+            log.LogError(ex, "Failed to save ingest from camera {Cam} (type {Type}).", req.CameraId, req.Type);
         }
     }
 }

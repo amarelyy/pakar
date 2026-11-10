@@ -1,5 +1,8 @@
 # Local PostgreSQL, the same engine as the Neon database used in production.
 # Usage: copy infra/.env.example to infra/.env, set a password, then `docker compose -f infra/docker-compose.yml up -d`.
+# All containers and volumes are grouped under the "pakar" project in Docker Desktop.
+name: pakar
+
 services:
   postgres:
     image: postgres:17

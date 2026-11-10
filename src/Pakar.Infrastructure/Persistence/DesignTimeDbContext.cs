@@ -25,9 +25,9 @@ public static class DesignTimeDbContext
             .AddEnvironmentVariables()
             .Build();
 
-        var connectionString = configuration.GetConnectionString(DatabaseSetup.ConnectionStringName);
-        if (string.IsNullOrWhiteSpace(connectionString))
-            connectionString = PlaceholderConnection;
+        // Migrations prefer the direct (unpooled) Neon URL when it is set.
+        var connectionString = DatabaseSetup.ResolveConnectionString(configuration, preferUnpooled: true)
+                               ?? PlaceholderConnection;
 
         var options = new DbContextOptionsBuilder<AppDbContext>();
         DatabaseSetup.Configure(options, connectionString);

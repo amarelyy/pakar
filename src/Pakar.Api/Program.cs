@@ -10,6 +10,7 @@ using Pakar.Api.Middlewares;
 using Pakar.Api.Realtime;
 using Pakar.Api.Security;
 using Pakar.Application.DTOs;
+using Pakar.Infrastructure;
 using Pakar.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +22,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "ConnectionStrings:DefaultConnection is not configured. Set it via user-secrets or environment variables.");
 
 builder.Services.AddDbContext<AppDbContext>(options => DatabaseSetup.Configure(options, connectionString));
+builder.Services.AddInfrastructureServices();
 
 // Container Apps probes: /health/live (process up) and /health/ready (database reachable).
 builder.Services.AddHealthChecks()
@@ -141,6 +143,7 @@ app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
 }).WithTags("System");
 
 app.MapAdminEndpoints();
+app.MapReportEndpoints();
 
 // Realtime: /hubs/parking, snapshot, and the API-key protected ingest endpoint.
 app.MapParkingRealtime();

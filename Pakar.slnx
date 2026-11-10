@@ -9,4 +9,7 @@
     <Project Path="src/Pakar.Shared/Pakar.Shared.csproj" />
     <Project Path="src/Pakar.Web/Pakar.Web.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Pakar.Api.Tests/Pakar.Api.Tests.csproj" />
+  </Folder>
 </Solution>

@@ -1,5 +1,8 @@
 @host = http://localhost:5249
 @adminToken = paste-token-from-login
+@userToken = paste-token-of-a-regular-user
+@spotId = paste-a-spot-id-from-GET-api-parking-zones
+@reportId = paste-id-returned-by-POST-api-reports
 
 ### Log in and copy the returned token into @adminToken
 POST {{host}}/api/auth/login
@@ -16,3 +19,30 @@ Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 { "name": "Example Zone", "totalCapacity": 10 }
+
+### FR 5, FR 6: submit an inaccuracy report (logged-in user); 201 with status PendingReview
+POST {{host}}/api/reports
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{ "spotId": "{{spotId}}", "description": "Spot shows free but a car is parked there." }
+
+### FR 6: my reports and their current status
+GET {{host}}/api/reports/mine
+Authorization: Bearer {{userToken}}
+
+### One report (owner or admin; other users get 404)
+GET {{host}}/api/reports/{{reportId}}
+Authorization: Bearer {{userToken}}
+
+### FR 16: admin review queue, filter by status (PendingReview, Resolved, Dismissed)
+GET {{host}}/api/reports?status=PendingReview&page=1&pageSize=20
+Authorization: Bearer {{adminToken}}
+
+### FR 16: resolve or dismiss; a second review returns 409
+POST {{host}}/api/reports/{{reportId}}/review
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "decision": "Resolved", "note": "Camera angle fixed." }
+

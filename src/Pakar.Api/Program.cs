@@ -16,10 +16,10 @@ using Pakar.Infrastructure.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 // Persistence: PostgreSQL (Neon in production).
-var connectionString = builder.Configuration.GetConnectionString(DatabaseSetup.ConnectionStringName);
+var connectionString = DatabaseSetup.ResolveConnectionString(builder.Configuration);
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(
-        "ConnectionStrings:DefaultConnection is not configured. Set it via user-secrets or environment variables.");
+        "No database configured. Set DATABASE_URL (Neon) or ConnectionStrings:DefaultConnection via user-secrets or environment variables.");
 
 builder.Services.AddDbContext<AppDbContext>(options => DatabaseSetup.Configure(options, connectionString));
 builder.Services.AddInfrastructureServices();

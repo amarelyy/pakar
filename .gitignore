@@ -77,3 +77,7 @@ coverage/
 *.db
 *.db-shm
 *.db-wal
+.neon
+
+# Node tooling (Neon CLI config)
+node_modules/

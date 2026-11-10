@@ -24,13 +24,13 @@ Setup and configuration docs are in `README.md`.
 - [x] SQL password in `infra/docker-compose.yml` moved to `infra/.env`.
 
 ### Database (#8, #24, #27) - Ursula
-- [x] Azure SQL only (SQL Server provider); SQLite removed.
-- [x] Single SQL Server migration (`InitialCreate`) in `src/Pakar.Migrations.SqlServer`; migration bundle documented.
-- [x] Connection retry for Azure SQL; `/health/live` and `/health/ready` for Container Apps probes.
+- [x] PostgreSQL (Npgsql provider) hosted on Neon; SQL Server and SQLite removed.
+- [x] Single PostgreSQL migration (`InitialCreate`) in `src/Pakar.Migrations.Postgres`; migration bundle documented.
+- [x] Connection retry for serverless Postgres; `/health/live` and `/health/ready` probes.
 - [x] Schema hardening: column lengths, unique email, consistent delete rules, UTC timestamps.
 - [x] Zones and cameras soft-deleted so detection history is kept; AI external IDs assigned automatically and never reused.
 - [x] Seed data: 3 zones, 30 spots, 3 cameras (English names) and the first admin from configuration.
-- [x] Tested on SQL Server LocalDB (same engine as Azure SQL).
+- [ ] Re-test on local PostgreSQL (docker compose) and on Neon; migration SQL is generated but not yet applied.
 
 ### Zone and camera management (#10) - Ursula
 - [x] Add and remove zones and cameras (FR 13, FR 14), Admin only.
@@ -55,7 +55,7 @@ Items without an existing issue are marked **(new issue needed)**.
 
 ### 2.1 Backend API - Ursula
 
-- [ ] **#27 Seed data**: run the seed against Azure SQL once deployed, then close the issue.
+- [ ] **#27 Seed data**: run the seed against Neon once deployed, then close the issue.
 - [ ] **#9 Auth and RBAC (FR 9, FR 15)**
   1. Logout and "logged in as" display in the Web app.
   2. Hide admin pages from non-admins in the Web app (the API already enforces it).
@@ -117,7 +117,7 @@ Items without an existing issue are marked **(new issue needed)**.
 ### 2.5 Infrastructure and secrets - Ursula (#28, #29)
 
 - [ ] **#28 Bicep** (`containerapps.bicep`, `sql.bicep`, `keyvault.bicep`, `storage.bicep` are empty)
-  1. Azure SQL server and `PakarDb` (Basic or Serverless free offer) with Entra admin and a firewall rule for Azure services.
+  1. Database is external (Neon); `sql.bicep` is no longer needed. Pass the Neon connection string as a Container App secret.
   2. Container Apps for Api, Web and AiInference with system-assigned managed identity; Api `maxReplicas: 1`.
   3. Key Vault with `Jwt--Key`, `Ingest--ApiKey`, `Inference--ApiKey`, `Admin--Password`, referenced as Container App secrets.
   4. Health probes: `/health/live` and `/health/ready`.
@@ -129,7 +129,7 @@ Items without an existing issue are marked **(new issue needed)**.
 ### 2.6 Build and deployment pipeline - Deva (#21)
 
 - [ ] Dockerfiles for Pakar.Api, Pakar.Web, Pakar.AiInference (`src/Pakar.AiInference/Dockerfile` is empty).
-- [ ] CI workflow: build, test, publish images, run the migration bundle against Azure SQL, deploy Container Apps.
+- [ ] CI workflow: build, test, publish images, run the migration bundle against Neon, deploy Container Apps.
 
 ### 2.7 Code quality (owner of each area)
 
@@ -144,7 +144,7 @@ Items without an existing issue are marked **(new issue needed)**.
 
 ## 3. QA testing - Deva (#21), with everyone
 
-- [ ] Test project for the API: auth and RBAC, ingest, reports, admin endpoints, run against SQL Server.
+- [ ] Test project for the API: auth and RBAC, ingest, reports, admin endpoints, run against PostgreSQL.
 - [ ] Acceptance test per requirement:
 
 | FR | Check |

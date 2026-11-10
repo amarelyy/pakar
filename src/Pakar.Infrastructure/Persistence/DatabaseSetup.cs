@@ -4,22 +4,21 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Pakar.Infrastructure.Persistence;
 
 /// <summary>
-/// Single place that configures EF Core for Azure SQL Database (SQL Server engine).
-/// Local testing uses SQL Server LocalDB or a SQL Server container, so behavior matches production.
+/// Single place that configures EF Core for PostgreSQL (Neon in production, a container locally).
 /// </summary>
 public static class DatabaseSetup
 {
     public const string ConnectionStringName = "DefaultConnection";
 
-    private const string MigrationsAssembly = "Pakar.Migrations.SqlServer";
+    private const string MigrationsAssembly = "Pakar.Migrations.Postgres";
 
     public static void Configure(DbContextOptionsBuilder options, string connectionString)
     {
-        options.UseSqlServer(connectionString, sql =>
+        options.UseNpgsql(connectionString, npgsql =>
         {
-            sql.MigrationsAssembly(MigrationsAssembly);
-            // Azure SQL drops connections during failovers and scaling; retry transient errors.
-            sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
+            npgsql.MigrationsAssembly(MigrationsAssembly);
+            // Serverless Postgres scales to zero and drops idle connections; retry transient errors.
+            npgsql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null);
         });
 
         // Detections are history and intentionally unfiltered while cameras are soft-deleted.

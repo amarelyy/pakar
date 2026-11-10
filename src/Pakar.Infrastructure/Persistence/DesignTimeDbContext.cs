@@ -13,7 +13,7 @@ public static class DesignTimeDbContext
     private const string ApiUserSecretsId = "6ea7defb-9323-4a28-9a3c-7bb1d533757f";
 
     // Used only when no connection string is configured; enough for `migrations add`, which never connects.
-    private const string PlaceholderConnection = "Server=(localdb)\\MSSQLLocalDB;Database=PakarDb;Trusted_Connection=True;TrustServerCertificate=True";
+    private const string PlaceholderConnection = "Host=localhost;Database=pakar;Username=postgres;Password=placeholder";
 
     public static AppDbContext Create()
     {
@@ -25,9 +25,9 @@ public static class DesignTimeDbContext
             .AddEnvironmentVariables()
             .Build();
 
-        var connectionString = configuration.GetConnectionString(DatabaseSetup.ConnectionStringName);
-        if (string.IsNullOrWhiteSpace(connectionString))
-            connectionString = PlaceholderConnection;
+        // Migrations prefer the direct (unpooled) Neon URL when it is set.
+        var connectionString = DatabaseSetup.ResolveConnectionString(configuration, preferUnpooled: true)
+                               ?? PlaceholderConnection;
 
         var options = new DbContextOptionsBuilder<AppDbContext>();
         DatabaseSetup.Configure(options, connectionString);

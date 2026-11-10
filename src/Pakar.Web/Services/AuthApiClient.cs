@@ -1,10 +1,11 @@
 using System.Net;
 using System.Text.Json;
+using Pakar.Application.DTOs;
 
 namespace Pakar.Web.Services;
 
 /// <summary>Outcome of an auth call; <see cref="Error"/> is safe to show to the user.</summary>
-public sealed record AuthResult(bool Succeeded, string? Error = null, string? Token = null);
+public sealed record AuthResult(bool Succeeded, string? Error = null, SignedInUser? User = null);
 
 /// <summary>Calls Pakar.Api account endpoints: registration (FR 7) and login (FR 8).</summary>
 public sealed class AuthApiClient(IHttpClientFactory httpClientFactory, ILogger<AuthApiClient> logger)
@@ -15,7 +16,9 @@ public sealed class AuthApiClient(IHttpClientFactory httpClientFactory, ILogger<
         => PostAsync("api/auth/register", new { name, email, password }, ct);
 
     public Task<AuthResult> LoginAsync(string email, string password, CancellationToken ct = default)
-        => PostAsync("api/auth/login", new { email, password }, ct);
+        => PostAsync(LoginPath, new { email, password }, ct);
+
+    private const string LoginPath = "api/auth/login";
 
     private async Task<AuthResult> PostAsync(string path, object body, CancellationToken ct)
     {
@@ -25,8 +28,16 @@ public sealed class AuthApiClient(IHttpClientFactory httpClientFactory, ILogger<
             if (!response.IsSuccessStatusCode)
                 return new AuthResult(false, await ReadErrorAsync(response, ct));
 
-            var payload = await response.Content.ReadFromJsonAsync<TokenResponse>(ct);
-            return new AuthResult(true, Token: payload?.Token);
+            // Registration returns only a message; login returns the token and the account.
+            if (path != LoginPath)
+                return new AuthResult(true);
+
+            var login = await response.Content.ReadFromJsonAsync<LoginResponseDto>(ct);
+            if (login is null || string.IsNullOrEmpty(login.Token))
+                return new AuthResult(false, "Unexpected response from the server. Please try again.");
+
+            return new AuthResult(true, User: new SignedInUser(
+                login.Token, login.ExpiresAt, login.User.Id, login.User.Name, login.User.Email, login.User.Role));
         }
         catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !ct.IsCancellationRequested))
         {
@@ -40,6 +51,8 @@ public sealed class AuthApiClient(IHttpClientFactory httpClientFactory, ILogger<
     {
         if (response.StatusCode == HttpStatusCode.Unauthorized)
             return "Invalid email or password.";
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            return "This account has been deactivated. Contact an administrator.";
         if ((int)response.StatusCode >= 500)
             return "Something went wrong on the server. Please try again.";
 
@@ -68,6 +81,4 @@ public sealed class AuthApiClient(IHttpClientFactory httpClientFactory, ILogger<
 
         return "The request was rejected. Please check your input.";
     }
-
-    private sealed record TokenResponse(string? Token);
 }

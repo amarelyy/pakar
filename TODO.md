@@ -56,15 +56,15 @@ Items without an existing issue are marked **(new issue needed)**.
 ### 2.1 Backend API - Ursula
 
 - [ ] **#27 Seed data**: run the seed against Neon once deployed, then close the issue.
-- [ ] **#9 Auth and RBAC (FR 9, FR 15)**
-  1. Logout and "logged in as" display in the Web app.
-  2. Hide admin pages from non-admins in the Web app (the API already enforces it).
-  3. FR 15 user management API: list, edit, deactivate; add `AppUser.IsActive`; block login for deactivated users.
+- [x] **#9 Auth and RBAC (FR 9, FR 15)**
+  1. [x] Logout and "logged in as" display in the Web app top bar.
+  2. [x] Admin menu and `/admin` shown only to admins (`AdminOnly` wrapper; the API enforces it independently).
+  3. [x] FR 15 user management API (`/api/users`): list, get, edit name and role, deactivate, reactivate; `AppUser.IsActive`; deactivated users cannot log in and their tokens are rejected; an admin cannot lock themselves out or remove the last admin.
 - [x] **#11 Zone status, search and suggestions (FR 1-4)**
   1. [x] FR 2: `GET /api/parking/zones/search` filters by text (building), status and free spots, sorted by distance when `lat`/`lng` are given; one SQL query.
   2. [x] FR 4: `GET /api/parking/zones/{id}/alternate` returns the nearest zone with free spots (haversine from the zone's spot center or the caller's position); one SQL query.
   3. [x] Zone status (available, almost_full, full) in `GET /api/parking/zones`, shared with `ParkingHub` through `OccupancyCalculator`.
-- [x] **#12 Reports (FR 5, 6, 16)**
+- [x] **#12 Reports (FR 5, 6, 16)**l
   1. [x] FR 5: `POST /api/reports` submits an inaccuracy report for a spot (logged-in user).
   2. [x] FR 6: the response returns `PendingReview` immediately; `GET /api/reports/mine` lists the user's reports.
   3. [x] FR 16: `GET /api/reports` (Admin, filter by status, paged); `POST /api/reports/{id}/review` resolves or dismisses with a note.

@@ -56,7 +56,9 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
                 if (!string.IsNullOrEmpty(token) && context.Request.Path.StartsWithSegments(FrameHub.Route))
                     context.Token = token;
                 return Task.CompletedTask;
-            }
+            },
+            // FR 9, FR 15: deactivated accounts and changed roles invalidate existing tokens.
+            OnTokenValidated = ActiveAccountValidator.ValidateAsync
         };
     });
 
@@ -144,6 +146,7 @@ app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
 
 app.MapAdminEndpoints();
 app.MapReportEndpoints();
+app.MapUserEndpoints();
 
 // Realtime: /hubs/parking, snapshot, and the API-key protected ingest endpoint.
 app.MapParkingRealtime();

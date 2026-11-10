@@ -22,6 +22,7 @@ builder.Services.AddHttpClient("api", client =>
 });
 
 // Account registration and login (FR 7, FR 8). Scoped = one instance per browser circuit.
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<AuthApiClient>();
 builder.Services.AddScoped<UserSession>();
 

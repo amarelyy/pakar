@@ -13,6 +13,7 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IZoneQueryService, ZoneQueryService>();
+        services.AddScoped<IUserManagementService, UserManagementService>();
         return services;
     }
 }

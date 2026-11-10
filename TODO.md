@@ -60,10 +60,10 @@ Items without an existing issue are marked **(new issue needed)**.
   1. Logout and "logged in as" display in the Web app.
   2. Hide admin pages from non-admins in the Web app (the API already enforces it).
   3. FR 15 user management API: list, edit, deactivate; add `AppUser.IsActive`; block login for deactivated users.
-- [ ] **#11 Zone status, search and suggestions (FR 1-4)**
-  1. FR 2: search endpoint filtering zones by building proximity and availability, response under 2 s.
-  2. FR 4: nearest available alternate zone when a zone is full, response under 3 s.
-  3. Zone status values (available, almost full, full) in the public zone list.
+- [x] **#11 Zone status, search and suggestions (FR 1-4)**
+  1. [x] FR 2: `GET /api/parking/zones/search` filters by text (building), status and free spots, sorted by distance when `lat`/`lng` are given; one SQL query.
+  2. [x] FR 4: `GET /api/parking/zones/{id}/alternate` returns the nearest zone with free spots (haversine from the zone's spot center or the caller's position); one SQL query.
+  3. [x] Zone status (available, almost_full, full) in `GET /api/parking/zones`, shared with `ParkingHub` through `OccupancyCalculator`.
 - [x] **#12 Reports (FR 5, 6, 16)**
   1. [x] FR 5: `POST /api/reports` submits an inaccuracy report for a spot (logged-in user).
   2. [x] FR 6: the response returns `PendingReview` immediately; `GET /api/reports/mine` lists the user's reports.

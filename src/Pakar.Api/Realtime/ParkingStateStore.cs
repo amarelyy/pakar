@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Pakar.Domain.Entities;
+using Pakar.Domain.Services;
 using Pakar.Infrastructure.Persistence;
 
 namespace Pakar.Api.Realtime;
@@ -17,8 +18,6 @@ public sealed class ParkingStateStore
     private readonly Dictionary<int, CameraView> _cameras = new();
     private readonly Dictionary<int, int> _zoneCapacityCache = new();
     private readonly IServiceScopeFactory _scopeFactory;
-
-    public const double AlmostFullRatio = 0.9;
 
     public ParkingStateStore(IServiceScopeFactory scopeFactory) { _scopeFactory = scopeFactory; }
 
@@ -114,13 +113,10 @@ public sealed class ParkingStateStore
             });
         }
 
-        cap = Math.Max(cap, inArea.Count);
-
-        var status = cap == 0 ? "available"
-                   : occ >= cap ? "full"
-                   : (double)occ / cap >= AlmostFullRatio ? "almost_full"
-                   : "available";
-        return new ZoneView(areaId, cap, occ, cap - occ, status);
+        // Same rule as the REST zone list (OccupancyCalculator), so both always agree.
+        cap = OccupancyCalculator.EffectiveCapacity(cap, inArea.Count);
+        var status = OccupancyCalculator.GetStatus(cap, occ).ToApiValue();
+        return new ZoneView(areaId, cap, occ, OccupancyCalculator.Available(cap, occ), status);
     }
 
     /// <summary>Paksa refresh kapasitas dari DB (misal setelah admin edit zona via UI).</summary>

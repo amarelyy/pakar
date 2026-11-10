@@ -1,44 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Pakar.Infrastructure.Persistence;
+using Pakar.Api.Endpoints;
 using Pakar.Application.DTOs;
+using Pakar.Application.Interfaces;
 
 namespace Pakar.Api.Controllers;
 
+/// <summary>Public zone availability; guests can use every route without logging in (FR 3).</summary>
 [ApiController]
 [Route("api/[controller]")]
-public class ParkingController : ControllerBase
+public class ParkingController(IZoneQueryService zones) : ControllerBase
 {
-    private readonly AppDbContext _context;
-
-    public ParkingController(AppDbContext context)
-    {
-        _context = context;
-    }
-
-    // GET: api/parking/zones
+    // FR 1: GET api/parking/zones, each zone with its status (available, almost_full, full).
     [HttpGet("zones")]
-    public async Task<ActionResult<IEnumerable<ZoneDto>>> GetZones()
-    {
-        var zones = await _context.Zones
-            .Include(z => z.Spots)
-            .Select(z => new ZoneDto
-            {
-                Id = z.Id,
-                Name = z.Name,
-                TotalCapacity = z.TotalCapacity,
-                AvailableSpots = z.Spots.Count(s => !s.IsOccupied),
-                Spots = z.Spots.Select(s => new SpotDto
-                {
-                    Id = s.Id,
-                    Name = s.Name,
-                    Latitude = s.Latitude,
-                    Longitude = s.Longitude,
-                    IsOccupied = s.IsOccupied
-                }).ToList()
-            })
-            .ToListAsync();
+    public async Task<ActionResult<IReadOnlyList<ZoneDto>>> GetZones(CancellationToken ct) =>
+        Ok(await zones.ListAsync(ct));
 
-        return Ok(zones);
-    }
+    // FR 2: GET api/parking/zones/search?q=&status=&minAvailable=&lat=&lng=&limit=
+    [HttpGet("zones/search")]
+    public async Task<IResult> Search([FromQuery] ZoneSearchQuery query, CancellationToken ct) =>
+        (await zones.SearchAsync(query, ct)).ToHttpResult();
+
+    // FR 4: GET api/parking/zones/{id}/alternate?lat=&lng=
+    [HttpGet("zones/{id:guid}/alternate")]
+    public async Task<IResult> Alternate(Guid id, [FromQuery] double? lat, [FromQuery] double? lng, CancellationToken ct) =>
+        (await zones.FindAlternateAsync(id, lat, lng, ct)).ToHttpResult();
 }

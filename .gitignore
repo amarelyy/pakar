@@ -28,11 +28,18 @@ artifacts/
 
 # Environment Variables & Secrets (RAHASIA!)
 .env
-.env.local
+.env.*
+!.env.example
 appsettings.Development.json
 appsettings.Production.json
+appsettings.*.local.json
+appsettings.Local.json
+secrets.json
 *.pfx
 *.p12
+*.pem
+*.key
+*.crt
 
 # AI Models (Gunakan Git LFS untuk file besar >100MB)
 *.onnx

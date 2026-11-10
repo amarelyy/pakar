@@ -1,0 +1,48 @@
+@implements IDisposable
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+@* Top bar: "Logged in as" with logout, or login and register links for guests (FR 3, FR 8). *@
+@if (!loaded)
+{
+    return;
+}
+
+@if (user is null)
+{
+    <a href="login">Log in</a>
+    <a href="register">Register</a>
+}
+else
+{
+    <span class="account-name" title="@user.Email">
+        Logged in as <strong>@user.Name</strong>@(user.IsAdmin ? " (Admin)" : null)
+    </span>
+    <button type="button" class="btn btn-link" @onclick="LogoutAsync">Log out</button>
+}
+
+@code {
+    private SignedInUser? user;
+    private bool loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Session.Changed += OnSessionChanged;
+        user = await Session.GetUserAsync();
+        loaded = true;
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Session.SignOutAsync();
+        Navigation.NavigateTo("");
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    {
+        user = await Session.GetUserAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Session.Changed -= OnSessionChanged;
+}

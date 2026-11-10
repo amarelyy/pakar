@@ -4,42 +4,64 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 namespace Pakar.Web.Services;
 
 /// <summary>
-/// Holds the signed-in user's API token for one browser tab. The token is kept encrypted in session
-/// storage, so it survives page reloads and is cleared when the tab closes.
+/// Holds the signed-in user for one browser tab. The session is kept encrypted in session storage,
+/// so it survives page reloads and is cleared when the tab closes or the user logs out.
+/// Scoped per circuit, so every interactive component on the page sees the same user.
 /// </summary>
-public sealed class UserSession(ProtectedSessionStorage storage)
+public sealed class UserSession(ProtectedSessionStorage storage, TimeProvider clock)
 {
-    private const string TokenKey = "auth-token";
+    private const string SessionKey = "auth-session";
 
-    private string? token;
+    private SignedInUser? user;
     private bool restored;
 
-    public async Task SignInAsync(string newToken)
+    /// <summary>Raised after sign-in and sign-out so menus can re-render.</summary>
+    public event Action? Changed;
+
+    public async Task SignInAsync(SignedInUser signedIn)
     {
-        token = newToken;
+        user = signedIn;
         restored = true;
-        await storage.SetAsync(TokenKey, newToken);
+        await storage.SetAsync(SessionKey, signedIn);
+        Changed?.Invoke();
     }
 
-    /// <summary>Returns the stored token, or null when the user is not signed in.</summary>
-    public async ValueTask<string?> GetTokenAsync()
+    public async Task SignOutAsync()
     {
-        if (restored)
-            return token;
-
+        user = null;
         restored = true;
-        try
+        await storage.DeleteAsync(SessionKey);
+        Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Returns the signed-in user, or null when signed out or the token expired.
+    /// Needs an interactive circuit: call it from components rendered without prerendering.
+    /// </summary>
+    public async ValueTask<SignedInUser?> GetUserAsync()
+    {
+        if (!restored)
         {
-            var result = await storage.GetAsync<string>(TokenKey);
-            token = result.Success ? result.Value : null;
-        }
-        catch (CryptographicException)
-        {
-            // Encryption keys changed (for example after a redeploy); treat as signed out.
-            await storage.DeleteAsync(TokenKey);
-            token = null;
+            restored = true;
+            try
+            {
+                var result = await storage.GetAsync<SignedInUser>(SessionKey);
+                user = result.Success ? result.Value : null;
+            }
+            catch (CryptographicException)
+            {
+                // Encryption keys changed (for example after a redeploy); treat as signed out.
+                await storage.DeleteAsync(SessionKey);
+                user = null;
+            }
         }
 
-        return token;
+        if (user is not null && user.IsExpired(clock.GetUtcNow().UtcDateTime))
+            await SignOutAsync();
+
+        return user;
     }
+
+    /// <summary>Bearer token for API calls, or null when signed out.</summary>
+    public async ValueTask<string?> GetTokenAsync() => (await GetUserAsync())?.Token;
 }

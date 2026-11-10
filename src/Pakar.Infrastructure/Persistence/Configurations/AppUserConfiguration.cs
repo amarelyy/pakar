@@ -13,6 +13,7 @@ public sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         user.Property(u => u.Email).HasMaxLength(256);
         user.Property(u => u.PasswordHash).HasMaxLength(100);
         user.Property(u => u.Role).HasMaxLength(20);
+        user.Ignore(u => u.IsActiveAdmin);
 
         // FR 7: one account per email, enforced by the database even under concurrent registrations.
         user.HasIndex(u => u.Email).IsUnique();

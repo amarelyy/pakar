@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Pakar.Api.Security;
+using Pakar.Application.DTOs;
 using Pakar.Domain.Entities;
 using Pakar.Infrastructure.Persistence;
 
@@ -16,13 +17,17 @@ namespace Pakar.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+    public const string DeactivatedMessage = "This account has been deactivated. Contact an administrator.";
+
     private readonly AppDbContext _context;
     private readonly JwtOptions _jwt;
+    private readonly TimeProvider _clock;
 
-    public AuthController(AppDbContext context, IOptions<JwtOptions> jwt)
+    public AuthController(AppDbContext context, IOptions<JwtOptions> jwt, TimeProvider clock)
     {
         _context = context;
         _jwt = jwt.Value;
+        _clock = clock;
     }
 
     [HttpPost("register")]
@@ -47,17 +52,25 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequest request)
     {
         var email = EmailAddresses.Normalize(request.Email);
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Unauthorized("Invalid credentials.");
 
-        return Ok(new { token = GenerateJwtToken(user) });
+        // FR 15: checked after the password so the response does not reveal which emails exist.
+        if (!user.IsActive)
+            return Problem(DeactivatedMessage, statusCode: StatusCodes.Status403Forbidden, title: "Account deactivated");
+
+        var expiresAt = _clock.GetUtcNow().UtcDateTime.AddMinutes(_jwt.ExpiryMinutes);
+        return Ok(new LoginResponseDto(
+            GenerateJwtToken(user, expiresAt),
+            expiresAt,
+            new AuthUserDto(user.Id, user.Name, user.Email, user.Role)));
     }
 
-    private string GenerateJwtToken(AppUser user)
+    private string GenerateJwtToken(AppUser user, DateTime expiresAt)
     {
         var creds = new SigningCredentials(_jwt.GetSigningKey(), SecurityAlgorithms.HmacSha256);
 
@@ -72,7 +85,7 @@ public class AuthController : ControllerBase
             issuer: _jwt.Issuer,
             audience: _jwt.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwt.ExpiryMinutes),
+            expires: expiresAt,
             signingCredentials: creds
         );
 

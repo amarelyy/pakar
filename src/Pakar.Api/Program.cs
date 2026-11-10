@@ -14,7 +14,7 @@ using Pakar.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Persistence: Azure SQL Database (SQL Server engine).
+// Persistence: PostgreSQL (Neon in production).
 var connectionString = builder.Configuration.GetConnectionString(DatabaseSetup.ConnectionStringName);
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(

@@ -1,14 +1,43 @@
 @host = http://localhost:5249
 @adminToken = paste-token-from-login
+@userToken = paste-token-of-a-regular-user
+@spotId = paste-a-spot-id-from-GET-api-parking-zones
+@reportId = paste-id-returned-by-POST-api-reports
+@zoneId = paste-a-zone-id-from-GET-api-parking-zones
+@userId = paste-a-user-id-from-GET-api-users
 
-### Log in and copy the returned token into @adminToken
+### Log in and copy the returned token into @adminToken; the response also has expiresAt and user (name, role)
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
 { "email": "admin@example.com", "password": "change-me-please" }
 
-### Public zone listing
+### Register a regular user, then log in with it and copy the token into @userToken
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "name": "Test User", "email": "user@example.com", "password": "user-pass-123" }
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "user@example.com", "password": "user-pass-123" }
+
+### FR 1, FR 3: public zone listing (no login); each zone has status available, almost_full or full
 GET {{host}}/api/parking/zones
+
+### FR 2: search zones (guest). All filters optional: q (name or description), status, minAvailable, lat+lng, limit
+GET {{host}}/api/parking/zones/search?q=building&status=available&minAvailable=1&lat=-7.7686&lng=110.3770
+
+### FR 2: invalid filter returns 400 problem details
+GET {{host}}/api/parking/zones/search?status=busy
+
+### FR 4: nearest zone with free spots, measured from the zone itself (guest)
+GET {{host}}/api/parking/zones/{{zoneId}}/alternate
+
+### FR 4: same, measured from the user's position
+GET {{host}}/api/parking/zones/{{zoneId}}/alternate?lat=-7.7686&lng=110.3770
 
 ### Admin: create a zone (requires the Admin role)
 POST {{host}}/api/zones
@@ -16,3 +45,57 @@ Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 { "name": "Example Zone", "totalCapacity": 10 }
+
+### FR 5, FR 6: submit an inaccuracy report (logged-in user); 201 with status PendingReview
+POST {{host}}/api/reports
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{ "spotId": "{{spotId}}", "description": "Spot shows free but a car is parked there." }
+
+### FR 6: my reports and their current status
+GET {{host}}/api/reports/mine
+Authorization: Bearer {{userToken}}
+
+### One report (owner or admin; other users get 404)
+GET {{host}}/api/reports/{{reportId}}
+Authorization: Bearer {{userToken}}
+
+### FR 16: admin review queue, filter by status (PendingReview, Resolved, Dismissed)
+GET {{host}}/api/reports?status=PendingReview&page=1&pageSize=20
+Authorization: Bearer {{adminToken}}
+
+### FR 16: resolve or dismiss; a second review returns 409
+POST {{host}}/api/reports/{{reportId}}/review
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "decision": "Resolved", "note": "Camera angle fixed." }
+
+### FR 15: list users (Admin); search matches name or email, includeInactive defaults to true
+GET {{host}}/api/users?search=user&page=1&pageSize=20
+Authorization: Bearer {{adminToken}}
+
+### FR 9: the same request with a regular user's token returns 403
+GET {{host}}/api/users
+Authorization: Bearer {{userToken}}
+
+### FR 15: one user
+GET {{host}}/api/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+### FR 15: edit name and role (Admin or User); demoting yourself or the last admin returns 409
+PUT {{host}}/api/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "name": "Renamed User", "role": "User" }
+
+### FR 15: deactivate; that user's login now returns 403 and their old token returns 401
+POST {{host}}/api/users/{{userId}}/deactivate
+Authorization: Bearer {{adminToken}}
+
+### FR 15: reactivate
+POST {{host}}/api/users/{{userId}}/reactivate
+Authorization: Bearer {{adminToken}}
+

@@ -10,17 +10,19 @@ using Pakar.Api.Middlewares;
 using Pakar.Api.Realtime;
 using Pakar.Api.Security;
 using Pakar.Application.DTOs;
+using Pakar.Infrastructure;
 using Pakar.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Persistence: Azure SQL Database (SQL Server engine).
-var connectionString = builder.Configuration.GetConnectionString(DatabaseSetup.ConnectionStringName);
+// Persistence: PostgreSQL (Neon in production).
+var connectionString = DatabaseSetup.ResolveConnectionString(builder.Configuration);
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(
-        "ConnectionStrings:DefaultConnection is not configured. Set it via user-secrets or environment variables.");
+        "No database configured. Set DATABASE_URL (Neon) or ConnectionStrings:DefaultConnection via user-secrets or environment variables.");
 
 builder.Services.AddDbContext<AppDbContext>(options => DatabaseSetup.Configure(options, connectionString));
+builder.Services.AddInfrastructureServices();
 
 // Container Apps probes: /health/live (process up) and /health/ready (database reachable).
 builder.Services.AddHealthChecks()
@@ -54,7 +56,9 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
                 if (!string.IsNullOrEmpty(token) && context.Request.Path.StartsWithSegments(FrameHub.Route))
                     context.Token = token;
                 return Task.CompletedTask;
-            }
+            },
+            // FR 9, FR 15: deactivated accounts and changed roles invalidate existing tokens.
+            OnTokenValidated = ActiveAccountValidator.ValidateAsync
         };
     });
 
@@ -141,6 +145,8 @@ app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
 }).WithTags("System");
 
 app.MapAdminEndpoints();
+app.MapReportEndpoints();
+app.MapUserEndpoints();
 
 // Realtime: /hubs/parking, snapshot, and the API-key protected ingest endpoint.
 app.MapParkingRealtime();

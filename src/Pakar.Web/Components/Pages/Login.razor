@@ -58,9 +58,9 @@
         try
         {
             var result = await Auth.LoginAsync(model.Email.Trim(), model.Password);
-            if (result is { Succeeded: true, Token: not null })
+            if (result is { Succeeded: true, User: not null })
             {
-                await Session.SignInAsync(result.Token);
+                await Session.SignInAsync(result.User);
                 Navigation.NavigateTo("park");
                 return;
             }

@@ -1,0 +1,30 @@
+@implements IDisposable
+@inject UserSession Session
+
+@* Admin menu entry, shown only to admins (FR 9). The API still rejects non-admins on its own. *@
+@if (isAdmin)
+{
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="admin">
+            <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Admin
+        </NavLink>
+    </div>
+}
+
+@code {
+    private bool isAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Session.Changed += OnSessionChanged;
+        isAdmin = (await Session.GetUserAsync())?.IsAdmin == true;
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    {
+        isAdmin = (await Session.GetUserAsync())?.IsAdmin == true;
+        StateHasChanged();
+    });
+
+    public void Dispose() => Session.Changed -= OnSessionChanged;
+}

@@ -24,13 +24,13 @@ Setup and configuration docs are in `README.md`.
 - [x] SQL password in `infra/docker-compose.yml` moved to `infra/.env`.
 
 ### Database (#8, #24, #27) - Ursula
-- [x] Azure SQL only (SQL Server provider); SQLite removed.
-- [x] Single SQL Server migration (`InitialCreate`) in `src/Pakar.Migrations.SqlServer`; migration bundle documented.
-- [x] Connection retry for Azure SQL; `/health/live` and `/health/ready` for Container Apps probes.
+- [x] PostgreSQL (Npgsql provider) hosted on Neon; SQL Server and SQLite removed.
+- [x] Single PostgreSQL migration (`InitialCreate`) in `src/Pakar.Migrations.Postgres`; migration bundle documented.
+- [x] Connection retry for serverless Postgres; `/health/live` and `/health/ready` probes.
 - [x] Schema hardening: column lengths, unique email, consistent delete rules, UTC timestamps.
 - [x] Zones and cameras soft-deleted so detection history is kept; AI external IDs assigned automatically and never reused.
 - [x] Seed data: 3 zones, 30 spots, 3 cameras (English names) and the first admin from configuration.
-- [x] Tested on SQL Server LocalDB (same engine as Azure SQL).
+- [ ] Re-test on local PostgreSQL (docker compose) and on Neon; migration SQL is generated but not yet applied.
 
 ### Zone and camera management (#10) - Ursula
 - [x] Add and remove zones and cameras (FR 13, FR 14), Admin only.
@@ -55,19 +55,19 @@ Items without an existing issue are marked **(new issue needed)**.
 
 ### 2.1 Backend API - Ursula
 
-- [ ] **#27 Seed data**: run the seed against Azure SQL once deployed, then close the issue.
-- [ ] **#9 Auth and RBAC (FR 9, FR 15)**
-  1. Logout and "logged in as" display in the Web app.
-  2. Hide admin pages from non-admins in the Web app (the API already enforces it).
-  3. FR 15 user management API: list, edit, deactivate; add `AppUser.IsActive`; block login for deactivated users.
-- [ ] **#11 Zone status, search and suggestions (FR 1-4)**
-  1. FR 2: search endpoint filtering zones by building proximity and availability, response under 2 s.
-  2. FR 4: nearest available alternate zone when a zone is full, response under 3 s.
-  3. Zone status values (available, almost full, full) in the public zone list.
-- [ ] **#12 Reports (FR 5, 6, 16)**
-  1. FR 5: submit an inaccuracy report for a spot (logged-in user).
-  2. FR 6: return the submission status (received, pending review) immediately.
-  3. FR 16: admin list of reports; mark resolved or dismissed.
+- [ ] **#27 Seed data**: run the seed against Neon once deployed, then close the issue.
+- [x] **#9 Auth and RBAC (FR 9, FR 15)**
+  1. [x] Logout and "logged in as" display in the Web app top bar.
+  2. [x] Admin menu and `/admin` shown only to admins (`AdminOnly` wrapper; the API enforces it independently).
+  3. [x] FR 15 user management API (`/api/users`): list, get, edit name and role, deactivate, reactivate; `AppUser.IsActive`; deactivated users cannot log in and their tokens are rejected; an admin cannot lock themselves out or remove the last admin.
+- [x] **#11 Zone status, search and suggestions (FR 1-4)**
+  1. [x] FR 2: `GET /api/parking/zones/search` filters by text (building), status and free spots, sorted by distance when `lat`/`lng` are given; one SQL query.
+  2. [x] FR 4: `GET /api/parking/zones/{id}/alternate` returns the nearest zone with free spots (haversine from the zone's spot center or the caller's position); one SQL query.
+  3. [x] Zone status (available, almost_full, full) in `GET /api/parking/zones`, shared with `ParkingHub` through `OccupancyCalculator`.
+- [x] **#12 Reports (FR 5, 6, 16)**l
+  1. [x] FR 5: `POST /api/reports` submits an inaccuracy report for a spot (logged-in user).
+  2. [x] FR 6: the response returns `PendingReview` immediately; `GET /api/reports/mine` lists the user's reports.
+  3. [x] FR 16: `GET /api/reports` (Admin, filter by status, paged); `POST /api/reports/{id}/review` resolves or dismisses with a note.
 - [ ] **FR 17 Manual override API** (new issue needed, or add to #19): admin sets a zone's displayed status during camera downtime; pushed through `ParkingHub`.
 - [ ] **FR 13, FR 14 Edit endpoints** (#10 is closed; new issue needed): PUT for zones and cameras; save the camera address.
 - [ ] **FR 12 Persist camera status** (part of #13): add `Camera.IsActive`, update it from the watchdog, show it in admin pages.
@@ -117,7 +117,7 @@ Items without an existing issue are marked **(new issue needed)**.
 ### 2.5 Infrastructure and secrets - Ursula (#28, #29)
 
 - [ ] **#28 Bicep** (`containerapps.bicep`, `sql.bicep`, `keyvault.bicep`, `storage.bicep` are empty)
-  1. Azure SQL server and `PakarDb` (Basic or Serverless free offer) with Entra admin and a firewall rule for Azure services.
+  1. Database is external (Neon); `sql.bicep` is no longer needed. Pass the Neon connection string as a Container App secret.
   2. Container Apps for Api, Web and AiInference with system-assigned managed identity; Api `maxReplicas: 1`.
   3. Key Vault with `Jwt--Key`, `Ingest--ApiKey`, `Inference--ApiKey`, `Admin--Password`, referenced as Container App secrets.
   4. Health probes: `/health/live` and `/health/ready`.
@@ -129,7 +129,7 @@ Items without an existing issue are marked **(new issue needed)**.
 ### 2.6 Build and deployment pipeline - Deva (#21)
 
 - [ ] Dockerfiles for Pakar.Api, Pakar.Web, Pakar.AiInference (`src/Pakar.AiInference/Dockerfile` is empty).
-- [ ] CI workflow: build, test, publish images, run the migration bundle against Azure SQL, deploy Container Apps.
+- [ ] CI workflow: build, test, publish images, run the migration bundle against Neon, deploy Container Apps.
 
 ### 2.7 Code quality (owner of each area)
 
@@ -144,7 +144,7 @@ Items without an existing issue are marked **(new issue needed)**.
 
 ## 3. QA testing - Deva (#21), with everyone
 
-- [ ] Test project for the API: auth and RBAC, ingest, reports, admin endpoints, run against SQL Server.
+- [ ] Test project for the API: auth and RBAC, ingest, reports, admin endpoints, run against PostgreSQL.
 - [ ] Acceptance test per requirement:
 
 | FR | Check |

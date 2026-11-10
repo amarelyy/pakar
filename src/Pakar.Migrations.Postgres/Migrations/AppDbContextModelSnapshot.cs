@@ -230,6 +230,10 @@ namespace Pakar.Migrations.Postgres.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -238,6 +242,12 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.Property<string>("EvidenceImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedById")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("SpotId")
                         .HasColumnType("uuid");
@@ -253,11 +263,21 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ReviewedById");
 
                     b.HasIndex("SpotId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("Status", "SubmittedAt");
 
                     b.ToTable("Reports");
                 });
@@ -328,6 +348,11 @@ namespace Pakar.Migrations.Postgres.Migrations
 
             modelBuilder.Entity("Pakar.Domain.Entities.Report", b =>
                 {
+                    b.HasOne("Pakar.Domain.Entities.AppUser", "ReviewedBy")
+                        .WithMany()
+                        .HasForeignKey("ReviewedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Pakar.Domain.Entities.ParkingSpot", "Spot")
                         .WithMany("Reports")
                         .HasForeignKey("SpotId")
@@ -339,6 +364,8 @@ namespace Pakar.Migrations.Postgres.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ReviewedBy");
 
                     b.Navigation("Spot");
 

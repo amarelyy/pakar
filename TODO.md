@@ -64,10 +64,10 @@ Items without an existing issue are marked **(new issue needed)**.
   1. FR 2: search endpoint filtering zones by building proximity and availability, response under 2 s.
   2. FR 4: nearest available alternate zone when a zone is full, response under 3 s.
   3. Zone status values (available, almost full, full) in the public zone list.
-- [ ] **#12 Reports (FR 5, 6, 16)**
-  1. FR 5: submit an inaccuracy report for a spot (logged-in user).
-  2. FR 6: return the submission status (received, pending review) immediately.
-  3. FR 16: admin list of reports; mark resolved or dismissed.
+- [x] **#12 Reports (FR 5, 6, 16)**
+  1. [x] FR 5: `POST /api/reports` submits an inaccuracy report for a spot (logged-in user).
+  2. [x] FR 6: the response returns `PendingReview` immediately; `GET /api/reports/mine` lists the user's reports.
+  3. [x] FR 16: `GET /api/reports` (Admin, filter by status, paged); `POST /api/reports/{id}/review` resolves or dismisses with a note.
 - [ ] **FR 17 Manual override API** (new issue needed, or add to #19): admin sets a zone's displayed status during camera downtime; pushed through `ParkingHub`.
 - [ ] **FR 13, FR 14 Edit endpoints** (#10 is closed; new issue needed): PUT for zones and cameras; save the camera address.
 - [ ] **FR 12 Persist camera status** (part of #13): add `Camera.IsActive`, update it from the watchdog, show it in admin pages.

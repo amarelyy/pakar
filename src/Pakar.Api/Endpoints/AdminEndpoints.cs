@@ -1,115 +1,61 @@
-using System.Text.RegularExpressions;
-using Microsoft.EntityFrameworkCore;
+using Pakar.Api.Realtime;
 using Pakar.Api.Security;
 using Pakar.Application.DTOs;
-using Pakar.Domain.Entities;
-using Pakar.Infrastructure.Persistence;
+using Pakar.Application.Interfaces;
 
 namespace Pakar.Api.Endpoints;
 
 /// <summary>
-/// Zone and camera management (FR 13, 14). Every route requires the Admin role.
+/// Zone and video source (camera) management (FR 13, 14). Every route requires the Admin role.
 /// Removing a zone or camera hides it but keeps its detection history.
 /// </summary>
-public static partial class AdminEndpoints
+public static class AdminEndpoints
 {
-    private const string ConcurrentCreateMessage = "Another item was created at the same time. Please try again.";
-
     public static void MapAdminEndpoints(this WebApplication app)
     {
         var admin = app.MapGroup("/api").RequireAuthorization(AuthPolicies.AdminOnly);
 
-        admin.MapPost("/zones", async (AppDbContext db, ZoneDto dto) =>
-        {
-            if (string.IsNullOrWhiteSpace(dto.Name) || dto.TotalCapacity <= 0)
-                return Results.BadRequest("Name and valid Capacity are required.");
+        // ---- Zones ----
 
-            var zone = new ParkingZone
+        admin.MapGet("/zones", async (IFacilityAdminService service, CancellationToken ct) =>
+            Results.Ok(await service.ListZonesAsync(ct))).WithTags("Admin - Zones");
+
+        admin.MapGet("/zones/{id:guid}", async (Guid id, IFacilityAdminService service, CancellationToken ct) =>
+            (await service.GetZoneAsync(id, ct)).ToHttpResult()).WithTags("Admin - Zones");
+
+        admin.MapPost("/zones", async (ZoneRequest request, IFacilityAdminService service, CancellationToken ct) =>
+            // ExternalId is returned so it can be entered in the AI worker configuration.
+            (await service.CreateZoneAsync(request, ct))
+                .ToHttpResult(zone => Results.Created($"/api/zones/{zone.Id}", zone))).WithTags("Admin - Zones");
+
+        admin.MapPut("/zones/{id:guid}", async (Guid id, ZoneRequest request, IFacilityAdminService service,
+                ParkingStateStore store, CancellationToken ct) =>
+            (await service.UpdateZoneAsync(id, request, ct)).ToHttpResult(zone =>
             {
-                Name = dto.Name.Trim(),
-                TotalCapacity = dto.TotalCapacity,
-                ExternalId = await NextZoneExternalIdAsync(db)
-            };
-            db.Zones.Add(zone);
+                // The realtime store caches capacity per zone; refresh it so the map uses the new value.
+                store.InvalidateZoneCapacity(zone.ExternalId);
+                return Results.Ok(zone);
+            })).WithTags("Admin - Zones");
 
-            if (!await TrySaveAsync(db))
-                return Results.Conflict(ConcurrentCreateMessage);
+        admin.MapDelete("/zones/{id:guid}", async (Guid id, IFacilityAdminService service, CancellationToken ct) =>
+            (await service.DeleteZoneAsync(id, ct)).ToHttpResult(_ => Results.NoContent())).WithTags("Admin - Zones");
 
-            // ExternalId is returned so it can be entered in the AI pipeline configuration.
-            return Results.Created($"/api/zones/{zone.Id}", new { zone.Id, zone.Name, zone.ExternalId });
-        }).WithTags("Admin - Zones");
+        // ---- Cameras (video sources) ----
 
-        admin.MapDelete("/zones/{id:guid}", async (Guid id, AppDbContext db) =>
-        {
-            var zone = await db.Zones.Include(z => z.Cameras).FirstOrDefaultAsync(z => z.Id == id);
-            if (zone is null) return Results.NotFound();
+        admin.MapGet("/cameras", async (Guid? zoneId, IFacilityAdminService service, CancellationToken ct) =>
+            Results.Ok(await service.ListCamerasAsync(zoneId, ct))).WithTags("Admin - Cameras");
 
-            // The zone's cameras are removed with it so they can no longer send detections.
-            var now = DateTime.UtcNow;
-            zone.DeletedAt = now;
-            foreach (var camera in zone.Cameras)
-                camera.DeletedAt = now;
+        admin.MapGet("/cameras/{id:guid}", async (Guid id, IFacilityAdminService service, CancellationToken ct) =>
+            (await service.GetCameraAsync(id, ct)).ToHttpResult()).WithTags("Admin - Cameras");
 
-            await db.SaveChangesAsync();
-            return Results.NoContent();
-        }).WithTags("Admin - Zones");
+        admin.MapPost("/cameras", async (CameraRequest request, IFacilityAdminService service, CancellationToken ct) =>
+            (await service.CreateCameraAsync(request, ct))
+                .ToHttpResult(camera => Results.Created($"/api/cameras/{camera.Id}", camera))).WithTags("Admin - Cameras");
 
-        admin.MapPost("/cameras", async (AppDbContext db, CameraDto dto) =>
-        {
-            if (!IPv4Regex().IsMatch(dto.IpAddress))
-                return Results.BadRequest("Invalid IP Address format.");
+        admin.MapPut("/cameras/{id:guid}", async (Guid id, CameraRequest request, IFacilityAdminService service, CancellationToken ct) =>
+            (await service.UpdateCameraAsync(id, request, ct)).ToHttpResult()).WithTags("Admin - Cameras");
 
-            if (!await db.Zones.AnyAsync(z => z.Id == dto.ZoneId))
-                return Results.BadRequest("Target Zone does not exist.");
-
-            var camera = new Camera
-            {
-                Name = dto.Name.Trim(),
-                ConnectionType = "IP",
-                ApiKeyHash = "temp-hash",
-                ZoneId = dto.ZoneId,
-                ExternalId = await NextCameraExternalIdAsync(db)
-            };
-            db.Cameras.Add(camera);
-
-            if (!await TrySaveAsync(db))
-                return Results.Conflict(ConcurrentCreateMessage);
-
-            return Results.Created($"/api/cameras/{camera.Id}", new { camera.Id, camera.Name, camera.ExternalId });
-        }).WithTags("Admin - Cameras");
-
-        admin.MapDelete("/cameras/{id:guid}", async (Guid id, AppDbContext db) =>
-        {
-            var camera = await db.Cameras.FirstOrDefaultAsync(c => c.Id == id);
-            if (camera is null) return Results.NotFound();
-
-            camera.DeletedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            return Results.NoContent();
-        }).WithTags("Admin - Cameras");
+        admin.MapDelete("/cameras/{id:guid}", async (Guid id, IFacilityAdminService service, CancellationToken ct) =>
+            (await service.DeleteCameraAsync(id, ct)).ToHttpResult(_ => Results.NoContent())).WithTags("Admin - Cameras");
     }
-
-    // 1. External IDs include removed rows so an ID used by an old AI configuration is never reused.
-    // 2. Two admins creating at the same moment can pick the same ID; the unique index rejects one (409).
-    private static async Task<int> NextZoneExternalIdAsync(AppDbContext db) =>
-        (await db.Zones.IgnoreQueryFilters().MaxAsync(z => (int?)z.ExternalId) ?? 0) + 1;
-
-    private static async Task<int> NextCameraExternalIdAsync(AppDbContext db) =>
-        (await db.Cameras.IgnoreQueryFilters().MaxAsync(c => (int?)c.ExternalId) ?? 0) + 1;
-
-    private static async Task<bool> TrySaveAsync(AppDbContext db)
-    {
-        try
-        {
-            await db.SaveChangesAsync();
-            return true;
-        }
-        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
-        {
-            return false;
-        }
-    }
-
-    [GeneratedRegex(@"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")]
-    private static partial Regex IPv4Regex();
 }

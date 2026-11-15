@@ -68,14 +68,14 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 | `Camera.ApiKeyHash` | Stays as is until the per-source key decision; the shared `Ingest:ApiKey` is used (proposal: drop the column later). |
 | New table `SpotRoi` (proposal) | `Id`, `CameraId` (FK), `SpotId` (FK to `ParkingSpot`), `PointsJson` (normalized X, Y pairs, 0 to 1), `UpdatedAt`; unique on (`CameraId`, `SpotId`). Normalized points mean the polygons do not depend on video resolution. |
 | `ParkingSpot.ExternalId` | Already exists. It is the integer id the worker sends as `spotId`; no change. |
-| Seed data | Cameras seeded as video sources (no `rtsp://admin:admin@...` URLs); polygons for the demo video added once the video exists. The seeded admin password must not be the local development one. |
+| Seed data | **Done 2026-11-15:** the seed creates the three cameras as video sources (`ConnectionType` `Video`, empty file name, no `rtsp://admin:admin@...` URLs) and the cameras already in the Neon database were converted with `PUT /api/cameras/{id}`. Still to do: polygons for the demo video once it exists, and the seeded admin password must not be the local development one. |
 | Migration | New file in `src/Pakar.Migrations.Postgres`; applied to Neon with the unpooled URL. |
 
 #### B. Backend API (Ursula)
 
 | Item | Change |
 | --- | --- |
-| `POST /api/cameras` | `ipAddress` becomes **optional** (today it must be a valid IPv4). New field: video file name. The `CameraDto` and the validation in `AdminEndpoints.cs` change. |
+| `POST /api/cameras` | **Done (#10 branch):** the `ipAddress` field is **removed** (it was validated but never stored, so keeping it as optional would mislead). New field: `videoFile`. A request that still sends `ipAddress` is accepted and the field is ignored. The old `CameraDto` and the IPv4 check are gone. |
 | `PUT /api/zones/{id}`, `PUT /api/cameras/{id}` | **New.** Edit name, capacity, zone, video file (FR 13, 14). |
 | `GET /api/zones` (admin) and `GET /api/cameras` | **New.** The admin pages need to list cameras; today there is no endpoint. |
 | ROI endpoints | **New.** `GET /api/cameras/{id}/rois` and `PUT /api/cameras/{id}/rois` (Admin) to read and save polygons. |
@@ -102,7 +102,7 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 
 | Item | Owner | Change |
 | --- | --- | --- |
-| Admin Zones page | Deva, Brian | Add, edit, remove (needs the new `PUT` and list endpoints). |
+| Admin Zones page | Deva, Brian | Add, edit, remove (the `PUT` and list endpoints exist on the #10 branch). |
 | Admin Cameras page | Deva, Brian | Shown as **"Video sources"**: name, zone, video file, active status. No IP field required. |
 | Admin Users, Reports pages | Deva, Brian | Use the existing `/api/users` and `/api/reports` endpoints (they work today). |
 | Zone override control | Deva, Brian | FR 17. |
@@ -121,7 +121,7 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 | `src/Pakar.AiInference/Services/OnnxOpenVinoEngine.cs` (empty), `UnavailableInferenceEngine` | Remove (replaced by `OnnxInferenceEngine`) |
 | `src/Pakar.Infrastructure/Camera/CameraTimeoutService.cs` (empty), `Storage/BlobSnapshotService.cs` (empty) | Implement (watchdog) or delete |
 | `edge/android-agent/`, `edge/calibration/roi-mapper.html` | Delete (replaced by the Blazor polygon editor) |
-| Seeded `rtsp://admin:admin@...` stream URLs | Replace with video file names |
+| Seeded `rtsp://admin:admin@...` stream URLs | **Done:** removed from `DbSeeder` and from the Neon database; the file name is set by an admin later |
 | Template pages `Counter.razor`, `Weather.razor`; `Plan.razor`, `Saved.razor` | Delete or build (not in FR 1 to 17) |
 | Python agent on branch `AI-PAKAR` (`edge/python-agent`) | **Not merged into `main`.** Kept only as a reference for the ROI format, confidence 0.10, slot labels and undecided-slot handling. |
 
@@ -145,7 +145,7 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 
 | Issue | Before | After |
 | --- | --- | --- |
-| #10 (closed) | Add and remove zones and cameras | Reopen or new issue: `PUT`, list, optional IP |
+| #10 (closed) | Add and remove zones and cameras | Reopen: `PUT`, list, video file instead of IP (done on branch `feat/issue-10-zone-camera-crud`) |
 | #13 | RTSP stream and camera timeout | Video source worker and persisted source status |
 | #14 (closed) | Inference in C# | Reopen: `OnnxInferenceEngine` and ONNX export |
 | #15 | ROI mapping | Slot polygon editor (SVG), `RoiMapper`, polygon storage |
@@ -183,7 +183,7 @@ Tasks marked **(new issue)** have no issue yet.
 | P | Area | Task | Assigned to | Assign on GitHub | Issue | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Database | Migration for video sources: `Camera.IsActive`, `SpotRoi` table, seed as video sources | Ursula | amarelyy | (new issue) | - |
-| 2 | Backend API | `PUT` and list for zones and cameras, optional IP, ROI endpoints, reference frame, worker config, FR 17 override, persisted watchdog | Ursula | amarelyy | #10 (reopen) | P1 |
+| 2 | Backend API | ROI endpoints, reference frame, worker config, FR 17 override, persisted watchdog. (`PUT` and list for zones and cameras are done, see #10 below.) | Ursula | amarelyy | #10 (reopen), #13, #15 | P1 |
 | 3 | AI (.NET) | Export `best.pt` to ONNX; `OnnxInferenceEngine` and parity test | Nabil | nabilabrianap06 | #14 (reopen) | - |
 | 4 | Frontend admin | Admin pages: Zones, "Video sources", Users, Reports, override control | Deva, Brian | Devzka, (Brian) | #19 | P2 for Zones and Cameras; Users and Reports can start now |
 | 5 | AI (.NET) | `RoiMapper`, occupancy rules, `VideoSourceWorker` | Nabil | nabilabrianap06 | #13, #15 | P2, P3 |
@@ -200,16 +200,16 @@ Tasks marked **(new issue)** have no issue yet.
 ### Detail per task
 
 #### P1 Database - Ursula
-- [ ] Add `Camera.IsActive`; set `ConnectionType` to `"Video"`; `StreamUrl` holds the video file name.
+- [x] `ConnectionType` is `"Video"` and `StreamUrl` holds the video file name (done with #10).
+- [ ] Add `Camera.IsActive`.
 - [ ] Add `SpotRoi` (`CameraId`, `SpotId`, `PointsJson`, `UpdatedAt`; unique on camera and spot) and the EF configuration.
 - [ ] Create the migration in `src/Pakar.Migrations.Postgres`; apply it to Neon with the unpooled URL.
-- [ ] Update the seed: video-source cameras, no `admin:admin` RTSP URLs.
+- [x] Update the seed: video-source cameras, no `admin:admin` RTSP URLs (`DbSeeder`, and the three cameras already in Neon, 2026-11-15).
 - [ ] Rotate the seeded admin password on Neon.
 
 #### P2 Backend API - Ursula
-- [ ] `POST /api/cameras`: `ipAddress` optional; add the video file field.
-- [ ] `PUT /api/zones/{id}` and `PUT /api/cameras/{id}` (FR 13, 14).
-- [ ] `GET /api/zones` (admin) and `GET /api/cameras`.
+- [x] **Issue #10 (done on branch `feat/issue-10-zone-camera-crud`, not merged yet):** `POST /api/cameras` takes a video file instead of an IP; `PUT /api/zones/{id}`, `PUT /api/cameras/{id}`, `GET /api/zones`, `GET /api/zones/{id}`, `GET /api/cameras` (`zoneId` filter), `GET /api/cameras/{id}` (FR 13, 14). 80 unit tests and 45 live checks pass.
+- [ ] Tick the checklist in GitHub issue #10 and reopen it if it is still closed; open a pull request for the branch.
 - [ ] `GET` and `PUT /api/cameras/{id}/rois`; `GET /api/cameras/{id}/reference-frame`.
 - [ ] `GET /api/internal/video-sources` protected by the ingest API key.
 - [ ] FR 17: zone status override pushed through `ParkingHub`.
@@ -344,7 +344,7 @@ Optional. Start only when section 1 is stable.
 - [x] Reports: submit, own list, admin queue, resolve or dismiss with a note (FR 5, 6, 16).
 
 ### Zone and camera management (#10) - Ursula
-- [x] Add and remove zones and cameras (FR 13, 14), Admin only. Edit and list are still missing (priority 2).
+- [x] Add, edit, list and remove zones and video sources (FR 13, 14), Admin only (branch `feat/issue-10-zone-camera-crud`, pending merge).
 
 ### Real-time groundwork (#16, #20)
 - [x] Map page `/park` with Leaflet, spot markers, availability table, refresh every 4 s (FR 1, FR 3).
@@ -367,6 +367,6 @@ Optional. Start only when section 1 is stable.
 | 5 | #12 re-check, #18 needs a frontend owner | #12 passed the live test; #18 owner still to be decided (P9). |
 | 6 | #15 depends on #13, produces occupancy | Now: polygon editor, `RoiMapper` and worker (P5, P6). |
 | 7 | #20 connects the AI pipeline over WebSockets | Realtime uses SignalR (WebSockets underneath); see P10. |
-| 8 | "Zone/camera CRUD endpoints already exist (#10)" | Only add and remove exist; edit and list are P2. |
+| 8 | "Zone/camera CRUD endpoints already exist (#10)" | Was only add and remove; edit and list are now added on branch `feat/issue-10-zone-camera-crud`. |
 | 9 | Bicep and secrets run in parallel | Yes (P12). |
 | 10 | End to end testing and deployment last | Yes (P14). |

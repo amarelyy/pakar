@@ -45,10 +45,25 @@ Verified against the running API on 2026-11-15 (Swagger at `http://localhost:524
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| POST | `/api/zones` | Admin | Add a zone (`name`, `totalCapacity`). The AI `externalId` is assigned automatically and returned. |
-| DELETE | `/api/zones/{id}` | Admin | Soft-delete a zone and its cameras so detection history is kept. |
-| POST | `/api/cameras` | Admin | Add a camera to a zone (`name`, `ipAddress`, `zoneId`). IPv4 is validated. |
-| DELETE | `/api/cameras/{id}` | Admin | Soft-delete a camera so it can no longer send detections. |
+A "camera" is a **video source**: one replayed video file for one zone (no real camera is connected).
+Validation errors return 400 with field errors (RFC 7807 `errors`); unknown ids return 404.
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| GET | `/api/zones` | Admin | List zones with `totalCapacity`, `spotCount`, `cameraCount` and the AI `externalId` (the area id the worker sends). |
+| GET | `/api/zones/{id}` | Admin | Read one zone. |
+| POST | `/api/zones` | Admin | Add a zone: `name` (required, max 100), `description` (max 500), `totalCapacity` (1 to 500). The `externalId` is assigned automatically and returned. Returns 201. |
+| PUT | `/api/zones/{id}` | Admin | Edit name, description and capacity. Capacity cannot be lower than the spots already in the zone. The realtime capacity cache is refreshed. |
+| DELETE | `/api/zones/{id}` | Admin | Soft-delete a zone and its cameras so detection history is kept. Returns 204. |
+| GET | `/api/cameras` | Admin | List video sources. Optional `zoneId` filter. Each item has `zoneName`, `zoneExternalId`, `externalId` (the camera id the worker sends), `connectionType`, `videoFile` and `lastActiveTime`. |
+| GET | `/api/cameras/{id}` | Admin | Read one video source. |
+| POST | `/api/cameras` | Admin | Add a video source: `name` (required), `zoneId` (must exist), `videoFile` (optional). Returns 201 with `connectionType` `Video`. |
+| PUT | `/api/cameras/{id}` | Admin | Edit name, zone and video file. |
+| DELETE | `/api/cameras/{id}` | Admin | Soft-delete a camera so it can no longer send detections. Returns 204. |
+
+`videoFile` is a plain file name inside the video folder: no `/`, `\`, `:` or `..`, and one of `.mp4 .avi .mov .mkv .webm`. It may be empty.
+The old `ipAddress` field is gone: it was validated but never stored. A request that still sends it is accepted and the field is ignored.
+The seed and the cameras already in the Neon database were converted to video sources (`connectionType` `Video`, empty `videoFile`). If a leftover `rtsp://` value is ever found, it is never returned (`videoFile` is empty) until an admin sets a file name.
 
 ## 5. Admin: user management (FR 9, 15)
 

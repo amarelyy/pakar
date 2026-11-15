@@ -39,12 +39,46 @@ GET {{host}}/api/parking/zones/{{zoneId}}/alternate
 ### FR 4: same, measured from the user's position
 GET {{host}}/api/parking/zones/{{zoneId}}/alternate?lat=-7.7686&lng=110.3770
 
-### Admin: create a zone (requires the Admin role)
+### Admin: list zones (requires the Admin role); each item has spotCount, cameraCount and externalId
+GET {{host}}/api/zones
+Authorization: Bearer {{adminToken}}
+
+### Admin: create a zone (returns 201 with the new zone)
 POST {{host}}/api/zones
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
-{ "name": "Example Zone", "totalCapacity": 10 }
+{ "name": "Example Zone", "description": "Optional text", "totalCapacity": 10 }
+
+### Admin: edit a zone (capacity cannot be lower than the spots already in it)
+PUT {{host}}/api/zones/{{zoneId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "name": "Example Zone (renamed)", "description": "Edited", "totalCapacity": 12 }
+
+### Admin: list video sources (cameras); optional ?zoneId=
+GET {{host}}/api/cameras
+Authorization: Bearer {{adminToken}}
+
+### Admin: add a video source; videoFile is a plain file name (.mp4 .avi .mov .mkv .webm) and optional
+POST {{host}}/api/cameras
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "name": "Lot A video", "zoneId": "{{zoneId}}", "videoFile": "lot-a.mp4" }
+
+### Admin: edit a video source (replace {{cameraId}} with an id from the list)
+@cameraId = paste-a-camera-id-from-GET-api-cameras
+PUT {{host}}/api/cameras/{{cameraId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "name": "Lot A video", "zoneId": "{{zoneId}}", "videoFile": "lot-a-v2.mp4" }
+
+### Admin: remove a video source (204) and a zone with its video sources (204)
+DELETE {{host}}/api/cameras/{{cameraId}}
+Authorization: Bearer {{adminToken}}
 
 ### FR 5, FR 6: submit an inaccuracy report (logged-in user); 201 with status PendingReview
 POST {{host}}/api/reports

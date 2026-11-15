@@ -100,14 +100,15 @@ public static class DbSeeder
 
             await context.Spots.AddRangeAsync(spots);
 
-            // One camera per zone; ExternalId matches the AI pipeline configuration.
+            // One video source per zone; ExternalId matches the AI worker configuration. The video file name is
+            // empty until a video is available; an admin sets it (PUT /api/cameras/{id}). No real camera is used.
             var cameras = new List<Camera>
             {
                 new Camera
                 {
                     Name = "Building H Camera",
-                    StreamUrl = "rtsp://admin:admin@192.168.1.101:554/stream1",
-                    ConnectionType = "IP",
+                    StreamUrl = string.Empty,
+                    ConnectionType = "Video",
                     ApiKeyHash = "temp-hash",
                     ZoneId = zoneH.Id,
                     ExternalId = 1
@@ -115,8 +116,8 @@ public static class DbSeeder
                 new Camera
                 {
                     Name = "Building I Camera",
-                    StreamUrl = "rtsp://admin:admin@192.168.1.102:554/stream1",
-                    ConnectionType = "IP",
+                    StreamUrl = string.Empty,
+                    ConnectionType = "Video",
                     ApiKeyHash = "temp-hash",
                     ZoneId = zoneI.Id,
                     ExternalId = 2
@@ -124,8 +125,8 @@ public static class DbSeeder
                 new Camera
                 {
                     Name = "Building E West Camera",
-                    StreamUrl = "rtsp://admin:admin@192.168.1.103:554/stream1",
-                    ConnectionType = "IP",
+                    StreamUrl = string.Empty,
+                    ConnectionType = "Video",
                     ApiKeyHash = "temp-hash",
                     ZoneId = zoneE.Id,
                     ExternalId = 3

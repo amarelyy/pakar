@@ -17,7 +17,7 @@ on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `d
 | `GET /api/reports` with a User token | 403; `GET /api/reports/mine` gives 200 |
 | `GET /api/parking/zones`, `/search`, `/snapshot` as guest | 200 |
 | `POST /api/ingest/detections` without API key | 401 |
-| Unit tests (`dotnet test`) | 50 passed, 0 failed |
+| Unit tests (`dotnet test`) | 80 passed, 0 failed (30 new for zone and camera rules, 2026-11-15) |
 
 **Neon database move (2026-11-15)**
 
@@ -54,7 +54,9 @@ Not exercised: SignalR hubs, a real ingest with the API key, `/hubs/frames`, rev
 - Submit, own list, admin queue with status filter and paging, resolve or dismiss with a note, concurrency token.
 
 **Zones and cameras (#10, FR 13, 14)**
-- Add and soft-delete (add and remove only, see problems below).
+- Add, edit, list, get and soft-delete for zones and video sources (branch `feat/issue-10-zone-camera-crud`, 45 of 45 live checks passed on the Neon database).
+- Rules in `FacilityRules` (names, capacity 1 to 500, capacity not below existing spots, safe video file name); video file is a plain file name, `ipAddress` removed.
+- Editing a zone's capacity refreshes the realtime capacity cache.
 
 **Realtime and AI groundwork (#16, #20)**
 - `ParkingHub`, `FrameHub`, ingest endpoint with API key, in-memory camera watchdog (2 min).
@@ -77,16 +79,17 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | # | Severity | Problem |
 | --- | --- | --- |
 | 1 | High | **FR 17 manual override** has no endpoint. |
-| 2 | High | **FR 13, 14 edit**: there is no `PUT` for zones or cameras, only `POST` and `DELETE`. Issue #10 is closed but the FR says add, edit, remove. |
-| 3 | High | **No admin list endpoints for zones and cameras.** The admin UI has nothing to read cameras from; `GET /api/parking/zones` shows no cameras. |
+| 2 | Done | ~~FR 13, 14 edit~~: `PUT /api/zones/{id}` and `PUT /api/cameras/{id}` added (issue #10 reopened). |
+| 3 | Done | ~~No admin list endpoints~~: `GET /api/zones` and `GET /api/cameras` (with `zoneId` filter) added. |
 | 4 | Medium | **FR 12 camera status is not persisted**: the watchdog is in memory, so it is lost on restart. `Camera.IsActive` does not exist. |
-| 5 | Medium | The camera `ipAddress` sent to `POST /api/cameras` is validated but not saved (`Camera` is created without it). |
+| 5 | Done | ~~`ipAddress` validated but not saved~~: the field was removed; a video file name is stored in `Camera.StreamUrl` instead. |
+| 5a | Done | ~~Seeded cameras kept `ConnectionType` `IP` and an `rtsp://admin:admin@...` URL~~: `DbSeeder` now seeds video sources, and the three cameras in the Neon database were converted on 2026-11-15 (external ids 1 to 3 unchanged). |
 
 ### 3.2 Mismatches between the API and other parts
 
 | # | Severity | Problem |
 | --- | --- | --- |
-| 6 | High | **Two ID systems.** REST uses `Guid` ids (zones, spots, cameras). Ingest, `ParkingHub` and `ParkingSnapshot` use `int` ids (`AreaId`, `SpotId`, `CameraId`). The frontend has to map between them, and `SpotNumber` is what links a spot. |
+| 6 | Medium | **Two ID systems.** REST uses `Guid` ids (zones, spots, cameras). Ingest, `ParkingHub` and `ParkingSnapshot` use `int` ids (`AreaId`, `SpotId`, `CameraId`). They are linked by `ExternalId` on `ParkingZone`, `ParkingSpot` and `Camera`; the admin zone and camera lists now show it. The map still has to map `Guid` to `int` itself. |
 | 7 | High | **Two realtime systems.** The map still polls every 4 s and `/occupancyHub` is only kept for it, while the real events are on `/hubs/parking`. `FakeOccupancyBroadcaster` also still exists. |
 | 8 | High | **Admin web pages are empty.** `Admin/Users.razor`, `Zones.razor`, `Cameras.razor` and `Reports.razor` are 0 bytes, so admins can only reach FR 13-17 through Swagger. The admin menu hides them from non-admins, but there is nothing behind it. |
 | 9 | Medium | **Camera auth is one shared key.** `Camera.ApiKeyHash` is the literal `"temp-hash"`, so any holder of the ingest key can post for any camera. |
@@ -99,7 +102,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | --- | --- | --- |
 | 12 | Medium | `GET /test-db` and `GET /api/parking/snapshot` are public, not just in Development. `/test-db` has no purpose in production. |
 | 13 | Medium | Secrets that appeared in git history (old SQL password, JWT key, ingest key) still need rotation (TODO #29). |
-| 14 | Medium | Seeded cameras still use `admin:admin` RTSP credentials (TODO #29). |
+| 14 | Done | ~~Seeded cameras use `admin:admin` RTSP credentials~~: removed from the seed and from Neon. The credentials remain in git history, so rotation (TODO #29) is still open. |
 | 15 | Low | `docker compose` could not be run here (no Docker daemon in this environment), so the compose file and `infra/.env` flow were not tested. A temporary local PostgreSQL was used first, then the new Neon project. |
 | 15a | Medium | **Neon project is now in another organization.** Teammates must be invited to org `org-shy-field-47154575` in the Neon Console (the connector here cannot invite). Until they accept, they will not show up in project permissions. |
 | 15b | Medium | **Production secrets are not set up yet.** `.env.local` holds the Neon password locally only. `DATABASE_URL` and `DATABASE_URL_UNPOOLED` still have to be stored as Container App secrets or Key Vault entries (TODO #28). |

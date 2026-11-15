@@ -55,7 +55,7 @@ Validation errors return 400 with field errors (RFC 7807 `errors`); unknown ids 
 | POST | `/api/zones` | Admin | Add a zone: `name` (required, max 100), `description` (max 500), `totalCapacity` (1 to 500). The `externalId` is assigned automatically and returned. Returns 201. |
 | PUT | `/api/zones/{id}` | Admin | Edit name, description and capacity. Capacity cannot be lower than the spots already in the zone. The realtime capacity cache is refreshed. |
 | DELETE | `/api/zones/{id}` | Admin | Soft-delete a zone and its cameras so detection history is kept. Returns 204. |
-| GET | `/api/cameras` | Admin | List video sources. Optional `zoneId` filter. Each item has `zoneName`, `zoneExternalId`, `externalId` (the camera id the worker sends), `connectionType`, `videoFile` and `lastActiveTime`. |
+| GET | `/api/cameras` | Admin | List video sources. Optional `zoneId` filter. Each item has `zoneName`, `zoneExternalId`, `externalId` (the camera id the worker sends), `connectionType`, `videoFile`, `isActive` and `lastActiveTime`. `isActive` is false for a source that has never sent data and is kept up to date by the watchdog (planned). |
 | GET | `/api/cameras/{id}` | Admin | Read one video source. |
 | POST | `/api/cameras` | Admin | Add a video source: `name` (required), `zoneId` (must exist), `videoFile` (optional). Returns 201 with `connectionType` `Video`. |
 | PUT | `/api/cameras/{id}` | Admin | Edit name, zone and video file. |

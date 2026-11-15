@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public DbSet<ParkingZone> Zones => Set<ParkingZone>();
     public DbSet<ParkingSpot> Spots => Set<ParkingSpot>();
     public DbSet<Camera> Cameras => Set<Camera>();
+    public DbSet<SpotRoi> SpotRois => Set<SpotRoi>();
     public DbSet<Detection> Detections => Set<Detection>();
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Report> Reports => Set<Report>();

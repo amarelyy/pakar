@@ -28,8 +28,19 @@ on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `d
 | API start against Neon with the unpooled URL (Development auto-migrates) | OK: migration and seed ran, `/health/ready` Healthy, `/test-db` shows 3 zones |
 | Admin login and `GET /api/parking/zones` on Neon | OK (zone ids differ from the local database, so it is the Neon one) |
 | Old Neon project `pakar` (`misty-lab-12677041`, org Ursula) | Held only `neon_auth` tables, no Pakar data; deleted. Recoverable for 7 days. |
-| `psql` to the Neon URL | Timed out (possibly `channel_binding=require`); verification was done through the API instead |
-| `dotnet ef` | Not installed here; migrations were applied by the API at startup |
+| `psql` to the Neon URL | Still times out from this machine (also without `channel_binding`); Python `psycopg2` and Npgsql connect fine, so SQL checks and cleanup used `psycopg2` |
+| `dotnet ef` | Not installed at first; installed later (`dotnet-ef` 10.x) for the video-source migration. On this machine .NET is a snap install, so run it with `DOTNET_ROOT=/var/snap/dotnet/common/dotnet` and `~/.dotnet/tools` on the PATH |
+
+**Video-source schema and cleanup (2026-11-15, branch `feat/video-source-schema`)**
+
+| Step | Result |
+| --- | --- |
+| Migration `AddVideoSourceRoi` | Adds `Cameras.IsActive` (default false) and the `SpotRois` table (jsonb polygon points, unique per camera and spot); applied to Neon |
+| Seed | `DbSeeder` creates video sources (`Video`, empty file name); the three Neon cameras were converted with `PUT /api/cameras/{id}` |
+| Test data in Neon | Removed in one transaction with row-count checks: 4 throwaway users, 1 report, 1 fake detection (spot 9001), 7 soft-deleted test cameras, 3 soft-deleted test zones |
+| State afterwards | 1 admin, 3 zones, 3 cameras, 30 spots, 0 reports, 0 detections, 0 polygons; `/health/ready` Healthy; admin lists show `isActive` false |
+| Admin password | Rotated afterwards: a random 24-character value stored in the local user-secrets (`Admin:Password`); the old development password now returns 401 and the new one 200. The hash was written directly to `Users` in Neon because the seeder never changes an existing account |
+| Not in Neon | The `test@example.com` and `demo` users only ever existed in the old local database; register new users for demos |
 
 How the API picks its database: `DATABASE_URL` wins when set, otherwise `ConnectionStrings:DefaultConnection`
 from user-secrets. Run it against Neon with `DATABASE_URL="$DATABASE_URL_UNPOOLED"` for the first start so the
@@ -54,7 +65,7 @@ Not exercised: SignalR hubs, a real ingest with the API key, `/hubs/frames`, rev
 - Submit, own list, admin queue with status filter and paging, resolve or dismiss with a note, concurrency token.
 
 **Zones and cameras (#10, FR 13, 14)**
-- Add, edit, list, get and soft-delete for zones and video sources (branch `feat/issue-10-zone-camera-crud`, 45 of 45 live checks passed on the Neon database).
+- Add, edit, list, get and soft-delete for zones and video sources (commit `4db5538` on `main`, 45 of 45 live checks passed on the Neon database).
 - Rules in `FacilityRules` (names, capacity 1 to 500, capacity not below existing spots, safe video file name); video file is a plain file name, `ipAddress` removed.
 - Editing a zone's capacity refreshes the realtime capacity cache.
 
@@ -107,7 +118,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | 15a | Medium | **Neon project is now in another organization.** Teammates must be invited to org `org-shy-field-47154575` in the Neon Console (the connector here cannot invite). Until they accept, they will not show up in project permissions. |
 | 15b | Medium | **Production secrets are not set up yet.** `.env.local` holds the Neon password locally only. `DATABASE_URL` and `DATABASE_URL_UNPOOLED` still have to be stored as Container App secrets or Key Vault entries (TODO #28). |
 | 15c | Low | The first start after linking needs `npm install` in the repo root (`@neon/config`) or `neon deploy` fails; the root `package.json` has no script that does this. |
-| 15d | Low | The seeded admin on the new Neon database uses the local development password from user-secrets. Change `Admin:Password` before any shared or production use. |
+| 15d | Done | ~~The seeded admin on Neon used the local development password~~: rotated on 2026-11-15. Production still needs its own secret (`Admin--Password` in Key Vault, TODO #28); changing the password later means updating the `Users` row, since the seeder skips an existing account. |
 | 16 | Low | Swagger groups some endpoints under the tag `Pakar.Api` (ingest, snapshot) and the routes are shown as `/api/Auth/...` and `/api/Parking/...` (capital letters), while docs and README write them in lowercase. They work either way. |
 
 ### 3.4 Documentation drift and leftovers

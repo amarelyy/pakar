@@ -176,6 +176,7 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
             // Cameras seeded before the video-source change hold an rtsp:// URL (with credentials).
             // It is never returned; the admin sets a video file name instead.
             c.StreamUrl.Contains("://") ? string.Empty : c.StreamUrl,
+            c.IsActive,
             c.LastActiveTime);
 
     private static ZoneAdminDto ToDto(ParkingZone zone, int spotCount, int cameraCount) => new(

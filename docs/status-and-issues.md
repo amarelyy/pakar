@@ -52,6 +52,16 @@ on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `d
 | Git history secrets | Checked; old development values only, nothing deployed (item 13) |
 | Needs a team decision | Azure region (default `eastus2`, near the Neon project in AWS `us-east-2`), where the AI runs (laptop chosen, to confirm), model location, replicas (TODO.md section 0.6) |
 
+**Docker verification (2026-11-15, rootless Docker started in user space)**
+
+| Check | Result |
+| --- | --- |
+| `src/Pakar.Api/Dockerfile` (new) built and run in Production mode against Neon | OK: runs as non-root, `/health/ready` 200, 3 zones read from Neon, `/swagger` and `/test-signalr` 404, `/api/users` 401, ingest 401 without key and 404 for an unknown camera with the key |
+| Noise in the API container log | `libgssapi_krb5.so.2` is not found (harmless message from the PostgreSQL driver; the connection works); EF Core SQL logging was reduced to warnings in the Dockerfile |
+| `src/Pakar.AiInference/Dockerfile` (Nabil, branch `ai-dotnet`) built and run with the worker disabled | Builds; `/health` 200; `/health/ready` 503 without a model (expected) |
+| Same image: shared libraries of the native OpenCV library | **Two missing: `libdrm.so.2`, `libatomic.so.1`.** Adding `libdrm2 libatomic1` to the `apt-get` line fixes it (rebuilt and rescanned: none missing) |
+| Not tested | The worker with a real model and video in a container (the validated video is not in git, and `sample_parkir.mp4` in `referensi-codepakar` is an HTML page); the Web image |
+
 How the API picks its database: `DATABASE_URL` wins when set, otherwise `ConnectionStrings:DefaultConnection`
 from user-secrets. Run it against Neon with `DATABASE_URL="$DATABASE_URL_UNPOOLED"` for the first start so the
 migration does not go through the pooler.

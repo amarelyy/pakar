@@ -1,0 +1,16 @@
+.git
+artifacts
+**/bin
+**/obj
+**/__pycache__
+**/node_modules
+**/.env*
+**/secrets.json
+**/appsettings.*.local.json
+**/appsettings.Local.json
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/*.pt
+**/*.onnx
+**/*.mp4
+**/*.log

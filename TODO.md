@@ -18,7 +18,7 @@ Next team progress check: **2026-11-17**.
 | Nabil (also called Brian) | nabilabrianap06 | AI inference in .NET, ROI mapping, the polygon, worker-config and reference-frame endpoints (2a to 2c), map and search UI |
 | Deva | Devzka | Admin dashboard frontend (#19), the camera-status watchdog and zone override endpoints (2d, 2e), integration (#20), CI/CD, QA, deployment |
 
-**Open decisions:** fourteen decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
+**Open decisions:** fifteen decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
 
 **Brian and Nabil are the same person** (GitHub `nabilabrianap06`), so the team has three people: Ursula, Deva, Nabil. Wherever an older note says "Brian", read "Nabil".
 
@@ -111,8 +111,8 @@ the video and the model never leave the laptop.
 | `VideoSourceWorker` | **New** `BackgroundService`. Reads each active source's video, takes about 2 frames per second, loops at the end, and posts results. Needs a video reader library for .NET (for example OpenCvSharp or an FFmpeg wrapper). |
 | `RoiMapper` | Rewrite of the empty `Detection/RoiMapper.cs`: point-in-polygon (ray casting); a slot is occupied when a box centre falls inside its polygon. |
 | Occupancy rules | Debounce (a state must repeat before it is sent), minimum confidence, and omit undecided slots. Heartbeat posts keep sources alive. |
-| Project type | `Pakar.AiInference` stops being a web app: it becomes a worker app (`Microsoft.NET.Sdk.Worker`) with no HTTP endpoints, so `POST /api/detect`, `/health` and the `Inference:ApiKey` setting are removed. Settings in user-secrets: `Api:BaseUrl`, `Ingest:ApiKey`, `Video:Root`, `Model:Path`. |
-| Dockerfile | **None.** The worker is not deployed, so the empty `src/Pakar.AiInference/Dockerfile` is deleted. |
+| Project type | **Follow Nabil's implementation.** `Pakar.AiInference` stays a web project (`Microsoft.NET.Sdk.Web`) with the hosted `VideoSourceWorker` plus small diagnostic endpoints (`/health`, `/health/ready`, `POST /api/detect`). Settings: `Worker__Enabled=true`, `Worker__ApiBaseUrl`, `Worker__ApiKey`, `Worker__VideoRoot`, `Model__Path` (see `infra/README.md`). `Inference:ApiKey` is only needed when the worker is disabled. |
+| Dockerfile | Nabil wrote one (`src/Pakar.AiInference/Dockerfile`, with a root `.dockerignore`) in `ai-dotnet`. It was built and run on 2026-11-15 (rootless Docker): the image starts, `/health` is 200 and `/health/ready` is 503 without a model, as expected. **Bug found:** the final image misses `libdrm.so.2` and `libatomic.so.1` for `libOpenCvSharpExtern.so`; adding `libdrm2 libatomic1` to the `apt-get install` line fixes it (checked by scanning every native library). The model and the videos are not in the image and must be mounted. Running the worker in a container with a real video was not tested. |
 
 #### D. Frontend, Blazor Razor (Deva, Nabil)
 
@@ -135,7 +135,7 @@ the video and the model never leave the laptop.
 | `src/Pakar.Api/Hubs/OccupancyHub.cs`, `Services/FakeOccupancyBroadcaster.cs`, `/occupancyHub` mapping | Remove after the map uses `ParkingHub` |
 | `POST /api/inference/trigger-update` (dev endpoint on the legacy hub) | Remove or retarget to `ParkingHub` |
 | `src/Pakar.AiInference/Services/OnnxOpenVinoEngine.cs` (empty), `UnavailableInferenceEngine` | Remove (replaced by `OnnxInferenceEngine`) |
-| `src/Pakar.AiInference/Dockerfile` (empty), the `POST /api/detect` endpoint and the `Inference:ApiKey` option | Remove (the worker runs on a laptop and has no HTTP API) |
+| The `POST /api/detect` endpoint and `Inference:ApiKey` of `Pakar.AiInference` | Keep for now (Nabil's diagnostic endpoint); revisit after the demo works |
 | `src/Pakar.Infrastructure/Camera/CameraTimeoutService.cs` (empty), `Storage/BlobSnapshotService.cs` (empty) | Implement (watchdog) or delete |
 | `edge/android-agent/`, `edge/calibration/roi-mapper.html` | Delete (replaced by the Blazor polygon editor) |
 | Seeded `rtsp://admin:admin@...` stream URLs | **Done:** removed from `DbSeeder` and from the Neon database; the file name is set by an admin later |
@@ -198,7 +198,8 @@ Until a row is decided, nobody starts the tasks listed in its "Blocks" column; e
 | 8 | Who builds the report form (#18, FR 5 and 6)? | Deva, Nabil or Ursula. | **Deva** after the admin pages, or **Ursula** after the clean-up: Nabil already has the longest list. | Blocks #18 and the report path of the acceptance tests. | | |
 | 9 | Who builds the search bar and alternate-zone suggestion (P8, #17)? Nabil's list (P3, P5, P6, P7, 2a to 2c) is the longest. | Keep with Nabil, or move to Deva or Ursula. | **Move it** to Deva after integration or to Ursula after the clean-up; Nabil is also the "Brian" in older notes, so moving it to Brian would not help. | Blocks P8. | | |
 | 12 | Where does the AI run? | A) On a demo laptop with `dotnet run` (video and model local, results posted to the API). B) In a container in Azure. C) In the browser (needs JavaScript for ONNX Runtime Web, which the .NET-only rule may not allow). | **A.** Pure .NET, cheapest, least change to the plan. B costs money all day; C needs the course to allow JavaScript interop and a new ingest route for admin logins. | Everyone: Nabil (P3, P5), Deva (P13, P10), Ursula (P12). Decided by Ursula on 2026-11-15, **the team should confirm**. Because Azure is possible (decision 14), the same worker program can later also run as a container in Azure (Nabil's branch has a Dockerfile) so that nobody has to start it by hand. | **A** | Ursula, 2026-11-15 - team to confirm |
-| 13 | What must be on Vercel? | A) Only the React UI/UX prototype that is deployed now at https://senpro-pakar.vercel.app (it uses simulated numbers and does not call the API). B) The real Blazor application too, which means converting `Pakar.Web` from Blazor Server to Blazor WebAssembly (static files) and hosting the API somewhere else. | **A** if the course accepts the prototype on Vercel: no conversion. Ask the lecturer. B only if the real app must be on Vercel. | Everyone doing frontend (P4, P7, P8, P9). Blocks any further decision about where the Blazor app is hosted. | **A.** The Vercel site is only a mockup (React prototype with simulated numbers); the real Blazor app is not on Vercel. | Ursula, 2026-11-15 - lecturer not asked yet |
+| 13 | What must be on Vercel? | A) Only the React UI/UX prototype at https://senpro-pakar.vercel.app (simulated numbers, does not call the API). B) The real Blazor application too. | **B (changed 2026-11-15):** the site that is deployed now is only a mockup and not the final one; the real application stays on Vercel. See 13b for how. | Everyone doing frontend (P4, P7, P8, P9). Pages written for Blazor Server may need changes. | **B** | Ursula, 2026-11-15 - confirm with the lecturer |
+| 13b | How does the real Blazor app get onto Vercel? | A) Convert `Pakar.Web` from Blazor Server to **Blazor WebAssembly** (static files), publish with `dotnet publish` (in CI or locally), deploy the output to Vercel; the browser calls the API directly (CORS, the login token is kept in the browser). B) Keep Blazor Server and try Vercel's Docker route for ASP.NET (not verified; Blazor Server needs one long connection per visitor and Vercel Functions close WebSockets at their maximum duration). C) Keep Blazor Server on Azure and make the Vercel address only a redirect to it. | **A** is the only way that is fully on Vercel and fully .NET. **C** is the cheapest if Vercel only has to be the address. Decide before more Blazor Server pages are written. | Deva and Nabil (every page), Ursula (CORS, `Cors__Origins`). Blocks P4, P7, P8, P9. | | |
 | 14 | Where do the API and the Blazor web app run? | A) Azure for Students (about $100 credit, university email, no card; check eligibility). B) A demo laptop, opened to others with a tunnel (free, only while the laptop is on). C) Another host (free tiers vary; several need a card, many sleep when idle). Whatever the host, the API must be ONE process that stays running. | **A** first (the Bicep is ready), **B** as the backup for demo day. | Ursula (P12), Deva (P13). Blocks the first deployment. | **A (Azure)**, if the student credit works; B as the backup for demo day. | Ursula, 2026-11-15 - eligibility of Azure for Students not checked yet |
 | 10 | Brian's GitHub handle | (information, not a choice) | - | **Resolved:** Brian is Nabil, `nabilabrianap06`. | Resolved | Nabil's note in the `ai-dotnet` branch, 2026-11-15 |
 | 11 | Which Azure region? | A) `eastus2`, near the Neon project (AWS `us-east-2`): fast database queries, slower for users in Indonesia. B) `southeastasia`, near the users: slower database queries unless Neon is recreated in an Asian region. | **A** for now: every page makes several database queries, so the distance to Neon matters more. | Ursula (Bicep, P12), Deva (P13). Blocks the first deployment. | | |
@@ -255,6 +256,13 @@ because `Camera.IsActive` and `SpotRois` were already added by `AddVideoSourceRo
 ## 1. TODO in priority order
 
 **Branch status (2026-11-15).** Nabil's branch `ai-dotnet` (commit `deaa635`, not merged yet, needs review) already contains: the ONNX engine and parity checks (P3), the video worker, mapper and occupancy rules (P5), the ROI, worker-config and reference-image endpoints (2a, 2b, 2c, with the `AddCameraFrames` migration, applied only to a local database) and the SVG polygon editor at `/admin/polygons` (P6); 113 tests pass according to its notes. It also adds a Dockerfile for the worker and edits `TODO.md` and the docs, so expect merge conflicts there. Before the migration is applied to Neon, the branch must be reviewed and merged. Deva's pull request #39 (admin Zones page, `AdminApiClient`) is merged into `main`.
+
+**Review of the other branches (2026-11-15).**
+- `ai-dotnet` (Nabil): merges into `main` without conflicts and the merged result passes all 113 tests; its migration `AddCameraFrames` only creates one table. Not yet applied to Neon.
+- `referensi-codepakar` (Nabil): adds 235 reference files (the React prototype, old .NET snapshot, AI scripts). The model `pakarmodelsenpro.pt` there has the same SHA-256 as the validated model, so it is the right file. **`referensi/referensi-ai/assets/sample_parkir.mp4` is not a video**: it is a 5,319-byte HTML page (probably a saved download error), and its hash is not the validated video's (`bab6a16d...`). The real video must replace it. The old backend copy in it repeats old development values (the same ones already in history).
+- `AI-PAKAR` (Nabil): the old Python pipeline, updated today. Reference only; not meant for `main`.
+- `546873` (Deva): merged (admin Zones page, PR #39). `feat/issue-10-zone-camera-crud` and `feat/video-source-schema` (Ursula): merged. `533008` and `brian`: old, nothing new.
+- No two branches change the same backend file, so no conflicts are expected between them.
 
 Priority 1 blocks the most work. "Assign on GitHub" is the GitHub handle to put on the issue.
 Tasks marked **(new issue)** have no issue yet.
@@ -445,7 +453,7 @@ Return only cameras that are not removed, have a video file name, and have at le
 **Done when.** A non-admin cannot see or open the pages; every action works against the running API; validation errors from the API are shown next to the field; no page is an empty file.
 
 #### P5 Reading the video and mapping slots - Nabil (#13, #15)
-**Goal.** A background service in `Pakar.AiInference` replays each video, finds which slots are occupied, and sends the result to the API. It runs on a demo laptop with `dotnet run` (not in Azure): set `Api:BaseUrl` (the API's public address), `Ingest:ApiKey`, `Video:Root` and `Model:Path` with `dotnet user-secrets set` in `src/Pakar.AiInference`, see `infra/README.md`.
+**Goal.** A background service in `Pakar.AiInference` replays each video, finds which slots are occupied, and sends the result to the API. It runs on a demo laptop with `dotnet run` (not in Azure). **Nabil's keys:** `Worker__Enabled=true` (default is false and then it does nothing), `Worker__ApiBaseUrl`, `Worker__ApiKey` (= the API's `Ingest:ApiKey`), `Worker__VideoRoot`, `Model__Path`; see `infra/README.md`.
 **What exists.** Nothing for this part: `Detection/RoiMapper.cs` is a stub of 28 bytes. The API side exists: `POST /api/ingest/detections` with header `X-Api-Key`.
 **Do.**
 1. `RoiMapper`: point-in-polygon (ray casting). A slot is occupied when the centre of a detected box falls inside its polygon (coordinates normalized 0 to 1, so divide the box centre by the frame size).
@@ -507,7 +515,9 @@ the parameter example is `infra/main.parameters.example.json`.
 - [ ] After the video worker is refactored (P5, P11): it reads `Api:BaseUrl`, `Ingest:ApiKey`, `Video:Root` and `Model:Path` from user-secrets (see `infra/README.md`).
 
 #### P13 Build pipeline - Deva (#21)
-- [ ] Dockerfiles for Pakar.Api and Pakar.Web, both listening on port 8080. Pakar.AiInference needs none (it runs on a laptop); delete its empty Dockerfile.
+- [x] `src/Pakar.Api/Dockerfile` and the root `.dockerignore` (same content as Nabil's, so no merge conflict): the image was built and run on 2026-11-15 in Production mode against Neon: non-root user, `/health/ready` 200, zones read from Neon, `/swagger` and `/test-signalr` closed (404), `/api/users` 401, ingest 401 without the key, SQL logging reduced to warnings.
+- [ ] Dockerfile for Pakar.Web only if Web stays Blazor Server on a host that runs containers (decision 13b); a WebAssembly build is static and needs none.
+- [ ] Add `libdrm2 libatomic1` to `src/Pakar.AiInference/Dockerfile` (Nabil, in `ai-dotnet`) and mount the model and videos.
 - [ ] CI workflow: build, test, publish images, run the migration bundle against Neon, deploy Container Apps.
 
 #### P14 QA - Deva (#21), with everyone

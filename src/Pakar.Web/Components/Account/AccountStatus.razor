@@ -10,15 +10,16 @@
 
 @if (user is null)
 {
-    <a href="login">Log in</a>
-    <a href="register">Register</a>
+    <a href="login">Masuk</a>
+    <a href="register" class="button primary small">Daftar</a>
 }
 else
 {
+    <a href="reports">Laporan saya</a>
     <span class="account-name" title="@user.Email">
-        Logged in as <strong>@user.Name</strong>@(user.IsAdmin ? " (Admin)" : null)
+        <span class="avatar">@user.Name[..1].ToUpperInvariant()</span> <strong>@user.Name</strong>@(user.IsAdmin ? " · Admin" : null)
     </span>
-    <button type="button" class="btn btn-link" @onclick="LogoutAsync">Log out</button>
+    <button type="button" class="small" @onclick="LogoutAsync">Keluar</button>
 }
 
 @code {

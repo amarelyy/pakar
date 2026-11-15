@@ -26,6 +26,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<AuthApiClient>();
 builder.Services.AddScoped<UserSession>();
 builder.Services.AddScoped<RoiApiClient>();
+builder.Services.AddScoped<ParkingApiClient>();
 
 var app = builder.Build();
 
@@ -42,6 +43,7 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+app.MapVideoPreviewProxy();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

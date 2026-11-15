@@ -1,3 +1,11 @@
+# UI update on ui-ux-pakar — 2026-11-16
+
+The four admin management pages, public map/search/alternate, user-report flow and
+private admin video preview are implemented locally. The agreed representative areas
+are DTETI, TNTF, DTMI and DTK. See [scope, validation and limits](ui-progress-17-november-2026.md).
+The historical gaps below describe the earlier main snapshot; this update does not
+claim shared-database deployment, persisted watchdog or override completion.
+
 # PAKAR Status: Done, Problems and Mismatches
 
 ## Current AI branch verification — 2026-11-15

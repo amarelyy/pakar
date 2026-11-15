@@ -100,6 +100,8 @@ builder.Services.AddHttpClient<InferenceClient>(client =>
 });
 
 builder.Services.AddSingleton<ParkingStateStore>();
+builder.Services.AddSingleton<CurrentObservations>();
+builder.Services.AddSingleton<ProcessedFrameStore>();
 builder.Services.AddHostedService<CameraWatchdog>();
 
 builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
@@ -149,6 +151,8 @@ app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
 app.MapAdminEndpoints();
 app.MapRoiEndpoints();
 app.MapReferenceFrameEndpoints();
+app.MapVideoPreviewEndpoints();
+app.MapProcessedFrames();
 app.MapReportEndpoints();
 app.MapUserEndpoints();
 

@@ -162,3 +162,24 @@ The seed and the cameras already in the Neon database were converted to video so
 1. `POST /api/auth/login` with the admin from user-secrets (`Admin:Email`, `Admin:Password`).
 2. Copy `token`, click **Authorize** (top right), paste the token.
 3. Call `GET /api/users` (200). Repeat with a regular user's token and you get 403.
+
+
+## UI integration additions (`ai-dotnet`, 2026-11-15)
+
+Public `GET /api/parking/zones` now also returns numeric `externalId` on zones and
+spots, `lastUpdated` on spots, `sources` containing only externalId/isActive/lastActiveTime,
+and `isOverridden` (false until the override backend is implemented). This maps Guid
+REST identities to integer ParkingHub events without exposing source filenames/keys.
+
+`GET /api/cameras/{id}/video` requires **Admin** JWT and serves an existing video
+under API `Video:Root`, outside public static files, up to 50 MB. Supports range
+requests; returns 404 for no source/file, 413 for oversized clips, and 503 when the
+preview folder is unconfigured. Guest 401 and User 403. The Web `/admin/video/{id}`
+proxy forwards an Authorization header to this endpoint; no token goes in the URL.
+Videos are never rendered in the public map or user-report pages.
+
+ParkingHub clients must JoinArea for every desired numeric area before taking
+GetSnapshot. SpotStatusChanged is area-scoped. CameraStatusChanged is emitted on
+first ingest/reactivation and on heartbeats so a map can refresh source age without
+polling. After reconnect, reload persisted zones and then merge the hub snapshot;
+hub counts may cover only part of a zone after server restart.

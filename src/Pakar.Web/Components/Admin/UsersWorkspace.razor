@@ -1,0 +1,42 @@
+@inherits AdminWorkspaceBase
+<div class="page-heading"><div><p class="eyebrow">MANAJEMEN AKUN</p><h1>Pengguna</h1><p>Atur peran dan akses pengguna PAKAR.</p></div><button @onclick="Reload" disabled="@Busy">Muat ulang</button></div>
+<WorkspaceFeedback Busy="Busy" Error="Error" Success="@Success" />
+<form class="toolbar" @onsubmit="Search" @onsubmit:preventDefault>
+    <label>Cari pengguna<input @bind="search" placeholder="Nama atau email" maxlength="200" /></label>
+    <label class="checkbox-label"><input type="checkbox" @bind="includeInactive" />Termasuk akun nonaktif</label>
+    <button type="submit" disabled="@Busy">Cari</button>
+</form>
+@if (pending is not null)
+{
+    <section class="confirm-box" role="region" aria-label="Konfirmasi perubahan akses"><strong>@(pending.IsActive ? "Nonaktifkan" : "Aktifkan") @pending.Name?</strong><p>@(pending.IsActive ? "Pengguna ini tidak dapat mengakses akun sampai diaktifkan kembali." : "Pengguna ini dapat masuk kembali setelah diaktifkan.")</p><div class="row-actions"><button @onclick="() => pending = null" disabled="@Busy">Batal</button><button class="danger-button" @onclick="ConfirmActive" disabled="@Busy">Ya, lanjutkan</button></div></section>
+}
+<div class="@(editing is null ? "" : "edit-grid")">
+    <div>
+        <div class="table-card"><table><caption class="visually-hidden">Daftar pengguna</caption><thead><tr><th>Pengguna</th><th>Peran</th><th>Status</th><th>Tindakan</th></tr></thead><tbody>
+        @foreach(var user in data.Items){<tr><td><strong>@user.Name</strong><span class="cell-sub">@user.Email</span></td><td>@user.Role</td><td><StatusChip Status="@(user.IsActive ? "active" : "inactive")" /></td><td><div class="row-actions"><button class="small" @onclick="() => Edit(user)" disabled="@Busy">Edit</button><button class="small @(user.IsActive ? "danger-button" : "")" @onclick="() => pending=user" disabled="@Busy">@(user.IsActive ? "Nonaktifkan" : "Aktifkan")</button></div></td></tr>}
+        </tbody></table>
+        @if(!Busy && data.Items.Count==0){<div class="empty-state"><h2>Tidak ada pengguna ditemukan</h2><p>Ubah kata kunci atau sertakan akun nonaktif.</p></div>}</div>
+        <div class="pagination"><span>@data.TotalCount pengguna · Halaman @data.Page dari @Math.Max(1,data.TotalPages)</span><div><button class="small" @onclick="Previous" disabled="@(Busy || page<=1)">Sebelumnya</button><button class="small" @onclick="Next" disabled="@(Busy || page>=data.TotalPages)">Berikutnya</button></div></div>
+    </div>
+    @if(editing is not null)
+    {
+        <form class="card form-panel" @onsubmit="Save" @onsubmit:preventDefault><fieldset disabled="@Busy"><p class="eyebrow">EDIT AKUN</p><h2>@editing.Email</h2><label>Nama<input @bind="name" required maxlength="100" /></label><FieldError Error="Error" Field="Name" /><label>Peran<select @bind="role"><option value="User">User</option><option value="Admin">Admin</option></select></label><FieldError Error="Error" Field="Role" /><p class="muted">Admin terakhir dan akun Anda sendiri dilindungi oleh sistem.</p><div class="form-actions"><button type="button" @onclick="() => editing=null">Batal</button><button type="submit" class="primary">Simpan perubahan</button></div></fieldset></form>
+    }
+</div>
+@code {
+    private PagedResult<UserDto> data = new([],1,20,0);
+    private string search="", name="", role="User";
+    private bool includeInactive=true;
+    private int page=1;
+    private UserDto? editing, pending;
+    protected override Task OnInitializedAsync() => Reload();
+    private Task Load() => LoadPage();
+    private async Task LoadPage() => data=await Api.Get<PagedResult<UserDto>>($"api/users?search={Uri.EscapeDataString(search.Trim())}&includeInactive={includeInactive.ToString().ToLowerInvariant()}&page={page}&pageSize=20",true);
+    private Task Reload() => Run(Load);
+    private Task Search(){page=1;return Reload();}
+    private Task Previous(){page--;return Reload();}
+    private Task Next(){page++;return Reload();}
+    private void Edit(UserDto user){editing=user;name=user.Name;role=user.Role;Error=null;Success=null;}
+    private Task Save() => Run(async()=>{await Api.Write(HttpMethod.Put,$"api/users/{editing!.Id}",new UpdateUserRequest(name.Trim(),role));editing=null;await Load();},"Pengguna berhasil diperbarui.");
+    private Task ConfirmActive() => Run(async()=>{var user=pending!;await Api.Write(HttpMethod.Post,$"api/users/{user.Id}/{(user.IsActive ? "deactivate" : "reactivate")}");pending=null;await Load();},"Status akses pengguna berhasil diperbarui.");
+}

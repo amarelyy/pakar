@@ -1,0 +1,8 @@
+@if (Busy) { <p class="notice" role="status">Memproses data…</p> }
+@if (Error is not null) { <div class="notice danger" role="alert">@Error.Message @if (Error.Message.Contains("Sesi")) { <a href="login">Masuk kembali</a> }</div> }
+@if (Success is not null) { <p class="notice success" role="status">@Success</p> }
+@code {
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public ApiException? Error { get; set; }
+    [Parameter] public string? Success { get; set; }
+}

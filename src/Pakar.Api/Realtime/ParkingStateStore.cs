@@ -1,3 +1,4 @@
+using Pakar.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Pakar.Domain.Entities;
@@ -18,8 +19,10 @@ public sealed class ParkingStateStore
     private readonly Dictionary<int, CameraView> _cameras = new();
     private readonly Dictionary<int, int> _zoneCapacityCache = new();
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly CurrentObservations? observations;
+    private readonly Dictionary<int,int[]> zoneSpots = new();
 
-    public ParkingStateStore(IServiceScopeFactory scopeFactory) { _scopeFactory = scopeFactory; }
+    public ParkingStateStore(IServiceScopeFactory scopeFactory, CurrentObservations? current = null) { _scopeFactory = scopeFactory; observations=current; }
 
     /// <summary>Terapkan update dari kamera; return hanya slot yang statusnya benar-benar berubah + data untuk persist DB.</summary>
     public (List<SpotView> Changed, ZoneView Zone, CameraView Camera, bool CameraReactivated,
@@ -44,7 +47,7 @@ public sealed class ParkingStateStore
                     dbDetections.Add((u.SpotId, status, u.Confidence, u.Timestamp));
             }
 
-            var reactivated = _cameras.TryGetValue(req.CameraId, out var oldCam) && !oldCam.Active;
+            var reactivated = !_cameras.TryGetValue(req.CameraId, out var oldCam) || !oldCam.Active;
             var cam = new CameraView(req.CameraId, req.AreaId, true, DateTimeOffset.UtcNow);
             _cameras[req.CameraId] = cam;
 
@@ -76,7 +79,7 @@ public sealed class ParkingStateStore
     {
         lock (_lock)
         {
-            var zones = _spots.Values.Select(s => s.AreaId).Distinct().Select(BuildZone).ToList();
+            var zones = _cameras.Values.Select(s => s.AreaId).Distinct().Select(BuildZone).ToList();
             return new ParkingSnapshot(_spots.Values.ToList(), zones, _cameras.Values.ToList());
         }
     }
@@ -109,11 +112,23 @@ public sealed class ParkingStateStore
             _zoneCapacityCache[areaId] = cap;
             _ = Task.Delay(TimeSpan.FromHours(1)).ContinueWith(_ =>
             {
-                lock (_lock) _zoneCapacityCache.Remove(areaId);
+                lock (_lock) { _zoneCapacityCache.Remove(areaId); zoneSpots.Remove(areaId); }
             });
         }
 
-        // Same rule as the REST zone list (OccupancyCalculator), so both always agree.
+        if(observations is not null)
+        {
+            if(!zoneSpots.TryGetValue(areaId,out var ids))
+            {
+                using var scope=_scopeFactory.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                ids=db.Spots.AsNoTracking().Where(s=>s.Zone.ExternalId==areaId).Select(s=>s.ExternalId).ToArray();zoneSpots[areaId]=ids;
+            }
+            var statuses=ids.Select(id=>observations.Status(id,DateTimeOffset.UtcNow)).ToArray();
+            cap=OccupancyCalculator.EffectiveCapacity(cap,ids.Length);
+            int occupied=statuses.Count(s=>s=="occupied"),available=statuses.Count(s=>s=="available");
+            return new ZoneView(areaId,cap,occupied,available,CurrentObservations.ZoneStatus(cap,occupied,available),Math.Max(0,cap-occupied-available));
+        }
+        // Legacy ingest clients retain their historical counting contract.
         cap = OccupancyCalculator.EffectiveCapacity(cap, inArea.Count);
         var status = OccupancyCalculator.GetStatus(cap, occ).ToApiValue();
         return new ZoneView(areaId, cap, occ, OccupancyCalculator.Available(cap, occ), status);
@@ -122,6 +137,6 @@ public sealed class ParkingStateStore
     /// <summary>Paksa refresh kapasitas dari DB (misal setelah admin edit zona via UI).</summary>
     public void InvalidateZoneCapacity(int areaId)
     {
-        lock (_lock) _zoneCapacityCache.Remove(areaId);
+        lock (_lock) { _zoneCapacityCache.Remove(areaId); zoneSpots.Remove(areaId); }
     }
 }

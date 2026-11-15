@@ -1,5 +1,5 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="id">
 
 <head>
     <meta charset="utf-8" />
@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="@Assets["Pakar.Web.styles.css"]" />
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="AppRenderModes.InteractiveServerNoPrerender" />
 
     <!-- Leaflet CSS and JS for the campus map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -20,6 +20,7 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link rel="stylesheet" href="@Assets["css/map-styles.css"]" />
     <script src="@Assets["js/CampusMap.js"]"></script>
+    <script src="@Assets["js/VideoPreview.js"]"></script>
 
 </head>
 

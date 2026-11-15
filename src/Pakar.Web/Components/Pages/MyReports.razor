@@ -1,0 +1,21 @@
+@page "/reports"
+@rendermode AppRenderModes.InteractiveServerNoPrerender
+@inject UserSession Session
+@inject ParkingApiClient Api
+<PageTitle>Laporan saya · PAKAR</PageTitle>
+<div class="parking-page"><div class="page-heading"><div><p class="eyebrow">UMPAN BALIK PARKIR</p><h1>Laporan saya</h1><p>Pantau laporan yang sudah Anda kirim.</p></div><a class="button" href="">Kembali ke peta</a></div>
+@if(loading){<p role="status">Memuat laporan…</p>}
+else if(!signedIn){<p class="notice">Silakan <a href="login">masuk</a> untuk melihat laporan Anda.</p>}
+else{
+    @if(error is not null){<p class="notice danger" role="alert">@error <button class="small" @onclick="Load">Coba lagi</button></p>}
+    @if(reports.Count==0 && error is null){<div class="card empty-state"><h2>Belum ada laporan</h2><p>Anda dapat melaporkan kondisi parkir dari detail zona di peta.</p></div>}
+    <div class="section-grid">@foreach(var report in reports){<article class="card"><div class="zone-card-top"><h2>@report.SpotName</h2><StatusChip Status="@report.Status" /></div><p class="muted">@report.ZoneName</p><p class="prose">@report.Description</p>@if(report.AdminNote is not null){<div class="notice"><strong>Catatan admin</strong><p class="prose">@report.AdminNote</p></div>}</article>}</div>
+}
+</div>
+@code{
+    private bool loading=true,signedIn;
+    private List<ReportDto> reports=[];
+    private string? error;
+    protected override Task OnInitializedAsync()=>Load();
+    private async Task Load(){loading=true;error=null;try{signedIn=await Session.GetUserAsync() is not null;if(signedIn)reports=await Api.Get<List<ReportDto>>("api/reports/mine",true);}catch(ApiException ex){error=ex.Message;}finally{loading=false;}}
+}

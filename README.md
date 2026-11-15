@@ -77,3 +77,17 @@ dotnet ef migrations bundle --project src/Pakar.Migrations.Postgres --startup-pr
 
 Zones and cameras are soft-deleted (`DeletedAt`) so detection history is kept; queries hide them
 automatically, and `IgnoreQueryFilters()` reads them for history.
+
+
+## UI preview (ui-ux-pakar, 2026-11-16)
+
+The native Blazor UI adapts the `referensi-codepakar` design and connects to the
+actual API. New databases seed four representative areas: DTETI, TNTF, DTMI, DTK.
+These are demo capacities/coordinates, not surveyed parking data. Existing databases
+are not overwritten. See [UI progress and validation](docs/ui-progress-17-november-2026.md).
+
+Optional settings: API `Video:Root` points to the private dummy-video folder; worker
+`Worker:VideoRoot` points to the same distributed files. Admin video preview supports
+clips up to 50 MB and requires Admin authorization. Files never belong in Web wwwroot.
+Web `Demo:Enabled=true` displays a demo-data notice. Public users see map/status/counts
+and can submit reports after signing in; they cannot fetch video.

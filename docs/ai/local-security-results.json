@@ -1,0 +1,36 @@
+{
+  "frame_guest": 401,
+  "frame_user": 403,
+  "frame_admin": 200,
+  "key_required": true,
+  "replay_rejected": true,
+  "oversized_rejected": true,
+  "malformed_rejected": [
+    "null_slot",
+    "null_polygon",
+    "null_polygon_points",
+    "null_point",
+    "null_box",
+    "confidence_out_of_range",
+    "bad_dimensions",
+    "path_traversal",
+    "duplicate_slot"
+  ],
+  "invalid_ingest_rejected": [
+    "wrong_area",
+    "foreign_slot",
+    "invalid_state",
+    "null_spot",
+    "bad_confidence",
+    "wrong_name"
+  ],
+  "no_public_media": true,
+  "roi_change_immediately_invalidates": true,
+  "old_frame_cannot_restore_old_config": true,
+  "quality_black_not_empty": true,
+  "quality_uniform_not_empty": true,
+  "original_restored": true,
+  "passed": true,
+  "forged_signature_rejected": true,
+  "chunked_oversize_rejected": true
+}

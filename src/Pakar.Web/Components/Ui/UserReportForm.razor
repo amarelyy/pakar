@@ -1,0 +1,24 @@
+@inject UserSession Session
+@inject ParkingApiClient Api
+<div class="report-entry">
+@if (success) { <p class="notice success" role="status">Laporan diterima dan menunggu peninjauan admin. <a href="reports">Lihat laporan saya</a></p> }
+else if (!open) { <button class="text-button" @onclick="Open">Laporkan kondisi parkir</button> }
+else if (!signedIn) { <p class="notice">Silakan <a href="login">masuk</a> untuk mengirim laporan.</p> }
+else {
+    <form @onsubmit="Submit" @onsubmit:preventDefault><fieldset disabled="@busy"><h3>Laporkan ketidaksesuaian</h3>
+    <label>Slot parkir<select @bind="spotId">@foreach(var spot in Zone.Spots){<option value="@spot.Id">@spot.Name</option>}</select></label><FieldError Error="error" Field="SpotId" />
+    <label>Jelaskan kondisinya<textarea @bind="description" required maxlength="1000" placeholder="Contoh: slot terisi, tetapi ditandai kosong."></textarea></label><FieldError Error="error" Field="Description" />
+    @if(error is not null){<p class="notice danger" role="alert">@error.Message</p>}
+    <div class="form-actions"><button type="button" @onclick="()=>open=false">Batal</button><button class="primary" type="submit">@(busy ? "Mengirim…" : "Kirim laporan")</button></div>
+    </fieldset></form>
+}
+</div>
+@code {
+    [Parameter,EditorRequired] public ZoneDto Zone { get; set; } = null!;
+    private bool open,signedIn,busy,success;
+    private Guid spotId;
+    private string description="";
+    private ApiException? error;
+    private async Task Open(){signedIn=await Session.GetUserAsync() is not null;spotId=Zone.Spots.FirstOrDefault()?.Id??Guid.Empty;open=true;}
+    private async Task Submit(){if(busy)return;busy=true;error=null;try{await Api.Write(HttpMethod.Post,"api/reports",new SubmitReportRequest(spotId,description.Trim()));success=true;}catch(ApiException ex){error=ex;}finally{busy=false;}}
+}

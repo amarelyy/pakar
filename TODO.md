@@ -1,5 +1,15 @@
 # PAKAR To-Do
 
+## UI implementation update — `ai-dotnet`, 2026-11-15
+
+The reference branch design has been adapted to native Blazor: map/search/alternate,
+all four admin management pages, private dummy-video preview, polygon navigation,
+and user-report flows are implemented and verified locally. The agreed demo
+areas are DTETI, TNTF, DTMI, DTK; video is admin-only. See
+[UI scope, evidence and remaining integration](docs/ui-progress-17-november-2026.md).
+Override backend, persisted watchdog, shared database and deployment are not claimed
+complete. Existing task descriptions below remain the acceptance specification.
+
 ## AI implementation update — `ai-dotnet`, 2026-11-15
 
 Implemented and locally verified on this branch: ONNX export/inference (#14),

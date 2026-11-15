@@ -24,15 +24,28 @@ public static class IngestEndpoints
             IServiceScopeFactory scopeFactory,
             ILogger<ParkingStateStore> log) =>
         {
-            if (req.Spots is null || req.Spots.Count > 500)
-                return Results.BadRequest("Spots must contain between 0 and 500 entries.");
+            var receivedAt=DateTimeOffset.UtcNow;
+            if (req.Spots is null || req.Spots.Count > 500 || req.CameraId<=0 || req.AreaId<=0 ||
+                req.Type is not ("change" or "heartbeat") || req.Timestamp>receivedAt.AddSeconds(5) || req.Timestamp<receivedAt.AddMinutes(-2) ||
+                req.Spots.Any(s=>s is null || s.SpotId<=0 || s.CameraId!=req.CameraId || s.AreaId!=req.AreaId ||
+                    string.IsNullOrWhiteSpace(s.SpotNumber) || s.SpotNumber.Length>200 || s.Status is not ("occupied" or "available") ||
+                    !double.IsFinite(s.Confidence) || s.Confidence is <0 or >1 || s.Timestamp>receivedAt.AddSeconds(5) || s.Timestamp<receivedAt.AddMinutes(-2)) ||
+                req.Spots.Select(s=>s.SpotId).Distinct().Count()!=req.Spots.Count)
+                return Results.BadRequest("Invalid live observation identifiers, states, confidence or timestamps.");
 
             // Every detection row references a camera, so data from unregistered cameras is rejected up front.
-            if (!await db.Cameras.AnyAsync(c => c.ExternalId == req.CameraId))
+            var registered = await db.Cameras.AsNoTracking().Include(c=>c.Zone).FirstOrDefaultAsync(c=>c.ExternalId==req.CameraId);
+            if (registered is null)
             {
                 log.LogWarning("Rejected ingest from unregistered camera {Cam}.", req.CameraId);
                 return Results.NotFound($"Camera {req.CameraId} is not registered.");
             }
+            if(registered.Zone.ExternalId!=req.AreaId) return Results.BadRequest("Source does not belong to this area.");
+            var ids=req.Spots.Select(s=>s.SpotId).ToArray();
+            var names=await db.Spots.AsNoTracking().Where(s=>s.ZoneId==registered.ZoneId && ids.Contains(s.ExternalId))
+                .ToDictionaryAsync(s=>s.ExternalId,s=>s.Name);
+            if(req.Spots.Any(s=>!names.TryGetValue(s.SpotId,out var name) || name!=s.SpotNumber))
+                return Results.BadRequest("Spot identifiers and names must belong to the source area.");
 
             var (changed, zone, cam, reactivated, dbDetections) = store.Apply(req);
 
@@ -44,7 +57,8 @@ public static class IngestEndpoints
             if (changed.Count > 0)
                 await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("ZoneUpdated", zone);
 
-            if (reactivated)
+            // Heartbeats refresh the map's freshness timestamp even when no slot changes.
+            if (reactivated || req.Type == "heartbeat")
                 await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("CameraStatusChanged", cam);
 
             log.LogInformation("ingest cam={Cam} type={Type} changed={N} zone {Occ}/{Cap}",
@@ -76,6 +90,7 @@ public static class IngestEndpoints
             }
 
             camera.LastActiveTime = now.UtcDateTime;
+            camera.IsActive = true;
 
             if (detections.Count > 0)
             {
@@ -121,13 +136,24 @@ public sealed class CameraWatchdog : BackgroundService
 {
     private readonly ParkingStateStore _store;
     private readonly IHubContext<ParkingHub> _hub;
-    public CameraWatchdog(ParkingStateStore store, IHubContext<ParkingHub> hub) { _store = store; _hub = hub; }
+    private readonly IServiceScopeFactory scopes;
+    private readonly ILogger<CameraWatchdog> logger;
+    public CameraWatchdog(ParkingStateStore store, IHubContext<ParkingHub> hub, IServiceScopeFactory scopes, ILogger<CameraWatchdog> logger) { _store = store; _hub = hub; this.scopes=scopes;this.logger=logger; }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(15));
         while (await timer.WaitForNextTickAsync(ct))
+        {
+            try
+            {
+                using var scope=scopes.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var cutoff=DateTime.UtcNow.AddMinutes(-2);
+                await db.Cameras.Where(c=>c.IsActive && (c.LastActiveTime==null || c.LastActiveTime<cutoff)).ExecuteUpdateAsync(set=>set.SetProperty(c=>c.IsActive,false),ct);
+            }
+            catch(Exception ex) when(ex is not OperationCanceledException) { logger.LogWarning("Source watchdog persistence failed ({Type}); will retry.",ex.GetType().Name); }
             foreach (var cam in _store.MarkStaleCameras(TimeSpan.FromMinutes(2)))
                 await _hub.Clients.Group(ParkingHub.AllGroup).SendAsync("CameraStatusChanged", cam, ct);
+        }
     }
 }

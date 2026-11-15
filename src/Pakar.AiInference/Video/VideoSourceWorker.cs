@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenCvSharp;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -69,7 +70,7 @@ public sealed class VideoSourceWorker(IServiceProvider services, IHttpClientFact
             string path = options.ResolveVideo(source.VideoFile);
             using var mapper = new RoiMapper(source.Slots);
             var tracker = new OccupancyTracker(source.Slots);
-            long started = clock.GetTimestamp(); double lastFrame = double.NegativeInfinity, lastSent = double.NegativeInfinity;
+            long started = clock.GetTimestamp(); double lastFrame = double.NegativeInfinity, lastSent = double.NegativeInfinity, lastPublished = double.NegativeInfinity;
             bool sync = true; int failures = 0;
             while (!ct.IsCancellationRequested)
             {
@@ -85,8 +86,26 @@ public sealed class VideoSourceWorker(IServiceProvider services, IHttpClientFact
                         { tracker.ResetPending(); sync = true; }
                         lastFrame = seconds;
                         if (frame.Looped) log.LogInformation("Video loop restarted camera={Camera}.", source.CameraId);
-                        var detections = engine.Detect(frame.Image, ct);
-                        var result = tracker.Update(mapper.Map(detections, frame.Image.Width, frame.Image.Height), seconds, source.ZoneCapacity);
+                        var rejected = FrameQuality.RejectionReason(frame.Image);
+                        IReadOnlyList<BoundingBoxDto> detections = rejected is null ? engine.Detect(frame.Image, ct) : [];
+                        var observations = rejected is null ? mapper.Map(detections, frame.Image.Width, frame.Image.Height) :
+                            source.Slots.ToDictionary(s=>s.SpotId,_=>new Observation(null,0,rejected));
+                        var result = tracker.Update(observations, seconds, source.ZoneCapacity);
+                        if (seconds-lastPublished>=1 || frame.Looped || result.Changes.Count>0)
+                        {
+                            var slots = source.Slots.Select(slot=> {
+                                var raw=observations[slot.SpotId];
+                                var stable=result.Visible.FirstOrDefault(s=>s.SpotId==slot.SpotId);
+                                bool pending=raw.Status is not null && stable?.Status!=raw.Status;
+                                return new ObservedSlotDto(slot.SpotId,slot.SpotNumber,pending?null:raw.Status,pending?"pending_debounce":raw.Reason,raw.Confidence);
+                            }).ToList();
+                            using var preview=new Mat();
+                            Cv2.Resize(frame.Image,preview,new Size(960,540));
+                            var jpeg=preview.ImEncode(".jpg",new ImageEncodingParam(ImwriteFlags.JpegQuality,75));
+                            var published=new ProcessedFrameDto(new SourceObservationDto(source.CameraId,source.AreaId,clock.GetUtcNow(),frame.MediaSeconds,frame.Looped,slots),source.VideoFile,jpeg,source.Slots,detections.ToList());
+                            using var sent=await client.PostAsJsonAsync("api/internal/processed-frame",published,ct);
+                            sent.EnsureSuccessStatusCode();lastPublished=seconds;
+                        }
                         if (sync || result.Changes.Count > 0 || seconds - lastSent >= options.HeartbeatSeconds)
                         {
                             // UTC is the send/observation time; monotonic elapsed seconds drive debounce.

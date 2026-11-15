@@ -1,23 +1,12 @@
 @inherits LayoutComponentBase
-
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <AccountStatus @rendermode="AppRenderModes.InteractiveServerNoPrerender" />
-        </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
-
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+<a class="skip-link" href="#main-content">Lewati ke konten</a>
+<header class="app-header">
+    <a class="wordmark" href="" aria-label="PAKAR — beranda"><span class="brand-icon">P<i></i></span> PAKAR<span class="brand-sub">FT UGM</span></a>
+    <nav class="header-nav" aria-label="Navigasi utama">
+        <NavLink href="" Match="NavLinkMatch.All">Peta parkir</NavLink>
+        <AdminNavLink @rendermode="AppRenderModes.InteractiveServerNoPrerender" />
+    </nav>
+    <div class="account"><AccountStatus @rendermode="AppRenderModes.InteractiveServerNoPrerender" /></div>
+</header>
+<main id="main-content" tabindex="-1">@Body</main>
+<div id="blazor-error-ui" data-nosnippet>Terjadi gangguan. <a href="." class="reload">Muat ulang</a><button class="dismiss" aria-label="Tutup">×</button></div>

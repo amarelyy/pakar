@@ -1,0 +1,9 @@
+<span class="status-chip @Status"><span aria-hidden="true">●</span> @Label</span>
+@code {
+    [Parameter] public string Status { get; set; } = "unknown";
+    private string Label => Status switch {
+        "available" => "Tersedia", "almost_full" => "Hampir penuh", "full" => "Penuh",
+        "unknown" => "Belum lengkap", "active" => "Aktif", "inactive" => "Tidak aktif", "PendingReview" => "Menunggu tinjauan",
+        "Resolved" => "Diselesaikan", "Dismissed" => "Ditolak", _ => "Belum ada data"
+    };
+}

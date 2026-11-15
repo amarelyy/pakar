@@ -1,0 +1,16 @@
+<div class="admin-layout">
+    <aside class="admin-sidebar" aria-label="Navigasi admin">
+        <p class="eyebrow">OPERASIONAL</p>
+        <nav>
+            <NavLink href="admin" Match="NavLinkMatch.All"><span aria-hidden="true">▦</span> Ringkasan</NavLink>
+            <NavLink href="admin/zones"><span aria-hidden="true">▧</span> Zona parkir</NavLink>
+            <NavLink href="admin/cameras"><span aria-hidden="true">◉</span> Sumber video</NavLink>
+            <NavLink href="admin/users"><span aria-hidden="true">♙</span> Pengguna</NavLink>
+            <NavLink href="admin/reports"><span aria-hidden="true">☰</span> Laporan</NavLink>
+            <NavLink href="admin/polygons"><span aria-hidden="true">◇</span> Polygon slot</NavLink>
+        </nav>
+        <div class="sidebar-note"><span class="mini-mark">P</span><p>Parkir Akurat<br /><strong>Real-Time</strong></p></div>
+    </aside>
+    <div class="admin-content">@ChildContent</div>
+</div>
+@code { [Parameter] public RenderFragment? ChildContent { get; set; } }

@@ -54,7 +54,12 @@
     private string? error,message,imageUrl;
     private int imageWidth=1280,imageHeight=720;
     private IEnumerable<double[][]> Others=>polygons.Where(p=>p.Key!=spotId).Select(p=>p.Value.ToArray());
-    protected override async Task OnInitializedAsync()=>await Run(async()=>cameras=await Api.Cameras());
+    [Parameter] public Guid? InitialCameraId { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        await Run(async()=>cameras=await Api.Cameras());
+        if(InitialCameraId is {} id && cameras.Any(c=>c.Id==id)){cameraId=id;await Reload();}
+    }
     private async Task Run(Func<Task> action)
     {
         busy=true;error=null;message=null;

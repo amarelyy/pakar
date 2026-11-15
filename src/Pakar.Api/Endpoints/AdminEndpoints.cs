@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.SignalR;
 using Pakar.Api.Realtime;
-using Pakar.Api.Security;
 using Pakar.Application.DTOs;
+using Pakar.Infrastructure.Persistence;
+using Pakar.Api.Security;
 using Pakar.Application.Interfaces;
 
 namespace Pakar.Api.Endpoints;
@@ -52,10 +54,18 @@ public static class AdminEndpoints
             (await service.CreateCameraAsync(request, ct))
                 .ToHttpResult(camera => Results.Created($"/api/cameras/{camera.Id}", camera))).WithTags("Admin - Cameras");
 
-        admin.MapPut("/cameras/{id:guid}", async (Guid id, CameraRequest request, IFacilityAdminService service, CancellationToken ct) =>
-            (await service.UpdateCameraAsync(id, request, ct)).ToHttpResult()).WithTags("Admin - Cameras");
+        admin.MapPut("/cameras/{id:guid}", async (Guid id, CameraRequest request, IFacilityAdminService service, AppDbContext db, ProcessedFrameStore frames, IHubContext<ParkingHub> hub, CancellationToken ct) =>
+        {
+            var result=await service.UpdateCameraAsync(id,request,ct);
+            if(result.Succeeded)await ObservationInvalidation.ClearAsync(id,db,frames,hub,ct);
+            return result.ToHttpResult();
+        }).WithTags("Admin - Cameras");
 
-        admin.MapDelete("/cameras/{id:guid}", async (Guid id, IFacilityAdminService service, CancellationToken ct) =>
-            (await service.DeleteCameraAsync(id, ct)).ToHttpResult(_ => Results.NoContent())).WithTags("Admin - Cameras");
+        admin.MapDelete("/cameras/{id:guid}", async (Guid id, IFacilityAdminService service, AppDbContext db, ProcessedFrameStore frames, IHubContext<ParkingHub> hub, CancellationToken ct) =>
+        {
+            var result=await service.DeleteCameraAsync(id,ct);
+            if(result.Succeeded)await ObservationInvalidation.ClearAsync(id,db,frames,hub,ct);
+            return result.ToHttpResult(_=>Results.NoContent());
+        }).WithTags("Admin - Cameras");
     }
 }

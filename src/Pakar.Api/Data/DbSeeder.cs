@@ -21,119 +21,45 @@ public static class DbSeeder
 
         if (!await context.Zones.AnyAsync())
         {
-            // Building H (Civil Engineering)
-            var zoneH = new ParkingZone 
-            { 
-                Id = Guid.NewGuid(), 
-                Name = "Building H Parking (Civil Engineering)", 
-                Description = "Front area of the Department of Civil and Environmental Engineering",
-                TotalCapacity = 10,
-                ExternalId = 1
-            };
-            
-            // Building I (SGLC)
-            var zoneI = new ParkingZone 
-            { 
-                Id = Guid.NewGuid(), 
-                Name = "Building I Parking (Faculty Office)", 
-                Description = "Main lobby area of the Faculty central office",
-                TotalCapacity = 10,
-                ExternalId = 2
-            };
-
-            // West of Building E (Geological Engineering)
-            var zoneE = new ParkingZone 
-            { 
-                Id = Guid.NewGuid(), 
-                Name = "Building E West Parking (Geological Engineering)", 
-                Description = "Area 100 m west of the Department of Geological Engineering",
-                TotalCapacity = 10,
-                ExternalId = 3
-            };
-
-            await context.Zones.AddRangeAsync(zoneH, zoneI, zoneE);
-            await context.SaveChangesAsync();
-
-            var spots = new List<ParkingSpot>();
-
-            // Building H: 10 spots
-            for (int i = 1; i <= 10; i++)
+            // Team scope confirmed 2026-11-15: four representative parking areas, dummy video only.
+            // Coordinates and capacity below are DEMO fixtures, not surveyed parking boundaries/capacities.
+            var definitions = new[]
             {
-                spots.Add(new ParkingSpot
+                (Code: "DTETI", Description: "Departemen Teknik Elektro dan Teknologi Informasi", Latitude: -7.7657, Longitude: 110.3723),
+                (Code: "TNTF", Description: "Departemen Teknik Nuklir dan Teknik Fisika", Latitude: -7.7670, Longitude: 110.3718),
+                (Code: "DTMI", Description: "Departemen Teknik Mesin dan Industri", Latitude: -7.7659, Longitude: 110.3707),
+                (Code: "DTK", Description: "Departemen Teknik Kimia", Latitude: -7.7650, Longitude: 110.3702)
+            };
+            for (var index = 0; index < definitions.Length; index++)
+            {
+                var definition = definitions[index];
+                var zone = new ParkingZone
                 {
-                    ZoneId = zoneH.Id,
-                    Name = $"H-{i:D2}",
-                    Latitude = -7.7685 + (i * 0.00005),
-                    Longitude = 110.3765,
-                    IsOccupied = false,
-                    ExternalId = i
+                    Name = definition.Code,
+                    Description = definition.Description,
+                    TotalCapacity = 10,
+                    ExternalId = index + 1
+                };
+                context.Zones.Add(zone);
+                for (var slot = 1; slot <= 10; slot++)
+                    context.Spots.Add(new ParkingSpot
+                    {
+                        ZoneId = zone.Id,
+                        Name = $"{definition.Code}-{slot:D2}",
+                        Latitude = definition.Latitude + (slot % 5) * .000025,
+                        Longitude = definition.Longitude + (slot / 5) * .000025,
+                        ExternalId = index * 100 + slot,
+                        IsOccupied = false
+                    });
+                context.Cameras.Add(new Camera
+                {
+                    Name = $"Video {definition.Code}",
+                    ZoneId = zone.Id,
+                    ConnectionType = "Video",
+                    StreamUrl = string.Empty,
+                    ExternalId = index + 1
                 });
             }
-
-            // Building I: 10 spots
-            for (int i = 1; i <= 10; i++)
-            {
-                spots.Add(new ParkingSpot
-                {
-                    ZoneId = zoneI.Id,
-                    Name = $"I-{i:D2}",
-                    Latitude = -7.7690,
-                    Longitude = 110.3770 + (i * 0.00005),
-                    IsOccupied = false,
-                    ExternalId = 100 + i
-                });
-            }
-
-            // Building E West: 10 spots
-            for (int i = 1; i <= 10; i++)
-            {
-                spots.Add(new ParkingSpot
-                {
-                    ZoneId = zoneE.Id,
-                    Name = $"E-W-{i:D2}",
-                    Latitude = -7.7680,
-                    Longitude = 110.3750 - (i * 0.00005),
-                    IsOccupied = false,
-                    ExternalId = 200 + i
-                });
-            }
-
-            await context.Spots.AddRangeAsync(spots);
-
-            // One video source per zone; ExternalId matches the AI worker configuration. The video file name is
-            // empty until a video is available; an admin sets it (PUT /api/cameras/{id}). No real camera is used.
-            var cameras = new List<Camera>
-            {
-                new Camera
-                {
-                    Name = "Building H Camera",
-                    StreamUrl = string.Empty,
-                    ConnectionType = "Video",
-                    ApiKeyHash = "temp-hash",
-                    ZoneId = zoneH.Id,
-                    ExternalId = 1
-                },
-                new Camera
-                {
-                    Name = "Building I Camera",
-                    StreamUrl = string.Empty,
-                    ConnectionType = "Video",
-                    ApiKeyHash = "temp-hash",
-                    ZoneId = zoneI.Id,
-                    ExternalId = 2
-                },
-                new Camera
-                {
-                    Name = "Building E West Camera",
-                    StreamUrl = string.Empty,
-                    ConnectionType = "Video",
-                    ApiKeyHash = "temp-hash",
-                    ZoneId = zoneE.Id,
-                    ExternalId = 3
-                }
-            };
-            await context.Cameras.AddRangeAsync(cameras);
-
             await context.SaveChangesAsync();
         }
 

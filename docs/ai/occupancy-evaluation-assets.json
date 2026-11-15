@@ -1,0 +1,36 @@
+{
+  "annotationMethod": "Agent visual interval labels, not independently human-reviewed; ambiguous movement and occlusion windows excluded explicitly in specification.",
+  "assets": [
+    {
+      "path": "artifacts/videos/dteti-roi-demo.mp4",
+      "sha256": "11ea0d58615c74cd918c59b385271fb99ed19826d198352b01891aec37f84ef5"
+    },
+    {
+      "path": "artifacts/videos/dtmi-stable-exit.mp4",
+      "sha256": "1f09c81c076f3d4712bf7bc0925ba1e5badff94b6854763bdb9f1610229b8a16"
+    },
+    {
+      "path": "artifacts/video-candidates/meva/chad/1_059_0.mp4",
+      "sha256": "35c3ca58745bfac3b0ef4d1b6e14bee4d5acd4dad6d188922991373ba215aa38"
+    },
+    {
+      "path": "artifacts/video-candidates/meva/chad/3_059_0.mp4",
+      "sha256": "dd341b7c065e9edd43c05beb0faf0d458641c627f8046a1648adf65bf470722b"
+    }
+  ],
+  "model": {
+    "path": "artifacts/models/best.onnx",
+    "sha256": "a95c15d54efd617225cf235d675e1266c1b26a7a556db8394d6ad2fa5426a249"
+  },
+  "inferenceConfiguration": {
+    "inputSize": 640,
+    "confidence": 0.1,
+    "nmsIou": 0.7,
+    "roiIou": 0.1,
+    "conflictMargin": 0.1,
+    "occupiedDebounceSeconds": 2,
+    "availableDebounceSeconds": 3,
+    "frameQualityMeanMinimum": 20,
+    "frameQualityStdDevMinimum": 5
+  }
+}

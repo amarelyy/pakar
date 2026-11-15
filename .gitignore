@@ -88,3 +88,10 @@ coverage/
 
 # Node tooling (Neon CLI config)
 node_modules/
+
+# Python inference runtime and local evaluation inputs/outputs
+.venv/
+.pytest_cache/
+edge/python-agent/assets/*
+!edge/python-agent/assets/.gitkeep
+output/ai-validation/

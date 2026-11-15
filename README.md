@@ -77,3 +77,8 @@ dotnet ef migrations bundle --project src/Pakar.Migrations.Postgres --startup-pr
 
 Zones and cameras are soft-deleted (`DeletedAt`) so detection history is kept; queries hide them
 automatically, and `IgnoreQueryFilters()` reads them for history.
+
+## Python AI reference
+
+Historical Python inference, ROI configuration, and validation: [edge/python-agent](edge/python-agent/README.md).
+The current runtime plan is .NET/ONNX with recorded video; see `TODO.md` section 0.

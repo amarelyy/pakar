@@ -10,17 +10,17 @@ and [`docs/api-reference.md`](https://github.com/amarelyy/pakar/blob/main/docs/a
 **When a task is finished:** tick its checklist in the GitHub issue, then update this file and the docs if something changed.
 Next team progress check: **2026-11-17**.
 
-**Owners** (from GitHub issue assignees)
+**Owners** (team plan; Nabil and Brian are the same person)
 
 | Name | GitHub | Role |
 | --- | --- | --- |
 | Ursula (also "rere") | amarelyy | Backend API, database, auth, secrets, Bicep |
-| Nabil | nabilabrianap06 | AI inference in .NET, ROI mapping, map and search UI |
+| Nabil (also "Brian") | nabilabrianap06 | AI inference in .NET, ROI mapping/editor, map and search UI, admin frontend with Deva |
 | Deva | Devzka | Admin dashboard frontend (#19), integration (#20), CI/CD, QA, deployment |
-| Brian | (add GitHub handle) | Admin dashboard frontend (#19) |
 
-The GitHub issue assignees were not changed from this repository (no write access to GitHub issues here).
-Use the "Assign on GitHub" column in section 1 to update them by hand.
+The user confirmed that Brian is Nabil (`nabilabrianap06`), not a separate teammate.
+GitHub assignees may still differ from this plan; they were not reassigned in this audit.
+See `docs/progress-alignment-2026-11-15.md` for the checked progress and scope changes.
 
 ---
 
@@ -98,14 +98,14 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 | `POST /api/detect` | The HTTP frame endpoint existed only for `FrameHub`. Remove it, or keep it only for tests. |
 | Dockerfile | `src/Pakar.AiInference/Dockerfile` is empty; needs a real one that includes the ONNX runtime and the video library. |
 
-#### D. Frontend, Blazor Razor (Deva, Brian, Nabil)
+#### D. Frontend, Blazor Razor (Deva, Nabil/Brian)
 
 | Item | Owner | Change |
 | --- | --- | --- |
-| Admin Zones page | Deva, Brian | Add, edit, remove (needs the new `PUT` and list endpoints). |
-| Admin Cameras page | Deva, Brian | Shown as **"Video sources"**: name, zone, video file, active status. No IP field required. |
-| Admin Users, Reports pages | Deva, Brian | Use the existing `/api/users` and `/api/reports` endpoints (they work today). |
-| Zone override control | Deva, Brian | FR 17. |
+| Admin Zones page | Deva, Nabil/Brian | Add, edit, remove (needs the new `PUT` and list endpoints). |
+| Admin Cameras page | Deva, Nabil/Brian | Shown as **"Video sources"**: name, zone, video file, active status. No IP field required. |
+| Admin Users, Reports pages | Deva, Nabil/Brian | Use the existing `/api/users` and `/api/reports` endpoints (they work today). |
+| Zone override control | Deva, Nabil/Brian | FR 17. |
 | Slot polygon editor | Nabil | Blazor `<svg>` over the reference frame, `MouseEventArgs` for clicks, no canvas and no JavaScript drawing. Saves normalized polygons through the ROI endpoints. Hosted inside the admin area. |
 | Campus map | Nabil | Home page, `ParkingHub` events instead of 4 s polling, zone colours, inactive-source indicator. |
 | Search and alternate zone | Nabil | Uses the existing guest endpoints. |
@@ -150,14 +150,14 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 | #14 (closed) | Inference in C# | Reopen: `OnnxInferenceEngine` and ONNX export |
 | #15 | ROI mapping | Slot polygon editor (SVG), `RoiMapper`, polygon storage |
 | #16 | Real-time map | Map on `ParkingHub`, home page |
-| #19 | Admin dashboard | Deva and Brian; "Video sources" instead of cameras |
+| #19 | Admin dashboard | Deva and Nabil/Brian; "Video sources" instead of cameras |
 | #20 | Connect AI pipeline | Worker to ingest to map; remove legacy hubs |
 | #28, #29 | Bicep, secrets | Neon secrets; drop the inference key |
 
 ### 0.5 Order of the refactoring
 
 1. Database migration and API changes (priority 1 and 2 below) so everyone else has endpoints to call.
-2. In parallel: ONNX export and engine (Nabil), admin pages with the endpoints that already exist (Deva, Brian).
+2. In parallel: ONNX export and engine (Nabil), admin pages with the endpoints that already exist (Deva, Nabil/Brian).
 3. `RoiMapper`, polygon editor and `VideoSourceWorker`.
 4. Move the map to `ParkingHub`, then remove the legacy hubs and `FrameHub`.
 5. Clean-up, tests, deployment.
@@ -185,7 +185,7 @@ Tasks marked **(new issue)** have no issue yet.
 | 1 | Database | Migration for video sources: `Camera.IsActive`, `SpotRoi` table, seed as video sources | Ursula | amarelyy | (new issue) | - |
 | 2 | Backend API | `PUT` and list for zones and cameras, optional IP, ROI endpoints, reference frame, worker config, FR 17 override, persisted watchdog | Ursula | amarelyy | #10 (reopen) | P1 |
 | 3 | AI (.NET) | Export `best.pt` to ONNX; `OnnxInferenceEngine` and parity test | Nabil | nabilabrianap06 | #14 (reopen) | - |
-| 4 | Frontend admin | Admin pages: Zones, "Video sources", Users, Reports, override control | Deva, Brian | Devzka, (Brian) | #19 | P2 for Zones and Cameras; Users and Reports can start now |
+| 4 | Frontend admin | Admin pages: Zones, "Video sources", Users, Reports, override control | Deva, Nabil/Brian | Devzka, nabilabrianap06 | #19 | P2 for Zones and Cameras; Users and Reports can start now |
 | 5 | AI (.NET) | `RoiMapper`, occupancy rules, `VideoSourceWorker` | Nabil | nabilabrianap06 | #13, #15 | P2, P3 |
 | 6 | Frontend admin | Slot polygon editor in Blazor SVG | Nabil | nabilabrianap06 | #15 | P2 |
 | 7 | Frontend map | Map as home page, `ParkingHub` events, zone colours, inactive indicator | Nabil | nabilabrianap06 | #16 | - |
@@ -222,7 +222,7 @@ Tasks marked **(new issue)** have no issue yet.
 - [ ] Parity test against the validated Python results on the demo clip (170 of 174 labels, confidence 0.10).
 - [ ] Delete the empty `Services/OnnxOpenVinoEngine.cs`.
 
-#### P4 Frontend admin - Deva and Brian (#19)
+#### P4 Frontend admin - Deva and Nabil/Brian (#19)
 - [ ] Users page: list, edit, deactivate, reactivate (`/api/users`, works today).
 - [ ] Reports page: queue, resolve, dismiss with a note (`/api/reports`, works today).
 - [ ] Zones page: add and remove now; edit after P2.
@@ -314,8 +314,8 @@ Optional. Start only when section 1 is stable.
 | Detection quality | Model version manifest and a documented way to deliver the ONNX file | Nabil |
 | Product | Occupancy prediction and history charts from the stored `Detections` (product goals) | Nabil, Ursula |
 | Product | Full-capacity alerts and user notifications | Deva |
-| Product | Admin controls to pause, resume and change the video source | Deva, Brian |
-| Product | `Plan` and `Saved` pages (prediction and saved zones in the wireframe) | Brian |
+| Product | Admin controls to pause, resume and change the video source | Deva, Nabil/Brian |
+| Product | `Plan` and `Saved` pages (prediction and saved zones in the wireframe) | Nabil/Brian |
 | Security | Rate limiting and lockout on login; audit log of admin changes; time limit on zone overrides | Ursula |
 | Operations | Retention policy for `Detections` (Neon storage); metrics for inference time and frames per second; health check for the worker | Ursula, Nabil |
 | Testing | End to end UI test of the map; load test of ingest | Deva |
@@ -361,7 +361,7 @@ Optional. Start only when section 1 is stable.
 | # | Priority list says | Result |
 | --- | --- | --- |
 | 1 | Seed data blocks everyone | Done and verified on Neon. |
-| 2 | #9 done; #19 progress on 2026-11-17, frontend for Deva and Brian | Confirmed; #19 is assigned to Deva and Brian (P4). |
+| 2 | #9 done; #19 progress on 2026-11-17, frontend for Deva and Nabil/Brian | Confirmed; #19 is assigned to Deva and Nabil/Brian (P4). |
 | 3 | #13 is an RTSP stream | Replaced by a video source worker (section 0). |
 | 4 | #11 is rere, due 2026-11-17 | Done. rere is Ursula. |
 | 5 | #12 re-check, #18 needs a frontend owner | #12 passed the live test; #18 owner still to be decided (P9). |

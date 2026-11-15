@@ -19,7 +19,7 @@ Next team progress check: **2026-11-17**.
 | Deva | Devzka | Admin dashboard frontend (#19), the camera-status watchdog and zone override endpoints (2d, 2e), integration (#20), CI/CD, QA, deployment |
 | Brian | (add GitHub handle) | Admin dashboard frontend (#19), including the override control button |
 
-**Open decisions:** ten decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
+**Open decisions:** eleven decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
 
 The GitHub issue assignees were not changed from this repository (no write access to GitHub issues here).
 Use the "Assign on GitHub" column in section 1 to update them by hand.
@@ -183,6 +183,7 @@ Until a row is decided, nobody starts the tasks listed in its "Blocks" column; e
 | 8 | Who builds the report form (#18, FR 5 and 6)? | Brian, Deva, Nabil or Ursula. | **Brian**, after the admin pages. | Blocks #18 and the report path of the acceptance tests. | | |
 | 9 | Who builds the search bar and alternate-zone suggestion (P8, #17)? Nabil's list (P3, P5, P6, P7, 2a to 2c) is the longest. | Keep with Nabil, or move to Brian or Deva. | **Move to Brian** once the admin pages are done, or to Deva after integration. | Blocks P8. | | |
 | 10 | Brian's GitHub handle | (information, not a choice) | - | Needed to assign #19 and to fill the owners table. | | |
+| 11 | Which Azure region? | A) `eastus2`, near the Neon project (AWS `us-east-2`): fast database queries, slower for users in Indonesia. B) `southeastasia`, near the users: slower database queries unless Neon is recreated in an Asian region. | **A** for now: every page makes several database queries, so the distance to Neon matters more. | Ursula (Bicep, P12), Deva (P13). Blocks the first deployment. | | |
 
 ### 0.7 How a database migration works here (read this before you change an entity)
 
@@ -255,7 +256,7 @@ Tasks marked **(new issue)** have no issue yet.
 | 9 | Frontend | Report form and "pending review" message | to be decided | - | #18 | #12 (done) |
 | 10 | Integration | End to end: video, worker, ingest, `ParkingHub`, map within 5 s; remove legacy hubs and `FrameHub` | Deva | Devzka | #20 | P5, P7, 2d, 2e |
 | 11 | Backend API | Clean-up: remove `FrameHub`, `InferenceClient`, `OccupancyHub`, empty files; `/test-db` Development only; translate comments; `SpotStatus` enum | Ursula | amarelyy | (new issue) | P10 |
-| 12 | DevOps | Bicep and secrets: Neon secrets, Key Vault, health probes, rotate secrets in git history | Ursula | amarelyy | #28, #29 | parallel |
+| 12 | DevOps | Bicep and secrets: Neon secrets, Key Vault, health probes, check secrets in git history. **Written 2026-11-15; waits for a first real deployment.** | Ursula | amarelyy | #28, #29 | parallel |
 | 13 | DevOps | Dockerfiles (Api, Web, AiInference), CI: build, test, image, migration bundle against Neon | Deva | Devzka | #21 | P5 |
 | 14 | QA | API integration tests, acceptance tests per FR, production deployment and smoke test | Deva (with everyone) | Devzka | #21 | all above |
 
@@ -467,13 +468,23 @@ Return only cameras that are not removed, have a video file name, and have at le
 - [ ] Use one `SpotStatus` enum instead of status strings.
 - [ ] Delete the template pages (`Counter`, `Weather`) and decide on `Plan` and `Saved`.
 
-#### P12 Infrastructure and secrets - Ursula (#28, #29)
-- [ ] Bicep (`containerapps.bicep`, `keyvault.bicep`, `storage.bicep` are empty; `sql.bicep` is not needed).
-- [ ] Container Apps for Api, Web and AiInference with managed identity; Api `maxReplicas: 1`.
-- [ ] Key Vault: `Jwt--Key`, `Ingest--ApiKey`, `Admin--Password`, `DATABASE-URL`, `DATABASE-URL-UNPOOLED`.
-- [ ] Health probes `/health/live` and `/health/ready`.
-- [ ] Rotate secrets still visible in git history (old SQL `sa` password, JWT key, ingest key).
-- [ ] Invite teammates to the Neon organization `org-shy-field-47154575`.
+#### P12 Infrastructure and secrets - Ursula (#28, #29) - written 2026-11-15, needs a first real deployment
+**Goal.** Everything needed to run PAKAR on Azure Container Apps with the secrets in Key Vault, described as code.
+**What was done.** The old Bicep (Azure SQL, empty files) was replaced. Files in `infra/bicep`: `main.bicep` (subscription scope, creates the resource group),
+`resources.bicep`, `keyvault.bicep`, `containerapps.bicep`, `storage.bicep` (optional video share); `sql.bicep` was deleted. The runbook is `infra/README.md`,
+the parameter example is `infra/main.parameters.example.json`.
+- [x] Bicep for Neon: no SQL resource; all five files compile and pass the linter (Bicep CLI 0.49.2).
+- [x] Container Apps for Api, Web and AiInference. Api `minReplicas` and `maxReplicas` are both 1; Web has sticky sessions, at most 1 replica and scales to zero by default; the worker has no public address. **Deviation from the old plan:** one *user-assigned* managed identity shared by the three apps instead of one system-assigned identity each, because a system-assigned identity cannot read Key Vault at the moment the app is created.
+- [x] Key Vault with `Jwt--Key`, `Ingest--ApiKey`, `Admin--Password`, `DATABASE-URL`, `DATABASE-URL-UNPOOLED`, access by role ("Key Vault Secrets User" for the identity), values supplied as secure parameters so they are never in git. `Inference--ApiKey` is not created (no longer needed).
+- [x] Health probes: Api liveness `/health/live`, readiness `/health/ready`, startup; Web uses a TCP probe (it has no health endpoint).
+- [x] Optional Azure Files share `videos` mounted read-only at `/videos` in the worker (parameter `deployVideoStorage`, default off, team decision 2).
+- [x] Secrets in git history checked (2026-11-15). Found in old commits: the local SQL Server `sa` password and connection strings, a JWT signing key, an ingest API key, and fake `rtsp://admin:admin@...` URLs. All were development values for a database on `localhost`; **nothing was ever deployed** with them, current `appsettings.json` files hold only empty placeholders, and the local and Neon secrets were regenerated. Treat the old values as burned: never reuse them (especially the `sa` password if it is used anywhere else). The history is **not** rewritten (a force push on `main` would break everyone's clone).
+- [x] Managed-identity access to the database (`CREATE USER ... FROM EXTERNAL PROVIDER`): not applicable, Neon uses password login.
+- [ ] **First deployment and `what-if` (needs an Azure subscription and an Owner account, and the images from P13).** Expect to fix small things the first time. Follow `infra/README.md`.
+- [ ] Generate brand new production values for the five secrets at the first deployment (commands in `infra/README.md`).
+- [ ] Team decisions that change the Bicep: 2 (video storage), 5 (model location), 7 (replicas), 11 (Azure region). Region default is `eastus2` because the Neon project is in AWS `us-east-2`.
+- [ ] Invite teammates to the Neon organization `org-shy-field-47154575` (Neon Console, Organization settings, Members) - cannot be done from code.
+- [ ] After the video worker is refactored (P5, P11): the worker needs `Api__BaseUrl`, `Ingest__ApiKey` and `Video__Root`; the Bicep already sets them, the code must read them.
 
 #### P13 Build pipeline - Deva (#21)
 - [ ] Dockerfiles for Pakar.Api, Pakar.Web, Pakar.AiInference (the last one is empty today).

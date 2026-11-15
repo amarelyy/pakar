@@ -1,22 +1,92 @@
+// PAKAR on Azure Container Apps (issue #28). Deploys at subscription scope so the resource group is created too.
+//   az deployment sub create --location eastus2 --template-file infra/bicep/main.bicep \
+//     --parameters @infra/main.parameters.example.json --parameters jwtKey=... (see infra/README.md)
+// The database is Neon (external), so there is no SQL resource here.
 targetScope = 'subscription'
 
-param location string = 'southeastasia'
+@description('Azure region. The Neon project runs in AWS us-east-2, so eastus2 keeps database round trips short.')
+param location string = 'eastus2'
+
+@description('Prefix for every resource name.')
+@minLength(3)
+@maxLength(12)
 param appName string = 'pakar'
 
-@secure()
-param sqlAdminPassword string
+// ---- Images (built and pushed by CI, issue #21). Each container must listen on port 8080. ----
+param apiImage string = 'ghcr.io/amarelyy/pakar-api:latest'
+param webImage string = 'ghcr.io/amarelyy/pakar-web:latest'
+param aiImage string = 'ghcr.io/amarelyy/pakar-ai:latest'
 
-resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+@description('Registry that holds the images. Leave the user name empty when the images are public.')
+param registryServer string = 'ghcr.io'
+param registryUsername string = ''
+@secure()
+param registryPassword string = ''
+
+// ---- Secrets: written to Key Vault, never into the template or git. ----
+@description('Email of the first Admin account (created on first start when it does not exist).')
+param adminEmail string
+@secure()
+@description('JWT signing key, at least 32 bytes. Key Vault name: Jwt--Key')
+param jwtKey string
+@secure()
+@description('Shared key the video worker sends in X-Api-Key, at least 32 characters. Key Vault name: Ingest--ApiKey')
+param ingestApiKey string
+@secure()
+@description('Password of the first Admin account, at least 12 characters. Key Vault name: Admin--Password')
+param adminPassword string
+@secure()
+@description('Neon pooled connection URL used by the API. Key Vault name: DATABASE-URL')
+param databaseUrl string
+@secure()
+@description('Neon direct (unpooled) URL used by the migration bundle. Key Vault name: DATABASE-URL-UNPOOLED')
+param databaseUrlUnpooled string
+
+// ---- Options ----
+@description('Create an Azure Files share for the video files and mount it read-only in the AiInference app. Needs team decision 2 in TODO.md.')
+param deployVideoStorage bool = false
+@description('Web can scale to zero to save money (first visit after idle is slow). The API and the worker always keep one replica.')
+@minValue(0)
+@maxValue(1)
+param webMinReplicas int = 0
+@description('Set to 0 to stop the worker (and its cost) when no demo is running.')
+@minValue(0)
+@maxValue(1)
+param aiMinReplicas int = 1
+@description('True: the API has a public address (useful for smoke tests). False: only reachable inside the environment.')
+param apiExternalIngress bool = true
+
+resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: '${appName}-rg'
   location: location
 }
 
 module resources 'resources.bicep' = {
-  name: 'linkedDeployment'
-  scope: rg 
+  name: 'pakar-resources'
+  scope: rg
   params: {
     location: location
     appName: appName
-    sqlAdminPassword: sqlAdminPassword
+    apiImage: apiImage
+    webImage: webImage
+    aiImage: aiImage
+    registryServer: registryServer
+    registryUsername: registryUsername
+    registryPassword: registryPassword
+    adminEmail: adminEmail
+    jwtKey: jwtKey
+    ingestApiKey: ingestApiKey
+    adminPassword: adminPassword
+    databaseUrl: databaseUrl
+    databaseUrlUnpooled: databaseUrlUnpooled
+    deployVideoStorage: deployVideoStorage
+    webMinReplicas: webMinReplicas
+    aiMinReplicas: aiMinReplicas
+    apiExternalIngress: apiExternalIngress
   }
 }
+
+output resourceGroupName string = rg.name
+output webUrl string = resources.outputs.webUrl
+output apiUrl string = resources.outputs.apiUrl
+output keyVaultName string = resources.outputs.keyVaultName

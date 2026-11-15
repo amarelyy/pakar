@@ -59,6 +59,10 @@ Health endpoints for Container Apps probes: `/health/live` (process) and `/healt
 | --- | --- |
 | `Api:BaseUrl` | Pakar.Api address. Defaults to `http://localhost:5249/` in Development. |
 
+## Deployment
+
+Azure Container Apps with Key Vault and the Neon database: see [infra/README.md](infra/README.md).
+
 ## Database Migrations
 
 Migrations live in `src/Pakar.Migrations.Postgres`. After changing an entity or a file in

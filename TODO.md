@@ -19,6 +19,8 @@ Next team progress check: **2026-11-17**.
 | Deva | Devzka | Admin dashboard frontend (#19), the camera-status watchdog and zone override endpoints (2d, 2e), integration (#20), CI/CD, QA, deployment |
 | Brian | (add GitHub handle) | Admin dashboard frontend (#19), including the override control button |
 
+**Open decisions:** ten decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
+
 The GitHub issue assignees were not changed from this repository (no write access to GitHub issues here).
 Use the "Assign on GitHub" column in section 1 to update them by hand.
 
@@ -163,17 +165,24 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 4. Move the map to `ParkingHub`, then remove the legacy hubs and `FrameHub`.
 5. Clean-up, tests, deployment.
 
-### 0.6 Open decisions
+### 0.6 Decisions for the whole team (decide at the 2026-11-17 progress check)
 
-| # | Decision | Suggested answer |
-| --- | --- | --- |
-| 1 | Who produces the reference frame for drawing? | **Recommended:** the admin uploads a screenshot of the video (PNG or JPEG, up to 2 MB) and it is stored in the database. Why: the API has no video library, and a file on one developer's disk would not exist for the others, while Neon is shared. The alternative (the worker extracts frame 1 and the API asks it) needs the worker to be running and reachable. Confirm before 2c starts. |
-| 2 | Where is the video file kept? | A folder configured by `Video:Root`; the file name is stored in `Camera.StreamUrl`. |
-| 3 | Does the worker call the API for config, or read the database? | Call the API (`/api/internal/video-sources`); this keeps the worker free of database credentials. |
-| 4 | Per-source API keys? | No. One shared `Ingest:ApiKey`; remove `ApiKeyHash` later. |
-| 5 | Is the ONNX model committed or downloaded? | Not committed; document where to download it and its SHA-256. |
-| 6 | FR 12 wording | "Source inactive" means the worker stopped sending for 2 minutes. |
-| 7 | Nabil's workload (P3, P5, P6, P7, P8 and 2a to 2c) is the heaviest | Move P8 (search bar) or #18 (report form, no owner yet) to Brian after the admin pages. Not decided. |
+These are team decisions, not one person's. Each row has the options, a recommendation, and who is affected.
+**To decide:** discuss it in the group, then fill in the last two columns (the choice, and who agreed and the date).
+Until a row is decided, nobody starts the tasks listed in its "Blocks" column; everything else can go ahead.
+
+| # | Decision | Options | Recommended | Affects and blocks | Decision (fill in) | Who agreed, date |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Where does the picture for drawing slot polygons come from? | A) The admin uploads a screenshot of the video and it is stored in the database. B) The worker extracts frame 1 and the API asks it for the picture. C) The API reads the video itself with a video library. | **A.** The API has no video library, and a file on one developer's disk does not exist for the others, while the Neon database is shared. B needs the worker to be running; C adds a heavy native library to the API. | Nabil (2c, P6). Blocks 2c and P6. | | |
+| 2 | Where is the video file kept? | A) A folder on the machine that runs the worker (`Video:Root`), file name in `Camera.StreamUrl`. B) Inside the container image. C) Azure Blob Storage. | **A** for development and the demo; revisit C only if the demo runs in Azure. | Nabil (P5), Deva (containers, P13), Ursula (decides if `storage.bicep` is needed, P12). Blocks P13 and the storage part of P12. | | |
+| 3 | How does the worker get its configuration (video file, polygons)? | A) From the API (`GET /api/internal/video-sources`, API key). B) By reading the database directly. | **A.** The worker needs no database password. | Nabil (2b, P5). Blocks 2b. | | |
+| 4 | One shared ingest key or one key per video source? | A) One shared `Ingest:ApiKey`. B) A key per source (`Camera.ApiKeyHash`). | **A.** There is one worker and no real cameras. Remove the unused `ApiKeyHash` column later. | Ursula (P12 secrets). Blocks nothing. | | |
+| 5 | Where is the ONNX model file kept? It is not in git. | A) A GitHub Release asset, with its SHA-256 in the docs. B) Azure Blob Storage. C) A shared drive link. | **A.** Free, versioned, and easy to download in CI and in the Docker build. | Nabil (P3), Deva (P13), Ursula (P12). Blocks the Docker build for AiInference. | | |
+| 6 | Meaning of FR 12 "camera inactive" | A) The worker stopped sending for 2 minutes. B) Something else. | **A.** | Deva (2d). Blocks 2d. | | |
+| 7 | Where does the realtime state live? | A) In memory in the API (`ParkingStateStore`), with exactly one API replica. B) Move it to the database or a cache so several replicas can run. | **A.** Simpler; the Bicep sets `maxReplicas: 1`. | Deva (P10), Ursula (P12). Blocks the replica setting in P12. | | |
+| 8 | Who builds the report form (#18, FR 5 and 6)? | Brian, Deva, Nabil or Ursula. | **Brian**, after the admin pages. | Blocks #18 and the report path of the acceptance tests. | | |
+| 9 | Who builds the search bar and alternate-zone suggestion (P8, #17)? Nabil's list (P3, P5, P6, P7, 2a to 2c) is the longest. | Keep with Nabil, or move to Brian or Deva. | **Move to Brian** once the admin pages are done, or to Deva after integration. | Blocks P8. | | |
+| 10 | Brian's GitHub handle | (information, not a choice) | - | Needed to assign #19 and to fill the owners table. | | |
 
 ### 0.7 How a database migration works here (read this before you change an entity)
 

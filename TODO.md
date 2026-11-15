@@ -182,7 +182,7 @@ Tasks marked **(new issue)** have no issue yet.
 
 | P | Area | Task | Assigned to | Assign on GitHub | Issue | Depends on |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Database | Migration for video sources: `Camera.IsActive`, `SpotRoi` table, seed as video sources | Ursula | amarelyy | (new issue) | - |
+| 1 | Database | Migration for video sources: `Camera.IsActive`, `SpotRoi` table, seed as video sources. **Done except the admin password rotation.** | Ursula | amarelyy | (new issue) | - |
 | 2 | Backend API | ROI endpoints, reference frame, worker config, FR 17 override, persisted watchdog. (`PUT` and list for zones and cameras are done, see #10 below.) | Ursula | amarelyy | #10 (reopen), #13, #15 | P1 |
 | 3 | AI (.NET) | Export `best.pt` to ONNX; `OnnxInferenceEngine` and parity test | Nabil | nabilabrianap06 | #14 (reopen) | - |
 | 4 | Frontend admin | Admin pages: Zones, "Video sources", Users, Reports, override control | Deva, Brian | Devzka, (Brian) | #19 | P2 for Zones and Cameras; Users and Reports can start now |
@@ -201,11 +201,12 @@ Tasks marked **(new issue)** have no issue yet.
 
 #### P1 Database - Ursula
 - [x] `ConnectionType` is `"Video"` and `StreamUrl` holds the video file name (done with #10).
-- [ ] Add `Camera.IsActive`.
-- [ ] Add `SpotRoi` (`CameraId`, `SpotId`, `PointsJson`, `UpdatedAt`; unique on camera and spot) and the EF configuration.
-- [ ] Create the migration in `src/Pakar.Migrations.Postgres`; apply it to Neon with the unpooled URL.
+- [x] Add `Camera.IsActive` (boolean, default false; the watchdog in P2 will maintain it).
+- [x] Add `SpotRoi` (`SpotRois` table: `CameraId`, `SpotId`, `PointsJson` as jsonb, `UpdatedAt`; unique on camera and spot; query filter follows the soft delete of camera, zone and spot).
+- [x] Migration `20261115085801_AddVideoSourceRoi` created in `src/Pakar.Migrations.Postgres` and applied to Neon with the unpooled URL (branch `feat/video-source-schema`).
 - [x] Update the seed: video-source cameras, no `admin:admin` RTSP URLs (`DbSeeder`, and the three cameras already in Neon, 2026-11-15).
-- [ ] Rotate the seeded admin password on Neon.
+- [ ] Rotate the seeded admin password on Neon (still the local development password; needs a new value from Ursula).
+- [x] Neon test data cleaned on 2026-11-15: now 1 admin, 3 zones, 3 cameras, 30 spots, no reports, detections or polygons.
 
 #### P2 Backend API - Ursula
 - [x] **Issue #10 (done on branch `feat/issue-10-zone-camera-crud`, not merged yet):** `POST /api/cameras` takes a video file instead of an IP; `PUT /api/zones/{id}`, `PUT /api/cameras/{id}`, `GET /api/zones`, `GET /api/zones/{id}`, `GET /api/cameras` (`zoneId` filter), `GET /api/cameras/{id}` (FR 13, 14). 80 unit tests and 45 live checks pass.

@@ -29,4 +29,5 @@ public sealed record CameraAdminDto(
     int ExternalId,
     string ConnectionType,
     string VideoFile,
+    bool IsActive,
     DateTime? LastActiveTime);

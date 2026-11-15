@@ -18,4 +18,5 @@ public class ParkingSpot
     public ParkingZone Zone { get; set; } = null!;
 
     public ICollection<Report> Reports { get; set; } = new List<Report>();
+    public ICollection<SpotRoi> Rois { get; set; } = new List<SpotRoi>();
 }

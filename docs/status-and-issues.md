@@ -28,8 +28,18 @@ on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `d
 | API start against Neon with the unpooled URL (Development auto-migrates) | OK: migration and seed ran, `/health/ready` Healthy, `/test-db` shows 3 zones |
 | Admin login and `GET /api/parking/zones` on Neon | OK (zone ids differ from the local database, so it is the Neon one) |
 | Old Neon project `pakar` (`misty-lab-12677041`, org Ursula) | Held only `neon_auth` tables, no Pakar data; deleted. Recoverable for 7 days. |
-| `psql` to the Neon URL | Timed out (possibly `channel_binding=require`); verification was done through the API instead |
-| `dotnet ef` | Not installed here; migrations were applied by the API at startup |
+| `psql` to the Neon URL | Still times out from this machine (also without `channel_binding`); Python `psycopg2` and Npgsql connect fine, so SQL checks and cleanup used `psycopg2` |
+| `dotnet ef` | Not installed at first; installed later (`dotnet-ef` 10.x) for the video-source migration. On this machine .NET is a snap install, so run it with `DOTNET_ROOT=/var/snap/dotnet/common/dotnet` and `~/.dotnet/tools` on the PATH |
+
+**Video-source schema and cleanup (2026-11-15, branch `feat/video-source-schema`)**
+
+| Step | Result |
+| --- | --- |
+| Migration `AddVideoSourceRoi` | Adds `Cameras.IsActive` (default false) and the `SpotRois` table (jsonb polygon points, unique per camera and spot); applied to Neon |
+| Seed | `DbSeeder` creates video sources (`Video`, empty file name); the three Neon cameras were converted with `PUT /api/cameras/{id}` |
+| Test data in Neon | Removed in one transaction with row-count checks: 4 throwaway users, 1 report, 1 fake detection (spot 9001), 7 soft-deleted test cameras, 3 soft-deleted test zones |
+| State afterwards | 1 admin, 3 zones, 3 cameras, 30 spots, 0 reports, 0 detections, 0 polygons; `/health/ready` Healthy; admin lists show `isActive` false |
+| Not done | Admin password rotation (still the local development value); the `test@example.com` and `demo` users only ever existed in the old local database and are not in Neon |
 
 How the API picks its database: `DATABASE_URL` wins when set, otherwise `ConnectionStrings:DefaultConnection`
 from user-secrets. Run it against Neon with `DATABASE_URL="$DATABASE_URL_UNPOOLED"` for the first start so the

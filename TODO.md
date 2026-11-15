@@ -15,11 +15,12 @@ Next team progress check: **2026-11-17**.
 | Name | GitHub | Role |
 | --- | --- | --- |
 | Ursula (also "rere") | amarelyy | Done: auth, database, zone/camera/user/report APIs. Next: clean-up (P11), Bicep and secrets (P12), code review and merging the others' pull requests |
-| Nabil | nabilabrianap06 | AI inference in .NET, ROI mapping, the polygon, worker-config and reference-frame endpoints (2a to 2c), map and search UI |
+| Nabil (also called Brian) | nabilabrianap06 | AI inference in .NET, ROI mapping, the polygon, worker-config and reference-frame endpoints (2a to 2c), map and search UI |
 | Deva | Devzka | Admin dashboard frontend (#19), the camera-status watchdog and zone override endpoints (2d, 2e), integration (#20), CI/CD, QA, deployment |
-| Brian | (add GitHub handle) | Admin dashboard frontend (#19), including the override control button |
 
 **Open decisions:** fourteen decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
+
+**Brian and Nabil are the same person** (GitHub `nabilabrianap06`), so the team has three people: Ursula, Deva, Nabil. Wherever an older note says "Brian", read "Nabil".
 
 The GitHub issue assignees were not changed from this repository (no write access to GitHub issues here).
 Use the "Assign on GitHub" column in section 1 to update them by hand.
@@ -63,6 +64,10 @@ DEMO LAPTOP (dotnet run)                                   AZURE (Bicep)        
           and polygons: GET /api/internal/video-sources
 Admin draws slot polygons (Blazor SVG in the Web app) --> saved in the database through the API
 ```
+
+**Who runs what (so nobody is confused).** Visitors only open the website; they never run `dotnet` or anything else. The API and the web app run on a host that stays on (Azure, decision 14).
+The **worker** is the "video feeder", like a CCTV that sends data: a small .NET program that one team member starts on a laptop (or, later, as a container in Azure). If it is not running, the website still works and shows the last known status, and each video source turns inactive after 2 minutes.
+The Vercel site is only a mockup and is not part of this flow.
 
 "Inference" means the ONNX model being run by the worker program, on the laptop. Only the result (which slots are occupied) travels to Azure;
 the video and the model never leave the laptop.
@@ -109,14 +114,14 @@ the video and the model never leave the laptop.
 | Project type | `Pakar.AiInference` stops being a web app: it becomes a worker app (`Microsoft.NET.Sdk.Worker`) with no HTTP endpoints, so `POST /api/detect`, `/health` and the `Inference:ApiKey` setting are removed. Settings in user-secrets: `Api:BaseUrl`, `Ingest:ApiKey`, `Video:Root`, `Model:Path`. |
 | Dockerfile | **None.** The worker is not deployed, so the empty `src/Pakar.AiInference/Dockerfile` is deleted. |
 
-#### D. Frontend, Blazor Razor (Deva, Brian, Nabil)
+#### D. Frontend, Blazor Razor (Deva, Nabil)
 
 | Item | Owner | Change |
 | --- | --- | --- |
-| Admin Zones page | Deva, Brian | Add, edit, remove (the `PUT` and list endpoints exist on the #10 branch). |
-| Admin Cameras page | Deva, Brian | Shown as **"Video sources"**: name, zone, video file, active status. No IP field required. |
-| Admin Users, Reports pages | Deva, Brian | Use the existing `/api/users` and `/api/reports` endpoints (they work today). |
-| Zone override control | Deva, Brian | FR 17. |
+| Admin Zones page | Deva, Nabil | Add, edit, remove (the `PUT` and list endpoints exist on the #10 branch). |
+| Admin Cameras page | Deva, Nabil | Shown as **"Video sources"**: name, zone, video file, active status. No IP field required. |
+| Admin Users, Reports pages | Deva, Nabil | Use the existing `/api/users` and `/api/reports` endpoints (they work today). |
+| Zone override control | Deva, Nabil | FR 17. |
 | Slot polygon editor | Nabil | Blazor `<svg>` over the reference frame, `MouseEventArgs` for clicks, no canvas and no JavaScript drawing. Saves normalized polygons through the ROI endpoints. Hosted inside the admin area. |
 | Campus map | Nabil | Home page, `ParkingHub` events instead of 4 s polling, zone colours, inactive-source indicator. |
 | Search and alternate zone | Nabil | Uses the existing guest endpoints. |
@@ -163,14 +168,14 @@ the video and the model never leave the laptop.
 | #14 (closed) | Inference in C# | Reopen: `OnnxInferenceEngine` and ONNX export |
 | #15 | ROI mapping | Slot polygon editor (SVG), `RoiMapper`, polygon storage |
 | #16 | Real-time map | Map on `ParkingHub`, home page |
-| #19 | Admin dashboard | Deva and Brian; "Video sources" instead of cameras |
+| #19 | Admin dashboard | Deva and Nabil; "Video sources" instead of cameras |
 | #20 | Connect AI pipeline | Worker to ingest to map; remove legacy hubs |
 | #28, #29 | Bicep, secrets | Neon secrets; drop the inference key |
 
 ### 0.5 Order of the refactoring
 
 1. Database migration and API changes (priority 1 and 2 below) so everyone else has endpoints to call.
-2. In parallel: ONNX export and engine (Nabil), admin pages with the endpoints that already exist (Deva, Brian).
+2. In parallel: ONNX export and engine (Nabil), admin pages with the endpoints that already exist (Deva, Nabil).
 3. `RoiMapper`, polygon editor and `VideoSourceWorker`.
 4. Move the map to `ParkingHub`, then remove the legacy hubs and `FrameHub`.
 5. Clean-up, tests, deployment.
@@ -190,12 +195,12 @@ Until a row is decided, nobody starts the tasks listed in its "Blocks" column; e
 | 5 | Where does the team download the ONNX model from? It is not in git. | A) A GitHub Release asset, with its SHA-256 in the docs. B) Azure Blob Storage. C) A shared drive link. | **A.** Free and versioned. | Nabil (P3), everyone who runs the worker. Blocks running the worker on a second machine. | | |
 | 6 | Meaning of FR 12 "camera inactive" | A) The worker stopped sending for 2 minutes. B) Something else. | **A.** | Deva (2d). Blocks 2d. | | |
 | 7 | Where does the realtime state live? | A) In memory in the API (`ParkingStateStore`), with exactly one API replica. B) Move it to the database or a cache so several replicas can run. | **A.** Simpler; the Bicep sets `maxReplicas: 1`. | Deva (P10), Ursula (P12). Blocks the replica setting in P12. | | |
-| 8 | Who builds the report form (#18, FR 5 and 6)? | Brian, Deva, Nabil or Ursula. | **Brian**, after the admin pages. | Blocks #18 and the report path of the acceptance tests. | | |
-| 9 | Who builds the search bar and alternate-zone suggestion (P8, #17)? Nabil's list (P3, P5, P6, P7, 2a to 2c) is the longest. | Keep with Nabil, or move to Brian or Deva. | **Move to Brian** once the admin pages are done, or to Deva after integration. | Blocks P8. | | |
-| 12 | Where does the AI run? | A) On a demo laptop with `dotnet run` (video and model local, results posted to the API). B) In a container in Azure. C) In the browser (needs JavaScript for ONNX Runtime Web, which the .NET-only rule may not allow). | **A.** Pure .NET, cheapest, least change to the plan. B costs money all day; C needs the course to allow JavaScript interop and a new ingest route for admin logins. | Everyone: Nabil (P3, P5), Deva (P13, P10), Ursula (P12). Decided by Ursula on 2026-11-15, **the team should confirm**. | **A** | Ursula, 2026-11-15 - team to confirm |
-| 13 | What must be on Vercel? | A) Only the React UI/UX prototype that is deployed now at https://senpro-pakar.vercel.app (it uses simulated numbers and does not call the API). B) The real Blazor application too, which means converting `Pakar.Web` from Blazor Server to Blazor WebAssembly (static files) and hosting the API somewhere else. | **A** if the course accepts the prototype on Vercel: no conversion. Ask the lecturer. B only if the real app must be on Vercel. | Everyone doing frontend (P4, P7, P8, P9). Blocks any further decision about where the Blazor app is hosted. | | |
-| 14 | Where do the API and the Blazor web app run, if not Azure? | A) Azure for Students (about $100 credit, university email, no card; check eligibility). B) A demo laptop, opened to others with a tunnel (free, only while the laptop is on). C) Another host (free tiers vary; several need a card, many sleep when idle). Whatever the host, the API must be ONE process that stays running. | **A** first (the Bicep is ready), **B** as the backup for demo day. | Ursula (P12), Deva (P13). Blocks the first deployment. | | |
-| 10 | Brian's GitHub handle | (information, not a choice) | - | Needed to assign #19 and to fill the owners table. | | |
+| 8 | Who builds the report form (#18, FR 5 and 6)? | Deva, Nabil or Ursula. | **Deva** after the admin pages, or **Ursula** after the clean-up: Nabil already has the longest list. | Blocks #18 and the report path of the acceptance tests. | | |
+| 9 | Who builds the search bar and alternate-zone suggestion (P8, #17)? Nabil's list (P3, P5, P6, P7, 2a to 2c) is the longest. | Keep with Nabil, or move to Deva or Ursula. | **Move it** to Deva after integration or to Ursula after the clean-up; Nabil is also the "Brian" in older notes, so moving it to Brian would not help. | Blocks P8. | | |
+| 12 | Where does the AI run? | A) On a demo laptop with `dotnet run` (video and model local, results posted to the API). B) In a container in Azure. C) In the browser (needs JavaScript for ONNX Runtime Web, which the .NET-only rule may not allow). | **A.** Pure .NET, cheapest, least change to the plan. B costs money all day; C needs the course to allow JavaScript interop and a new ingest route for admin logins. | Everyone: Nabil (P3, P5), Deva (P13, P10), Ursula (P12). Decided by Ursula on 2026-11-15, **the team should confirm**. Because Azure is possible (decision 14), the same worker program can later also run as a container in Azure (Nabil's branch has a Dockerfile) so that nobody has to start it by hand. | **A** | Ursula, 2026-11-15 - team to confirm |
+| 13 | What must be on Vercel? | A) Only the React UI/UX prototype that is deployed now at https://senpro-pakar.vercel.app (it uses simulated numbers and does not call the API). B) The real Blazor application too, which means converting `Pakar.Web` from Blazor Server to Blazor WebAssembly (static files) and hosting the API somewhere else. | **A** if the course accepts the prototype on Vercel: no conversion. Ask the lecturer. B only if the real app must be on Vercel. | Everyone doing frontend (P4, P7, P8, P9). Blocks any further decision about where the Blazor app is hosted. | **A.** The Vercel site is only a mockup (React prototype with simulated numbers); the real Blazor app is not on Vercel. | Ursula, 2026-11-15 - lecturer not asked yet |
+| 14 | Where do the API and the Blazor web app run? | A) Azure for Students (about $100 credit, university email, no card; check eligibility). B) A demo laptop, opened to others with a tunnel (free, only while the laptop is on). C) Another host (free tiers vary; several need a card, many sleep when idle). Whatever the host, the API must be ONE process that stays running. | **A** first (the Bicep is ready), **B** as the backup for demo day. | Ursula (P12), Deva (P13). Blocks the first deployment. | **A (Azure)**, if the student credit works; B as the backup for demo day. | Ursula, 2026-11-15 - eligibility of Azure for Students not checked yet |
+| 10 | Brian's GitHub handle | (information, not a choice) | - | **Resolved:** Brian is Nabil, `nabilabrianap06`. | Resolved | Nabil's note in the `ai-dotnet` branch, 2026-11-15 |
 | 11 | Which Azure region? | A) `eastus2`, near the Neon project (AWS `us-east-2`): fast database queries, slower for users in Indonesia. B) `southeastasia`, near the users: slower database queries unless Neon is recreated in an Asian region. | **A** for now: every page makes several database queries, so the distance to Neon matters more. | Ursula (Bicep, P12), Deva (P13). Blocks the first deployment. | | |
 
 ### 0.7 How a database migration works here (read this before you change an entity)
@@ -263,7 +268,7 @@ Tasks marked **(new issue)** have no issue yet.
 | 2d | Backend API | Mark a video source inactive after 2 minutes without data and save `Camera.IsActive` (FR 12) | Deva | Devzka | #13 | P1 (done) |
 | 2e | Backend API | Zone status override by an admin, pushed through `ParkingHub` (FR 17). **Needs a migration.** | Deva | Devzka | #19 | P1 (done) |
 | 3 | AI (.NET) | Export `best.pt` to ONNX; `OnnxInferenceEngine` and parity test | Nabil | nabilabrianap06 | #14 (reopen) | - |
-| 4 | Frontend admin | Admin pages: Zones, "Video sources", Users, Reports, override control | Deva, Brian | Devzka, (Brian) | #19 | #10 (done) for Zones and Cameras; 2e for the override button; Users and Reports can start now |
+| 4 | Frontend admin | Admin pages: Zones, "Video sources", Users, Reports, override control | Deva, Nabil | Devzka, nabilabrianap06 | #19 | #10 (done) for Zones and Cameras; 2e for the override button; Users and Reports can start now |
 | 5 | AI (.NET) | `RoiMapper`, occupancy rules, `VideoSourceWorker` | Nabil | nabilabrianap06 | #13, #15 | 2a, 2b, P3 |
 | 6 | Frontend admin | Slot polygon editor in Blazor SVG | Nabil | nabilabrianap06 | #15 | 2a, 2c |
 | 7 | Frontend map | Map as home page, `ParkingHub` events, zone colours, inactive indicator | Nabil | nabilabrianap06 | #16 | - |
@@ -400,7 +405,7 @@ Return only cameras that are not removed, have a video file name, and have at le
 **Migration.** None (`IsActive` already exists).
 **Done when (live check).** Start the API; post an ingest for camera 1 and see `isActive: true` in `GET /api/cameras`; wait for the timeout and see `false` and the hub event on `/test-signalr`; post again and see `true` plus the event; restart the API and check that a camera that was active before the restart is flagged after the timeout; unit tests pass; docs updated.
 
-#### 2e Zone status override by an admin (FR 17) - Deva (Brian builds the button, P4)
+#### 2e Zone status override by an admin (FR 17) - Deva (the button in the admin pages is part of P4)
 **Goal.** When detection is down, an admin can say "this zone is full" (or almost full, or available). Everyone sees that status until the admin clears it.
 **What exists today.** The status is calculated, never stored: `OccupancyCalculator.GetStatus(capacity, occupied)` is used by `ZoneQueryService` (REST: zone list, search, alternate) and by `ParkingStateStore.BuildZone` (realtime `ZoneView`). Nothing can force a value.
 **Do.**
@@ -427,7 +432,7 @@ Return only cameras that are not removed, have a video file name, and have at le
 5. Delete the empty `Services/OnnxOpenVinoEngine.cs`.
 **Done when.** `POST /api/detect` (or a unit test) on a sample frame returns boxes; the parity test is within a small tolerance, with the difference written down; the model location and SHA-256 are documented.
 
-#### P4 Admin pages - Deva and Brian (#19), progress check 2026-11-17
+#### P4 Admin pages - Deva and Nabil (#19), progress check 2026-11-17
 **Goal.** Admins can manage everything in the web app instead of Swagger.
 **What exists.** `Admin/Dashboard.razor` (only the `AdminOnly` wrapper) and `Account/AdminOnly.razor`. The files `Admin/Users.razor`, `Zones.razor`, `Cameras.razor`, `Reports.razor` are empty (0 bytes). `Services/UserSession.cs` holds the login token (`Bearer token for API calls`); API calls from a page must send it in the `Authorization` header.
 **Do (each page = list, form, success and error messages).**
@@ -465,7 +470,7 @@ Return only cameras that are not removed, have a video file name, and have at le
 **Do.** (0) Re-read the issue tasks and write the definition of done in the issue. (1) Make the map the home page (`/`). (2) Replace the timer with a `HubConnection` to `/hubs/parking` (`SpotStatusChanged`, `ZoneUpdated`, `CameraStatusChanged`; call `GetSnapshot()` on connect and on reconnect). (3) Colour zones by status (available, almost full, full) and show "set manually" when `isOverridden`. (4) Show a warning for a source that is inactive. (5) Fill or delete `SpotMarker.razor`; replace the template glyph in `MainLayout.razor`.
 **Done when.** A change posted to ingest appears on the map within 5 seconds without reloading; a guest needs 1 interaction to see zone status (FR 3).
 
-#### P8 Search and alternate zone - Nabil (#17), may move to Brian
+#### P8 Search and alternate zone - Nabil (#17), may move to Deva or Ursula
 **Do.** A search box and filters (status, minimum free spots) using `GET /api/parking/zones/search`; when a zone is full, show the suggestion from `GET /api/parking/zones/{id}/alternate`. Results within 2 seconds (FR 2), suggestion within 3 seconds (FR 4).
 
 #### P9 Report form - owner to decide (#18)
@@ -539,8 +544,8 @@ Optional. Start only when section 1 is stable.
 | Detection quality | Model version manifest and a documented way to deliver the ONNX file | Nabil |
 | Product | Occupancy prediction and history charts from the stored `Detections` (product goals) | Nabil, Ursula |
 | Product | Full-capacity alerts and user notifications | Deva |
-| Product | Admin controls to pause, resume and change the video source (the worker is on a laptop, so it would poll a command from the API) | Deva, Brian |
-| Product | `Plan` and `Saved` pages (prediction and saved zones in the wireframe) | Brian |
+| Product | Admin controls to pause, resume and change the video source (the worker is on a laptop, so it would poll a command from the API) | Deva, Nabil |
+| Product | `Plan` and `Saved` pages (prediction and saved zones in the wireframe) | to be decided |
 | Security | Rate limiting and lockout on login; audit log of admin changes; time limit on zone overrides | Ursula |
 | Operations | Retention policy for `Detections` (Neon storage); metrics for inference time and frames per second; health check for the worker | Ursula, Nabil |
 | Testing | End to end UI test of the map; load test of ingest | Deva |
@@ -591,7 +596,7 @@ Optional. Start only when section 1 is stable.
 | # | Priority list says | Result |
 | --- | --- | --- |
 | 1 | Seed data blocks everyone | Done and verified on Neon. |
-| 2 | #9 done; #19 progress on 2026-11-17, frontend for Deva and Brian | Confirmed; #19 is assigned to Deva and Brian (P4). |
+| 2 | #9 done; #19 progress on 2026-11-17, frontend for Deva and Brian | Confirmed; #19 is assigned to Deva and Nabil (P4); Brian is Nabil. |
 | 3 | #13 is an RTSP stream | Replaced by a video source worker (section 0). |
 | 4 | #11 is rere, due 2026-11-17 | Done. rere is Ursula. |
 | 5 | #12 re-check, #18 needs a frontend owner | #12 passed the live test; #18 owner still to be decided (P9). |
@@ -603,22 +608,22 @@ Optional. Start only when section 1 is stable.
 
 ---
 
-## 5. Planned later: about 8 parking zones and an admin video wall (saved, to expand when needed)
+## 5. Planned later: the 4 final parking zones and an admin video wall (saved, to expand when needed)
 
-**Plan as it stands (2026-11-15).** The real system will probably have about 8 parking zones, one video per zone. Only the **admin dashboard** shows video:
-a "CCTV-like" view that you slide through to switch between locations (zone A, B, C ...), looping each video. Normal users **cannot see the video**; they only see
-the map and the zone status. This is not part of Ursula's frontend work; the owner is still to be decided.
+**Plan as it stands (2026-11-15).** The final system has **4 parking zones: DTETI, TNTF, DTMI and DTK**, one video per zone. Only the **admin dashboard** shows video:
+a "CCTV-like" view that you slide through to switch between locations, looping each video. Normal users **cannot see the video**; they only see the map and the zone status.
+The video wall is not part of Ursula's frontend work; its owner is still to be decided.
 
 **What it changes for the backend and database (Ursula).**
-- [ ] Seed data from 3 zones to about 8: real names, capacity, and the latitude and longitude of every spot (the map needs them). The seed only runs on an empty database, so the existing Neon data is changed through the admin API or SQL.
-- [ ] One video source per zone: the 3 seeded cameras become about 8.
+- [ ] Seed data: replace the 3 sample zones (Building H, Building I, Building E West) with the 4 real ones. For each zone the real name, capacity, and the latitude and longitude of every spot are needed (the map uses them); ask the team for this data. The seed only runs on an empty database, so the existing Neon data is changed through the admin API or SQL.
+- [ ] One video source per zone: the 3 seeded cameras become 4.
 - [ ] Slot polygons: one set per video, drawn by hand in the polygon editor (`/admin/polygons`). This is the biggest manual task; plan time for it.
-- [ ] Check that the zone list, search and map still feel fast with 8 zones and several dozen spots (the limits in the code are far above this: 500 spots per ingest request).
+- [ ] Check that the zone list, search and map still feel right with 4 zones and their spots (the limits in the code are far above this: 500 spots per ingest request).
 
 **Design points to keep in mind.**
-- **Detection must run for all 8 videos in the background**, not only for the video currently shown in the carousel. Otherwise a zone that is not on screen stops sending data and is flagged inactive after 2 minutes (FR 12).
+- **Detection must run for all 4 videos in the background**, not only for the video currently shown in the carousel. Otherwise a zone that is not on screen stops sending data and is flagged inactive after 2 minutes (FR 12).
 - The carousel only **shows** a video with the slot polygons coloured from the status events; it does not run detection itself.
-- Load: 8 videos at about 2 frames per second each is 16 inferences per second on one machine. Not measured yet; measure on the real laptop before promising it, and lower the rate per video if needed.
+- Load: 4 videos at about 2 frames per second each is about 8 inferences per second on one machine. Not measured yet; measure on the real machine before promising it, and lower the rate per video if needed.
 - Viewers do not need the video files, so nothing about the videos has to be public.
 
 **Open items for the owner of the video wall (to be decided).**

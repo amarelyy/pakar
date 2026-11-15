@@ -52,6 +52,18 @@ on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `d
 | Git history secrets | Checked; old development values only, nothing deployed (item 13) |
 | Needs a team decision | Azure region (default `eastus2`, near the Neon project in AWS `us-east-2`), where the AI runs (laptop chosen, to confirm), model location, replicas (TODO.md section 0.6) |
 
+**Test accounts in Neon (2026-11-15; emails only, passwords are shared privately and never written in git)**
+
+| Role | Email | For |
+| --- | --- | --- |
+| Admin | `admin@example.com` | The first admin (password in Ursula's user-secrets) |
+| Admin | `deva.admin@pakar.test` | Deva, to test the admin pages |
+| Admin | `nabil.admin@pakar.test` | Nabil, to test the admin pages and the polygon editor |
+| User | `user@pakar.test` | Anyone, to test the guest and user side (map, reports) |
+
+They were created through `POST /api/auth/register` and promoted with `PUT /api/users/{id}`. Deactivate or remove access of any of them with `POST /api/users/{id}/deactivate`.
+These accounts exist only in Neon; the old local database has its own separate accounts.
+
 **Docker verification (2026-11-15, rootless Docker started in user space)**
 
 | Check | Result |

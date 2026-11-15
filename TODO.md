@@ -19,7 +19,7 @@ Next team progress check: **2026-11-17**.
 | Deva | Devzka | Admin dashboard frontend (#19), the camera-status watchdog and zone override endpoints (2d, 2e), integration (#20), CI/CD, QA, deployment |
 | Brian | (add GitHub handle) | Admin dashboard frontend (#19), including the override control button |
 
-**Open decisions:** eleven decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
+**Open decisions:** twelve decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
 
 The GitHub issue assignees were not changed from this repository (no write access to GitHub issues here).
 Use the "Assign on GitHub" column in section 1 to update them by hand.
@@ -35,6 +35,7 @@ Use the "Assign on GitHub" column in section 1 to update them by hand.
 3. **Parking slots are drawn by hand.** An admin draws one polygon per slot on top of a frame of the video. Detection boxes are mapped to those polygons.
 4. **Runtime is strictly Blazor Razor and .NET.** Python is allowed only to train and export the model (`dl/`). The application runs the exported **ONNX** file (`best.pt` is converted to `.onnx`; a `.pt` cannot be run from .NET directly).
 5. The existing backend (auth, RBAC, reports, zone search, ingest, `ParkingHub`, database) **stays**. Only the image source and the detection engine change.
+6. **The AI runs on a demo laptop, not in Azure** (chosen 2026-11-15, to be confirmed by the team, decision 12 in section 0.6). The video worker is a normal .NET program started with `dotnet run`; the model and the video stay on that laptop. Azure runs only the API and the web app (Bicep in `infra/`). The database is Neon (PostgreSQL).
 
 Not changed by this decision: functional requirements FR 1 to FR 17, the user roles, and the guest-facing API.
 
@@ -47,17 +48,24 @@ Path A  camera / edge agent  --(detections, API key)-->  POST /api/ingest/detect
 Path B  browser webcam --(JPEG frames)--> FrameHub --> Pakar.AiInference (/api/detect, ONNX) --> boxes back to browser
 ```
 
-After (one path, all .NET):
+After (one path, all .NET). Where each part runs:
 
 ```
-video file --> VideoSourceWorker (Pakar.AiInference, ~2 frames/s)
-           --> OnnxInferenceEngine (YOLO .onnx, ONNX Runtime)
-           --> RoiMapper (box centre inside slot polygon, C#)
-           --> occupancy rules (confidence, debounce, undecided slots left out)
-           --> POST /api/ingest/detections  (Ingest:ApiKey, unchanged contract)
-           --> ParkingStateStore --> ParkingHub (/hubs/parking) --> campus map (Blazor)
-Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker reads them from the API
+DEMO LAPTOP (dotnet run)                                   AZURE (Bicep)                           NEON
++--------------------------------------------+            +--------------------------+            +------------+
+| Pakar.AiInference worker                   |   HTTPS    | Container App "Api"      | PostgreSQL | PostgreSQL |
+|  video file (local)                        | ---------> |  POST /api/ingest/...    | ---------> |  database  |
+|  -> OnnxInferenceEngine (.onnx, local)     |  results   |  ParkingStateStore       |            +------------+
+|  -> RoiMapper (box centre in slot polygon) |  only      |  ParkingHub (SignalR)    |
+|  -> occupancy rules (debounce, unknowns)   |            +--------------------------+
++--------------------------------------------+            | Container App "Web"      | <-- visitors open the map
+        ^ asks the API for video file name                 +--------------------------+
+          and polygons: GET /api/internal/video-sources
+Admin draws slot polygons (Blazor SVG in the Web app) --> saved in the database through the API
 ```
+
+"Inference" means the ONNX model being run by the worker program, on the laptop. Only the result (which slots are occupied) travels to Azure;
+the video and the model never leave the laptop.
 
 ### 0.3 What changes, in detail
 
@@ -93,13 +101,13 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 
 | Item | Change |
 | --- | --- |
-| Model | Export `best.pt` (empty/occupied slot detector) to `.onnx` with `dl/scripts/export_onnx.py`. The model file is not in git (`*.onnx` is ignored); decide how it reaches each machine and the container. |
+| Model | Export `best.pt` (empty/occupied slot detector) to `.onnx` with `dl/scripts/export_onnx.py`. The model file is not in git (`*.onnx` is ignored); it is kept on the laptop that runs the worker, and decision 5 says where the team downloads it from. |
 | `OnnxInferenceEngine` | **New**, using `Microsoft.ML.OnnxRuntime`. Replaces `UnavailableInferenceEngine` (today every call returns 503). Includes letterbox resize, confidence threshold (0.10 was the calibrated value on the demo clip), and non-max suppression. |
 | `VideoSourceWorker` | **New** `BackgroundService`. Reads each active source's video, takes about 2 frames per second, loops at the end, and posts results. Needs a video reader library for .NET (for example OpenCvSharp or an FFmpeg wrapper). |
 | `RoiMapper` | Rewrite of the empty `Detection/RoiMapper.cs`: point-in-polygon (ray casting); a slot is occupied when a box centre falls inside its polygon. |
 | Occupancy rules | Debounce (a state must repeat before it is sent), minimum confidence, and omit undecided slots. Heartbeat posts keep sources alive. |
-| `POST /api/detect` | The HTTP frame endpoint existed only for `FrameHub`. Remove it, or keep it only for tests. |
-| Dockerfile | `src/Pakar.AiInference/Dockerfile` is empty; needs a real one that includes the ONNX runtime and the video library. |
+| Project type | `Pakar.AiInference` stops being a web app: it becomes a worker app (`Microsoft.NET.Sdk.Worker`) with no HTTP endpoints, so `POST /api/detect`, `/health` and the `Inference:ApiKey` setting are removed. Settings in user-secrets: `Api:BaseUrl`, `Ingest:ApiKey`, `Video:Root`, `Model:Path`. |
+| Dockerfile | **None.** The worker is not deployed, so the empty `src/Pakar.AiInference/Dockerfile` is deleted. |
 
 #### D. Frontend, Blazor Razor (Deva, Brian, Nabil)
 
@@ -122,6 +130,7 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 | `src/Pakar.Api/Hubs/OccupancyHub.cs`, `Services/FakeOccupancyBroadcaster.cs`, `/occupancyHub` mapping | Remove after the map uses `ParkingHub` |
 | `POST /api/inference/trigger-update` (dev endpoint on the legacy hub) | Remove or retarget to `ParkingHub` |
 | `src/Pakar.AiInference/Services/OnnxOpenVinoEngine.cs` (empty), `UnavailableInferenceEngine` | Remove (replaced by `OnnxInferenceEngine`) |
+| `src/Pakar.AiInference/Dockerfile` (empty), the `POST /api/detect` endpoint and the `Inference:ApiKey` option | Remove (the worker runs on a laptop and has no HTTP API) |
 | `src/Pakar.Infrastructure/Camera/CameraTimeoutService.cs` (empty), `Storage/BlobSnapshotService.cs` (empty) | Implement (watchdog) or delete |
 | `edge/android-agent/`, `edge/calibration/roi-mapper.html` | Delete (replaced by the Blazor polygon editor) |
 | Seeded `rtsp://admin:admin@...` stream URLs | **Done:** removed from `DbSeeder` and from the Neon database; the file name is set by an admin later |
@@ -133,7 +142,8 @@ Admin draws slot polygons (Blazor SVG) --> saved in the database --> worker read
 | Item | Change |
 | --- | --- |
 | Secrets | `Inference--ApiKey` is no longer needed. Needed: `Jwt--Key`, `Ingest--ApiKey`, `Admin--Password`, `DATABASE_URL`, `DATABASE_URL_UNPOOLED`. |
-| Containers | Api, Web and AiInference (the worker). The worker needs the video files (mounted volume or built into the image) and the ONNX model. |
+| Containers | **Api and Web only.** The worker is not deployed; it runs on a laptop with the video file and the ONNX model, and reaches the API at its public address (`apiExternalIngress` must stay true). |
+| Worker secrets | The laptop holds `Ingest:ApiKey` (same value as `Ingest--ApiKey` in Key Vault), `Api:BaseUrl` and the paths, in user-secrets. Never commit them. |
 | Replicas | Api stays at 1 replica because `ParkingStateStore` is in memory. |
 | Database | New Neon project `muddy-star-17263468` (org `org-shy-field-47154575`); teammates must be invited in the Neon Console. |
 
@@ -174,14 +184,15 @@ Until a row is decided, nobody starts the tasks listed in its "Blocks" column; e
 | # | Decision | Options | Recommended | Affects and blocks | Decision (fill in) | Who agreed, date |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Where does the picture for drawing slot polygons come from? | A) The admin uploads a screenshot of the video and it is stored in the database. B) The worker extracts frame 1 and the API asks it for the picture. C) The API reads the video itself with a video library. | **A.** The API has no video library, and a file on one developer's disk does not exist for the others, while the Neon database is shared. B needs the worker to be running; C adds a heavy native library to the API. | Nabil (2c, P6). Blocks 2c and P6. | | |
-| 2 | Where is the video file kept? | A) A folder on the machine that runs the worker (`Video:Root`), file name in `Camera.StreamUrl`. B) Inside the container image. C) Azure Blob Storage. | **A** for development and the demo; revisit C only if the demo runs in Azure. | Nabil (P5), Deva (containers, P13), Ursula (decides if `storage.bicep` is needed, P12). Blocks P13 and the storage part of P12. | | |
+| 2 | Where is the video file kept? | A) A folder on the machine that runs the worker (`Video:Root`), file name in `Camera.StreamUrl`. B) Inside a container image. C) Azure Blob Storage. | **A.** | Nabil (P5). Nothing else: no storage in Azure. | **A** (follows from decision 12; Azure storage removed from the Bicep) | Ursula, 2026-11-15 - team to confirm |
 | 3 | How does the worker get its configuration (video file, polygons)? | A) From the API (`GET /api/internal/video-sources`, API key). B) By reading the database directly. | **A.** The worker needs no database password. | Nabil (2b, P5). Blocks 2b. | | |
 | 4 | One shared ingest key or one key per video source? | A) One shared `Ingest:ApiKey`. B) A key per source (`Camera.ApiKeyHash`). | **A.** There is one worker and no real cameras. Remove the unused `ApiKeyHash` column later. | Ursula (P12 secrets). Blocks nothing. | | |
-| 5 | Where is the ONNX model file kept? It is not in git. | A) A GitHub Release asset, with its SHA-256 in the docs. B) Azure Blob Storage. C) A shared drive link. | **A.** Free, versioned, and easy to download in CI and in the Docker build. | Nabil (P3), Deva (P13), Ursula (P12). Blocks the Docker build for AiInference. | | |
+| 5 | Where does the team download the ONNX model from? It is not in git. | A) A GitHub Release asset, with its SHA-256 in the docs. B) Azure Blob Storage. C) A shared drive link. | **A.** Free and versioned. | Nabil (P3), everyone who runs the worker. Blocks running the worker on a second machine. | | |
 | 6 | Meaning of FR 12 "camera inactive" | A) The worker stopped sending for 2 minutes. B) Something else. | **A.** | Deva (2d). Blocks 2d. | | |
 | 7 | Where does the realtime state live? | A) In memory in the API (`ParkingStateStore`), with exactly one API replica. B) Move it to the database or a cache so several replicas can run. | **A.** Simpler; the Bicep sets `maxReplicas: 1`. | Deva (P10), Ursula (P12). Blocks the replica setting in P12. | | |
 | 8 | Who builds the report form (#18, FR 5 and 6)? | Brian, Deva, Nabil or Ursula. | **Brian**, after the admin pages. | Blocks #18 and the report path of the acceptance tests. | | |
 | 9 | Who builds the search bar and alternate-zone suggestion (P8, #17)? Nabil's list (P3, P5, P6, P7, 2a to 2c) is the longest. | Keep with Nabil, or move to Brian or Deva. | **Move to Brian** once the admin pages are done, or to Deva after integration. | Blocks P8. | | |
+| 12 | Where does the AI run? | A) On a demo laptop with `dotnet run` (video and model local, results posted to the API). B) In a container in Azure. C) In the browser (needs JavaScript for ONNX Runtime Web, which the .NET-only rule may not allow). | **A.** Pure .NET, cheapest, least change to the plan. B costs money all day; C needs the course to allow JavaScript interop and a new ingest route for admin logins. | Everyone: Nabil (P3, P5), Deva (P13, P10), Ursula (P12). Decided by Ursula on 2026-11-15, **the team should confirm**. | **A** | Ursula, 2026-11-15 - team to confirm |
 | 10 | Brian's GitHub handle | (information, not a choice) | - | Needed to assign #19 and to fill the owners table. | | |
 | 11 | Which Azure region? | A) `eastus2`, near the Neon project (AWS `us-east-2`): fast database queries, slower for users in Indonesia. B) `southeastasia`, near the users: slower database queries unless Neon is recreated in an Asian region. | **A** for now: every page makes several database queries, so the distance to Neon matters more. | Ursula (Bicep, P12), Deva (P13). Blocks the first deployment. | | |
 
@@ -257,7 +268,7 @@ Tasks marked **(new issue)** have no issue yet.
 | 10 | Integration | End to end: video, worker, ingest, `ParkingHub`, map within 5 s; remove legacy hubs and `FrameHub` | Deva | Devzka | #20 | P5, P7, 2d, 2e |
 | 11 | Backend API | Clean-up: remove `FrameHub`, `InferenceClient`, `OccupancyHub`, empty files; `/test-db` Development only; translate comments; `SpotStatus` enum | Ursula | amarelyy | (new issue) | P10 |
 | 12 | DevOps | Bicep and secrets: Neon secrets, Key Vault, health probes, check secrets in git history. **Written 2026-11-15; waits for a first real deployment.** | Ursula | amarelyy | #28, #29 | parallel |
-| 13 | DevOps | Dockerfiles (Api, Web, AiInference), CI: build, test, image, migration bundle against Neon | Deva | Devzka | #21 | P5 |
+| 13 | DevOps | Dockerfiles (Api and Web only; the worker is not deployed), CI: build, test, image, migration bundle against Neon | Deva | Devzka | #21 | P5 |
 | 14 | QA | API integration tests, acceptance tests per FR, production deployment and smoke test | Deva (with everyone) | Devzka | #21 | all above |
 
 ### Before you start any task
@@ -425,7 +436,7 @@ Return only cameras that are not removed, have a video file name, and have at le
 **Done when.** A non-admin cannot see or open the pages; every action works against the running API; validation errors from the API are shown next to the field; no page is an empty file.
 
 #### P5 Reading the video and mapping slots - Nabil (#13, #15)
-**Goal.** A background service in `Pakar.AiInference` replays each video, finds which slots are occupied, and sends the result to the API.
+**Goal.** A background service in `Pakar.AiInference` replays each video, finds which slots are occupied, and sends the result to the API. It runs on a demo laptop with `dotnet run` (not in Azure): set `Api:BaseUrl` (the API's public address), `Ingest:ApiKey`, `Video:Root` and `Model:Path` with `dotnet user-secrets set` in `src/Pakar.AiInference`, see `infra/README.md`.
 **What exists.** Nothing for this part: `Detection/RoiMapper.cs` is a stub of 28 bytes. The API side exists: `POST /api/ingest/detections` with header `X-Api-Key`.
 **Do.**
 1. `RoiMapper`: point-in-polygon (ray casting). A slot is occupied when the centre of a detected box falls inside its polygon (coordinates normalized 0 to 1, so divide the box centre by the frame size).
@@ -471,23 +482,23 @@ Return only cameras that are not removed, have a video file name, and have at le
 #### P12 Infrastructure and secrets - Ursula (#28, #29) - written 2026-11-15, needs a first real deployment
 **Goal.** Everything needed to run PAKAR on Azure Container Apps with the secrets in Key Vault, described as code.
 **What was done.** The old Bicep (Azure SQL, empty files) was replaced. Files in `infra/bicep`: `main.bicep` (subscription scope, creates the resource group),
-`resources.bicep`, `keyvault.bicep`, `containerapps.bicep`, `storage.bicep` (optional video share); `sql.bicep` was deleted. The runbook is `infra/README.md`,
+`resources.bicep`, `keyvault.bicep`, `containerapps.bicep`; `sql.bicep` and `storage.bicep` were deleted (no SQL in Azure, no video storage in Azure). The runbook is `infra/README.md`,
 the parameter example is `infra/main.parameters.example.json`.
 - [x] Bicep for Neon: no SQL resource; all five files compile and pass the linter (Bicep CLI 0.49.2).
-- [x] Container Apps for Api, Web and AiInference. Api `minReplicas` and `maxReplicas` are both 1; Web has sticky sessions, at most 1 replica and scales to zero by default; the worker has no public address. **Deviation from the old plan:** one *user-assigned* managed identity shared by the three apps instead of one system-assigned identity each, because a system-assigned identity cannot read Key Vault at the moment the app is created.
+- [x] Container Apps for Api and Web (the AI worker runs on a laptop and is not in the Bicep). Api `minReplicas` and `maxReplicas` are both 1; Web has sticky sessions, at most 1 replica and scales to zero by default. **Deviation from the old plan:** one *user-assigned* managed identity shared by the three apps instead of one system-assigned identity each, because a system-assigned identity cannot read Key Vault at the moment the app is created.
 - [x] Key Vault with `Jwt--Key`, `Ingest--ApiKey`, `Admin--Password`, `DATABASE-URL`, `DATABASE-URL-UNPOOLED`, access by role ("Key Vault Secrets User" for the identity), values supplied as secure parameters so they are never in git. `Inference--ApiKey` is not created (no longer needed).
 - [x] Health probes: Api liveness `/health/live`, readiness `/health/ready`, startup; Web uses a TCP probe (it has no health endpoint).
-- [x] Optional Azure Files share `videos` mounted read-only at `/videos` in the worker (parameter `deployVideoStorage`, default off, team decision 2).
+- [x] No storage in Azure: the video file and the model stay on the worker's laptop (decisions 2 and 12). The first draft had an optional Azure Files share; it was removed.
 - [x] Secrets in git history checked (2026-11-15). Found in old commits: the local SQL Server `sa` password and connection strings, a JWT signing key, an ingest API key, and fake `rtsp://admin:admin@...` URLs. All were development values for a database on `localhost`; **nothing was ever deployed** with them, current `appsettings.json` files hold only empty placeholders, and the local and Neon secrets were regenerated. Treat the old values as burned: never reuse them (especially the `sa` password if it is used anywhere else). The history is **not** rewritten (a force push on `main` would break everyone's clone).
 - [x] Managed-identity access to the database (`CREATE USER ... FROM EXTERNAL PROVIDER`): not applicable, Neon uses password login.
 - [ ] **First deployment and `what-if` (needs an Azure subscription and an Owner account, and the images from P13).** Expect to fix small things the first time. Follow `infra/README.md`.
 - [ ] Generate brand new production values for the five secrets at the first deployment (commands in `infra/README.md`).
-- [ ] Team decisions that change the Bicep: 2 (video storage), 5 (model location), 7 (replicas), 11 (Azure region). Region default is `eastus2` because the Neon project is in AWS `us-east-2`.
+- [ ] Team decisions that change the Bicep: 7 (replicas), 11 (Azure region), 12 (where the AI runs; confirm). Region default is `eastus2` because the Neon project is in AWS `us-east-2`.
 - [ ] Invite teammates to the Neon organization `org-shy-field-47154575` (Neon Console, Organization settings, Members) - cannot be done from code.
-- [ ] After the video worker is refactored (P5, P11): the worker needs `Api__BaseUrl`, `Ingest__ApiKey` and `Video__Root`; the Bicep already sets them, the code must read them.
+- [ ] After the video worker is refactored (P5, P11): it reads `Api:BaseUrl`, `Ingest:ApiKey`, `Video:Root` and `Model:Path` from user-secrets (see `infra/README.md`).
 
 #### P13 Build pipeline - Deva (#21)
-- [ ] Dockerfiles for Pakar.Api, Pakar.Web, Pakar.AiInference (the last one is empty today).
+- [ ] Dockerfiles for Pakar.Api and Pakar.Web, both listening on port 8080. Pakar.AiInference needs none (it runs on a laptop); delete its empty Dockerfile.
 - [ ] CI workflow: build, test, publish images, run the migration bundle against Neon, deploy Container Apps.
 
 #### P14 QA - Deva (#21), with everyone
@@ -524,7 +535,7 @@ Optional. Start only when section 1 is stable.
 | Detection quality | Model version manifest and a documented way to deliver the ONNX file | Nabil |
 | Product | Occupancy prediction and history charts from the stored `Detections` (product goals) | Nabil, Ursula |
 | Product | Full-capacity alerts and user notifications | Deva |
-| Product | Admin controls to pause, resume and change the video source | Deva, Brian |
+| Product | Admin controls to pause, resume and change the video source (the worker is on a laptop, so it would poll a command from the API) | Deva, Brian |
 | Product | `Plan` and `Saved` pages (prediction and saved zones in the wireframe) | Brian |
 | Security | Rate limiting and lockout on login; audit log of admin changes; time limit on zone overrides | Ursula |
 | Operations | Retention policy for `Detections` (Neon storage); metrics for inference time and frames per second; health check for the worker | Ursula, Nabil |

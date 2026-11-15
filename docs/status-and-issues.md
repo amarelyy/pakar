@@ -46,11 +46,11 @@ on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `d
 
 | Step | Result |
 | --- | --- |
-| Bicep rewritten for Neon (Azure SQL removed): resource group, Log Analytics, Container Apps environment, user-assigned identity, Key Vault with five secrets, Api, Web and AiInference apps, optional Azure Files share | `bicep build` and `bicep lint` (Bicep CLI 0.49.2) pass with no warnings; all six secret parameters are `securestring` |
+| Bicep rewritten for Neon (Azure SQL removed): resource group, Log Analytics, Container Apps environment, user-assigned identity, Key Vault with five secrets, and the Api and Web apps. The AI video worker is not in Azure: it runs on a demo laptop and posts results to the API | `bicep build` and `bicep lint` (Bicep CLI 0.49.2) pass with no warnings; all six secret parameters are `securestring` |
 | Deployed or `what-if` | **No.** No Azure subscription was available; images do not exist yet (Dockerfiles are P13) |
 | Runbook | `infra/README.md` (deploy, change a secret, upload videos, stop the worker, delete everything) |
 | Git history secrets | Checked; old development values only, nothing deployed (item 13) |
-| Needs a team decision | Azure region (default `eastus2`, near the Neon project in AWS `us-east-2`), video storage, model location, replicas (TODO.md section 0.6) |
+| Needs a team decision | Azure region (default `eastus2`, near the Neon project in AWS `us-east-2`), where the AI runs (laptop chosen, to confirm), model location, replicas (TODO.md section 0.6) |
 
 How the API picks its database: `DATABASE_URL` wins when set, otherwise `ConnectionStrings:DefaultConnection`
 from user-secrets. Run it against Neon with `DATABASE_URL="$DATABASE_URL_UNPOOLED"` for the first start so the

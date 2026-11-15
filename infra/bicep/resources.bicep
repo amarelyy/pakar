@@ -1,10 +1,9 @@
-// Everything inside the resource group: logs, Container Apps environment, identity, Key Vault, optional storage, the three apps.
+// Everything inside the resource group: logs, Container Apps environment, identity, Key Vault, the two apps (Api and Web).
 param location string
 param appName string
 
 param apiImage string
 param webImage string
-param aiImage string
 param registryServer string
 param registryUsername string
 @secure()
@@ -22,9 +21,7 @@ param databaseUrl string
 @secure()
 param databaseUrlUnpooled string
 
-param deployVideoStorage bool
 param webMinReplicas int
-param aiMinReplicas int
 param apiExternalIngress bool
 
 var keyVaultName = take('${appName}-kv-${uniqueString(resourceGroup().id)}', 24)
@@ -54,7 +51,7 @@ resource env 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-// One user-assigned identity shared by the three apps. A system-assigned identity cannot be used here: it only
+// One user-assigned identity shared by the apps. A system-assigned identity cannot be used here: it only
 // exists after the app is created, but the app needs Key Vault access to be created (secret references).
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${appName}-id'
@@ -75,15 +72,6 @@ module keyvault 'keyvault.bicep' = {
   }
 }
 
-module storage 'storage.bicep' = if (deployVideoStorage) {
-  name: 'pakar-storage'
-  params: {
-    location: location
-    appName: appName
-    envName: env.name
-  }
-}
-
 module apps 'containerapps.bicep' = {
   name: 'pakar-apps'
   // Using keyvault.outputs below makes this wait until the whole Key Vault module is done,
@@ -97,14 +85,11 @@ module apps 'containerapps.bicep' = {
     vaultUri: keyvault.outputs.vaultUri
     apiImage: apiImage
     webImage: webImage
-    aiImage: aiImage
     registryServer: registryServer
     registryUsername: registryUsername
     registryPassword: registryPassword
     adminEmail: adminEmail
-    videoStorageName: deployVideoStorage ? storage!.outputs.storageName : ''
     webMinReplicas: webMinReplicas
-    aiMinReplicas: aiMinReplicas
     apiExternalIngress: apiExternalIngress
   }
 }

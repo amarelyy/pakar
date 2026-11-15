@@ -6,23 +6,25 @@ The database is **Neon** (outside Azure), so there is no SQL resource.
 **Status:** the templates compile and pass the Bicep linter (Bicep CLI 0.49.2). They have **not been deployed or run through
 `what-if`** because no Azure subscription was available when they were written. Run `what-if` first (step 3); the first real
 deployment may still show problems that only Azure can report. The apps also cannot start until CI (issue #21) has built and
-pushed the three images.
+pushed the two images (Api and Web).
+
+**Where the AI runs:** not in Azure. The video worker (`Pakar.AiInference`, with the ONNX model and the video file) runs on a demo
+laptop with `dotnet run` and sends its results to the API over HTTPS. Azure only runs the API and the web app.
 
 ## What is deployed
 
 | Resource | Name | Purpose |
 | --- | --- | --- |
 | Resource group | `pakar-rg` | Holds everything below; delete it to remove it all |
-| Log Analytics workspace | `pakar-logs` | Logs of the three apps (30 days) |
+| Log Analytics workspace | `pakar-logs` | Logs of the apps (30 days) |
 | Container Apps environment | `pakar-env` | Shared network and logging |
 | User-assigned identity | `pakar-id` | Lets the apps read Key Vault |
 | Key Vault | `pakar-kv-<hash>` | The secrets (table below); access by role, soft delete 7 days |
 | Container App `pakar-api` | `pakar-api` | The API. **Exactly one replica** (the realtime state is in memory). Probes `/health/live`, `/health/ready` |
 | Container App `pakar-web` | `pakar-web` | The Blazor web app, public address, scales to zero by default |
-| Container App `pakar-ai` | `pakar-ai` | The video worker, no public address, one replica |
-| Storage account and Azure Files share `videos` | optional | Video files, mounted read-only at `/videos` in the worker (`deployVideoStorage`) |
 
-Every image must listen on **port 8080** (the .NET default in containers).
+Every image must listen on **port 8080** (the .NET default in containers). The API must keep a public address
+(`apiExternalIngress=true`, the default) because the worker on the laptop calls it from outside Azure.
 
 ## Secrets
 
@@ -32,7 +34,7 @@ They are never in git, in the template, or in an environment file in the reposit
 | Key Vault name | App setting | Used by | Where the value comes from |
 | --- | --- | --- | --- |
 | `Jwt--Key` | `Jwt__Key` | Api | `openssl rand -base64 48` |
-| `Ingest--ApiKey` | `Ingest__ApiKey` | Api, AiInference | `openssl rand -hex 32` |
+| `Ingest--ApiKey` | `Ingest__ApiKey` | Api (checks it); the worker on the laptop holds the same value in its user-secrets | `openssl rand -hex 32` |
 | `Admin--Password` | `Admin__Password` | Api (first admin account) | a new random password, at least 12 characters |
 | `DATABASE-URL` | `DATABASE_URL` | Api | Neon pooled URL (`neon env pull`) |
 | `DATABASE-URL-UNPOOLED` | (none) | the migration step of CI | Neon direct URL (`neon env pull`) |
@@ -89,13 +91,26 @@ Contributor alone cannot do).
 - **Change a secret:** `az keyvault secret set --vault-name <keyVaultName> --name Jwt--Key --value "$(openssl rand -base64 48)"`.
   Apps pick up a new value within about 30 minutes, or at once when you restart the revision
   (`az containerapp revision list -g pakar-rg -n pakar-api`, then `az containerapp revision restart -g pakar-rg -n pakar-api --revision <name>`).
-  A new `Jwt--Key` signs everyone out. `Ingest--ApiKey` is shared by Api and AiInference, so restart both.
+  A new `Jwt--Key` signs everyone out. A new `Ingest--ApiKey` must also be set in the worker's user-secrets on the laptop.
   The first admin password only applies when the admin account does not exist yet; to change an existing admin password update the `Users` row.
 - **Let a teammate manage secrets:** `az role assignment create --role "Key Vault Secrets Officer" --assignee <email> --scope <Key Vault id>`.
-- **Upload videos** (with `deployVideoStorage=true`): `az storage file upload --account-name <storageAccountName> --share-name videos --source lot-a.mp4`.
-- **Stop the worker** to save money between demos: redeploy with `aiMinReplicas=0`, or `az containerapp update -g pakar-rg -n pakar-ai --min-replicas 0`.
 - **Delete everything:** `az group delete -n pakar-rg --yes`. The Key Vault stays in soft delete for 7 days and blocks a redeploy with the same name;
   remove it with `az keyvault purge --name <keyVaultName>`.
+
+## Running the AI worker on a laptop
+
+The worker is a normal .NET program; it needs the video file and the ONNX model on the laptop (neither goes to Azure).
+
+```bash
+cd src/Pakar.AiInference
+dotnet user-secrets set "Api:BaseUrl" "https://<apiUrl>/"       # the apiUrl printed by the deployment
+dotnet user-secrets set "Ingest:ApiKey" "<the Ingest--ApiKey value>"
+dotnet user-secrets set "Video:Root" "/path/to/the/folder/with/the/videos"
+dotnet run
+```
+The worker asks the API which video and polygons to use (`GET /api/internal/video-sources`), plays the video, and posts results.
+While it runs, the video source shows as active in the admin pages; when it stops, the source turns inactive after 2 minutes.
+These settings and the worker itself are built in TODO.md tasks 2b and P5; until then this section describes the target.
 
 ## Choices worth knowing
 
@@ -103,9 +118,9 @@ Contributor alone cannot do).
   Key Vault access to be created (secret references). One user-assigned identity with the "Key Vault Secrets User" role avoids that loop.
 - **Region `eastus2`.** The Neon project is in AWS `us-east-2`; keeping the API in a nearby Azure region keeps each database query fast.
   Students in Yogyakarta will see more latency to the web app instead. Team decision 11 in TODO.md.
-- **API has a public address by default** (`apiExternalIngress=true`) so the smoke test works from your laptop. The Blazor web app calls the API
-  from the server, so the API can be made private (`false`) once nothing outside needs it.
-- **Cost.** Container Apps bills by use and has a monthly free grant, but the API and the worker run all day with one replica each,
-  which is more than the free grant covers. Check the Azure pricing calculator before leaving it on; set `aiMinReplicas=0` and keep
-  `webMinReplicas=0` when idle. Log Analytics, Key Vault and Azure Files cost little at this size.
+- **API has a public address** (`apiExternalIngress=true`). The worker on the laptop and the smoke test both reach it from outside Azure,
+  so do not set it to `false`. The ingest route is protected by the shared `Ingest--ApiKey`; keep that key out of git and chat.
+- **Cost.** Container Apps bills by use and has a monthly free grant, but the API runs all day with one replica, which can be more than
+  the free grant covers. Check the Azure pricing calculator before leaving it on and keep `webMinReplicas=0` when idle.
+  The worker costs nothing in Azure because it runs on a laptop. Log Analytics and Key Vault cost little at this size.
 - **Web is limited to one replica** because ASP.NET encryption keys are per instance; a second replica would break sign-in cookies.

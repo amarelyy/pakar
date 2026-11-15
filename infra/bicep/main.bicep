@@ -2,6 +2,7 @@
 //   az deployment sub create --location eastus2 --template-file infra/bicep/main.bicep \
 //     --parameters @infra/main.parameters.example.json --parameters jwtKey=... (see infra/README.md)
 // The database is Neon (external), so there is no SQL resource here.
+// The AI video worker is NOT deployed to Azure: it runs on a demo laptop and posts its results to the API (see TODO.md).
 targetScope = 'subscription'
 
 @description('Azure region. The Neon project runs in AWS us-east-2, so eastus2 keeps database round trips short.')
@@ -15,7 +16,6 @@ param appName string = 'pakar'
 // ---- Images (built and pushed by CI, issue #21). Each container must listen on port 8080. ----
 param apiImage string = 'ghcr.io/amarelyy/pakar-api:latest'
 param webImage string = 'ghcr.io/amarelyy/pakar-web:latest'
-param aiImage string = 'ghcr.io/amarelyy/pakar-ai:latest'
 
 @description('Registry that holds the images. Leave the user name empty when the images are public.')
 param registryServer string = 'ghcr.io'
@@ -43,17 +43,11 @@ param databaseUrl string
 param databaseUrlUnpooled string
 
 // ---- Options ----
-@description('Create an Azure Files share for the video files and mount it read-only in the AiInference app. Needs team decision 2 in TODO.md.')
-param deployVideoStorage bool = false
-@description('Web can scale to zero to save money (first visit after idle is slow). The API and the worker always keep one replica.')
+@description('Web can scale to zero to save money (first visit after idle is slow). The API always keeps one replica.')
 @minValue(0)
 @maxValue(1)
 param webMinReplicas int = 0
-@description('Set to 0 to stop the worker (and its cost) when no demo is running.')
-@minValue(0)
-@maxValue(1)
-param aiMinReplicas int = 1
-@description('True: the API has a public address (useful for smoke tests). False: only reachable inside the environment.')
+@description('Keep true: the video worker runs on a laptop outside Azure and reaches the API through this public address.')
 param apiExternalIngress bool = true
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
@@ -69,7 +63,6 @@ module resources 'resources.bicep' = {
     appName: appName
     apiImage: apiImage
     webImage: webImage
-    aiImage: aiImage
     registryServer: registryServer
     registryUsername: registryUsername
     registryPassword: registryPassword
@@ -79,9 +72,7 @@ module resources 'resources.bicep' = {
     adminPassword: adminPassword
     databaseUrl: databaseUrl
     databaseUrlUnpooled: databaseUrlUnpooled
-    deployVideoStorage: deployVideoStorage
     webMinReplicas: webMinReplicas
-    aiMinReplicas: aiMinReplicas
     apiExternalIngress: apiExternalIngress
   }
 }

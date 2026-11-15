@@ -1,4 +1,5 @@
-// The three Container Apps: Api (one replica, in-memory realtime state), Web (Blazor Server), AiInference (video worker).
+// The two Container Apps: Api (one replica, in-memory realtime state) and Web (Blazor Server).
+// The AI video worker runs on a demo laptop, not here.
 param location string
 param appName string
 param environmentId string
@@ -9,22 +10,17 @@ param vaultUri string
 
 param apiImage string
 param webImage string
-param aiImage string
 param registryServer string
 param registryUsername string
 @secure()
 param registryPassword string
 
 param adminEmail string
-@description('Name of the Azure Files storage on the environment, or empty when there is no video storage.')
-param videoStorageName string
 param webMinReplicas int
-param aiMinReplicas int
 param apiExternalIngress bool
 
 var apiName = '${appName}-api'
 var webName = '${appName}-web'
-var aiName = '${appName}-ai'
 
 // Addresses follow the pattern <app>.<environment domain>, so the apps can know each other's URL before they exist.
 var webUrl = 'https://${webName}.${environmentDefaultDomain}'
@@ -58,16 +54,8 @@ var apiVaultSecrets = [
   { name: 'admin-password', vaultName: 'Admin--Password' }
   { name: 'database-url', vaultName: 'DATABASE-URL' }
 ]
-var aiVaultSecrets = [
-  { name: 'ingest-api-key', vaultName: 'Ingest--ApiKey' }
-]
 
 var apiSecrets = [for s in apiVaultSecrets: {
-  name: s.name
-  keyVaultUrl: '${vaultUri}secrets/${s.vaultName}'
-  identity: identityId
-}]
-var aiSecrets = [for s in aiVaultSecrets: {
   name: s.name
   keyVaultUrl: '${vaultUri}secrets/${s.vaultName}'
   identity: identityId
@@ -196,57 +184,6 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
       // One replica at most: ASP.NET data-protection keys are per instance, so more than one would break sign-in cookies.
       scale: {
         minReplicas: webMinReplicas
-        maxReplicas: 1
-      }
-    }
-  }
-}
-
-// The video worker has no public address: it reads the video, runs detection and calls the API.
-resource ai 'Microsoft.App/containerApps@2024-03-01' = {
-  name: aiName
-  location: location
-  identity: identityConfig
-  properties: {
-    managedEnvironmentId: environmentId
-    configuration: {
-      activeRevisionsMode: 'Single'
-      registries: registries
-      secrets: concat(aiSecrets, registrySecrets)
-    }
-    template: {
-      containers: [
-        {
-          name: 'ai'
-          image: aiImage
-          resources: {
-            cpu: json('1.0')
-            memory: '2Gi'
-          }
-          env: concat([
-            { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
-            { name: 'Api__BaseUrl', value: '${apiUrl}/' }
-            { name: 'Ingest__ApiKey', secretRef: 'ingest-api-key' }
-          ], empty(videoStorageName) ? [] : [
-            { name: 'Video__Root', value: '/videos' }
-          ])
-          volumeMounts: empty(videoStorageName) ? [] : [
-            {
-              volumeName: 'videos'
-              mountPath: '/videos'
-            }
-          ]
-        }
-      ]
-      volumes: empty(videoStorageName) ? [] : [
-        {
-          name: 'videos'
-          storageType: 'AzureFile'
-          storageName: videoStorageName
-        }
-      ]
-      scale: {
-        minReplicas: aiMinReplicas
         maxReplicas: 1
       }
     }

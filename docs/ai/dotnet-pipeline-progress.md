@@ -1,6 +1,6 @@
 # .NET AI pipeline — 15 November 2026
 
-Implementation branch: `codex/dotnet-ai-pipeline`, base `e410db3`.
+Implementation branch: `ai-dotnet`, base `e410db3`.
 Reference checkout `issue15-review` at `52d3d32` is retained, including its WIP.
 The old OneDrive checkout and its application/migration patches are unchanged.
 

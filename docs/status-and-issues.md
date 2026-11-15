@@ -2,7 +2,7 @@
 
 ## Current AI branch verification — 2026-11-15
 
-`codex/dotnet-ai-pipeline` implements ONNX inference, C# ROI/debounce, looped video
+`ai-dotnet` implements ONNX inference, C# ROI/debounce, looped video
 worker, ROI/worker-config/reference-image APIs and the admin SVG polygon editor.
 The missing-engine/ROI statements in the historical main audit below are
 superseded on this implementation branch; they are retained as historical context.

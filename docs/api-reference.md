@@ -15,7 +15,7 @@ Verified against the running API on 2026-11-15 (Swagger at `http://localhost:524
 
 ## AI branch additions — 2026-11-15
 
-Implemented and verified locally in `codex/dotnet-ai-pipeline`, pending merge and
+Implemented and verified locally in `ai-dotnet`, pending merge and
 shared deployment. The original endpoint inventory below remains for legacy consumers.
 
 | Method | Path | Auth | Purpose |

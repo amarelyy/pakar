@@ -1,6 +1,6 @@
 # PAKAR To-Do
 
-## AI implementation update — `codex/dotnet-ai-pipeline`, 2026-11-15
+## AI implementation update — `ai-dotnet`, 2026-11-15
 
 Implemented and locally verified on this branch: ONNX export/inference (#14),
 C# ROI/occupancy rules, ROI/config/reference-frame APIs (2a–2c), video-loop worker

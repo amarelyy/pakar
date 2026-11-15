@@ -84,6 +84,11 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.Property<int>("ExternalId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTime?>("LastActiveTime")
                         .HasColumnType("timestamp with time zone");
 
@@ -309,6 +314,35 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.ToTable("SavedZones");
                 });
 
+            modelBuilder.Entity("Pakar.Domain.Entities.SpotRoi", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CameraId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PointsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("SpotId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SpotId");
+
+                    b.HasIndex("CameraId", "SpotId")
+                        .IsUnique();
+
+                    b.ToTable("SpotRois", (string)null);
+                });
+
             modelBuilder.Entity("Pakar.Domain.Entities.Camera", b =>
                 {
                     b.HasOne("Pakar.Domain.Entities.ParkingZone", "Zone")
@@ -394,6 +428,25 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.Navigation("Zone");
                 });
 
+            modelBuilder.Entity("Pakar.Domain.Entities.SpotRoi", b =>
+                {
+                    b.HasOne("Pakar.Domain.Entities.Camera", "Camera")
+                        .WithMany("Rois")
+                        .HasForeignKey("CameraId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Pakar.Domain.Entities.ParkingSpot", "Spot")
+                        .WithMany("Rois")
+                        .HasForeignKey("SpotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Camera");
+
+                    b.Navigation("Spot");
+                });
+
             modelBuilder.Entity("Pakar.Domain.Entities.AppUser", b =>
                 {
                     b.Navigation("Reports");
@@ -401,9 +454,16 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.Navigation("SavedZones");
                 });
 
+            modelBuilder.Entity("Pakar.Domain.Entities.Camera", b =>
+                {
+                    b.Navigation("Rois");
+                });
+
             modelBuilder.Entity("Pakar.Domain.Entities.ParkingSpot", b =>
                 {
                     b.Navigation("Reports");
+
+                    b.Navigation("Rois");
                 });
 
             modelBuilder.Entity("Pakar.Domain.Entities.ParkingZone", b =>

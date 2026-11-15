@@ -12,6 +12,7 @@ public sealed class CameraConfiguration : IEntityTypeConfiguration<Camera>
         camera.Property(c => c.StreamUrl).HasMaxLength(500);
         camera.Property(c => c.ConnectionType).HasMaxLength(20);
         camera.Property(c => c.ApiKeyHash).HasMaxLength(100);
+        camera.Property(c => c.IsActive).HasDefaultValue(false);
 
         // Unique across removed cameras too, so an AI pipeline ID is never reused.
         camera.HasIndex(c => c.ExternalId).IsUnique();

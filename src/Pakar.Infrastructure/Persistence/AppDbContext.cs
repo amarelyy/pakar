@@ -5,10 +5,8 @@ namespace Pakar.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext
 {
-    // Constructor utama untuk Dependency Injection saat aplikasi berjalan
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    // Daftar Tabel (DbSet) sesuai Entity yang kita buat
     public DbSet<ParkingZone> Zones => Set<ParkingZone>();
     public DbSet<ParkingSpot> Spots => Set<ParkingSpot>();
     public DbSet<Camera> Cameras => Set<Camera>();
@@ -21,46 +19,7 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Konfigurasi Relasi: Zone memiliki banyak Spot
-        modelBuilder.Entity<ParkingSpot>()
-            .HasOne(s => s.Zone)
-            .WithMany(z => z.Spots)
-            .HasForeignKey(s => s.ZoneId);
-
-        // Konfigurasi Relasi: Zone memiliki banyak Camera
-        modelBuilder.Entity<Camera>()
-            .HasOne(c => c.Zone)
-            .WithMany(z => z.Cameras)
-            .HasForeignKey(c => c.ZoneId);
-            
-        // Konfigurasi Relasi: User membuat banyak Report
-        modelBuilder.Entity<Report>()
-            .HasOne(r => r.User)
-            .WithMany(u => u.Reports)
-            .HasForeignKey(r => r.UserId);
-
-        // Konfigurasi Relasi: Report terkait dengan satu Spot
-        modelBuilder.Entity<Report>()
-            .HasOne(r => r.Spot)
-            .WithMany(s => s.Reports)
-            .HasForeignKey(r => r.SpotId);
-
-        // Konfigurasi Relasi: Detection terkait opsional dengan satu ParkingSpot
-        modelBuilder.Entity<Detection>()
-            .HasOne(d => d.Spot)
-            .WithMany()
-            .HasForeignKey(d => d.SpotId)
-            .IsRequired(false);
-
-        // Index untuk cepat lookup ExternalId (mapping AI int ↔ DB Guid)
-        modelBuilder.Entity<Camera>()
-            .HasIndex(c => c.ExternalId)
-            .IsUnique();
-        modelBuilder.Entity<ParkingZone>()
-            .HasIndex(z => z.ExternalId)
-            .IsUnique();
-        modelBuilder.Entity<ParkingSpot>()
-            .HasIndex(s => s.ExternalId)
-            .IsUnique(false);
+        // Table rules (lengths, indexes, relationships, soft-delete filters) live in Configurations/.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }

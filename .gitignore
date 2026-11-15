@@ -28,11 +28,18 @@ artifacts/
 
 # Environment Variables & Secrets (RAHASIA!)
 .env
-.env.local
+.env.*
+!.env.example
 appsettings.Development.json
 appsettings.Production.json
+appsettings.*.local.json
+appsettings.Local.json
+secrets.json
 *.pfx
 *.p12
+*.pem
+*.key
+*.crt
 
 # AI Models (Gunakan Git LFS untuk file besar >100MB)
 *.onnx
@@ -70,6 +77,17 @@ desktop.ini
 # Testing Coverage
 coverage/
 *.coveragexml
+.fake
+
+# Local runtime artifacts
+*.log
+*.db
+*.db-shm
+*.db-wal
+.neon
+
+# Node tooling (Neon CLI config)
+node_modules/
 
 # Python inference runtime and local evaluation inputs/outputs
 .venv/

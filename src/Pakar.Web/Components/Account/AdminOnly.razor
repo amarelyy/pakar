@@ -1,0 +1,58 @@
+@implements IDisposable
+@inject UserSession Session
+
+@*
+    Wraps admin page content (FR 9). Guests are asked to log in; signed-in non-admins see an
+    access message. The host page must use AppRenderModes.InteractiveServerNoPrerender.
+*@
+@switch (state)
+{
+    case AccessState.Loading:
+        <p role="status">Checking access...</p>
+        break;
+    case AccessState.SignedOut:
+        <h1>Admin area</h1>
+        <p>Please <a href="login">log in</a> with an admin account to continue.</p>
+        break;
+    case AccessState.NotAdmin:
+        <h1>Access denied</h1>
+        <p role="alert">This page is only available to administrators.</p>
+        break;
+    default:
+        @ChildContent
+        break;
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment? ChildContent { get; set; }
+
+    private AccessState state = AccessState.Loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Session.Changed += OnSessionChanged;
+        state = Evaluate(await Session.GetUserAsync());
+    }
+
+    private static AccessState Evaluate(SignedInUser? user) =>
+        user is null ? AccessState.SignedOut
+        : user.IsAdmin ? AccessState.Allowed
+        : AccessState.NotAdmin;
+
+    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    {
+        state = Evaluate(await Session.GetUserAsync());
+        StateHasChanged();
+    });
+
+    public void Dispose() => Session.Changed -= OnSessionChanged;
+
+    private enum AccessState
+    {
+        Loading,
+        SignedOut,
+        NotAdmin,
+        Allowed
+    }
+}

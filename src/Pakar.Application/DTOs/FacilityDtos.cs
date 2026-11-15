@@ -30,4 +30,5 @@ public sealed record CameraAdminDto(
     string ConnectionType,
     string VideoFile,
     bool IsActive,
-    DateTime? LastActiveTime);
+    DateTime? LastActiveTime,
+    bool HasReferenceFrame = false);

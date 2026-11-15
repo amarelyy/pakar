@@ -14,6 +14,7 @@ public sealed class UserSession(ProtectedSessionStorage storage, TimeProvider cl
 
     private SignedInUser? user;
     private bool restored;
+    private readonly SemaphoreSlim restoreGate = new(1, 1);
 
     /// <summary>Raised after sign-in and sign-out so menus can re-render.</summary>
     public event Action? Changed;
@@ -42,17 +43,28 @@ public sealed class UserSession(ProtectedSessionStorage storage, TimeProvider cl
     {
         if (!restored)
         {
-            restored = true;
+            await restoreGate.WaitAsync();
             try
             {
-                var result = await storage.GetAsync<SignedInUser>(SessionKey);
-                user = result.Success ? result.Value : null;
+                if (!restored)
+                {
+                    try
+                    {
+                        var result = await storage.GetAsync<SignedInUser>(SessionKey);
+                        user = result.Success ? result.Value : null;
+                    }
+                    catch (CryptographicException)
+                    {
+                        // Encryption keys changed; the stale session cannot be restored.
+                        await storage.DeleteAsync(SessionKey);
+                        user = null;
+                    }
+                    restored = true;
+                }
             }
-            catch (CryptographicException)
+            finally
             {
-                // Encryption keys changed (for example after a redeploy); treat as signed out.
-                await storage.DeleteAsync(SessionKey);
-                user = null;
+                restoreGate.Release();
             }
         }
 

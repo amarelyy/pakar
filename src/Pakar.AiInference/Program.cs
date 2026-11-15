@@ -3,25 +3,51 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Pakar.AiInference.Services;
+using Pakar.AiInference.Video;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOptions<InferenceServiceOptions>()
     .Bind(builder.Configuration.GetSection(InferenceServiceOptions.SectionName))
-    .ValidateDataAnnotations()
+    .Validate(o => builder.Configuration.GetValue<bool>("Worker:Enabled") || o.ApiKey.Length >= 32,
+        "Inference:ApiKey must have 32+ characters when the diagnostic service runs without a worker.")
     .ValidateOnStart();
 
-builder.Services.AddSingleton<IInferenceEngine, UnavailableInferenceEngine>();
+builder.Services.Configure<ModelOptions>(builder.Configuration.GetSection("Model"));
+builder.Services.AddSingleton<OnnxInferenceEngine>();
+builder.Services.AddSingleton<IInferenceEngine>(sp => sp.GetRequiredService<OnnxInferenceEngine>());
 builder.Services.AddProblemDetails();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.Configure<WorkerOptions>(builder.Configuration.GetSection("Worker"));
+builder.Services.PostConfigure<WorkerOptions>(options =>
+    options.VideoRoot = builder.Configuration["Video:Root"] ?? options.VideoRoot);
+builder.Services.AddSingleton<IVideoReaderFactory, OpenCvVideoReaderFactory>();
+builder.Services.AddHttpClient("parking-worker", (sp, client) =>
+{
+    var worker = sp.GetRequiredService<IOptions<WorkerOptions>>().Value;
+    if (worker.Enabled)
+    {
+        worker.Validate();
+        client.BaseAddress = new Uri(worker.ApiBaseUrl.TrimEnd('/') + "/");
+        client.DefaultRequestHeaders.Add("X-Api-Key", worker.ApiKey);
+        client.Timeout = TimeSpan.FromSeconds(10);
+    }
+});
+builder.Services.AddHostedService<VideoSourceWorker>();
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health/ready", (IServiceProvider services) =>
+{
+    try { services.GetRequiredService<OnnxInferenceEngine>(); return Results.Ok(new { status = "ready" }); }
+    catch (Exception) { return Results.Problem("Slot model is unavailable or incompatible.", statusCode: 503); }
+});
 
 // Called by Pakar.Api for every live frame: JPEG body in, bounding-box JSON out.
-app.MapPost("/api/detect", async (HttpRequest request, IInferenceEngine engine,
+app.MapPost("/api/detect", async (HttpRequest request, IServiceProvider services,
     IOptions<InferenceServiceOptions> options, CancellationToken ct) =>
 {
     // 1. Only Pakar.Api may call this service.
@@ -41,11 +67,16 @@ app.MapPost("/api/detect", async (HttpRequest request, IInferenceEngine engine,
     // 3. Run detection.
     try
     {
+        var engine = services.GetRequiredService<IInferenceEngine>();
         return Results.Ok(await engine.DetectAsync(buffer.ToArray(), ct));
     }
     catch (ModelNotLoadedException ex)
     {
         return Results.Problem(ex.Message, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ex.Message);
     }
 });
 

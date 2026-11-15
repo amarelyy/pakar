@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "httpAccepted": true,
+  "postgresPersisted": true,
+  "spotEvents": 6,
+  "zoneEvent": {
+    "areaId": 6,
+    "capacity": 6,
+    "occupied": 5,
+    "available": 1,
+    "status": "available"
+  },
+  "eventsMatchDatabase": true,
+  "secondsToFirstHubEvent": 1.2552899999864167,
+  "scope": "local video -> .NET -> ingest -> database and ParkingHub observer; no map UI latency claim"
+}

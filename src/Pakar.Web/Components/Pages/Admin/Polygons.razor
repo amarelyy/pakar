@@ -1,0 +1,11 @@
+@page "/admin/polygons"
+@rendermode AppRenderModes.InteractiveServerNoPrerender
+@using Pakar.Application.DTOs
+@using Pakar.Shared.Dtos
+@using Pakar.Shared.Geometry
+@using Pakar.Web.Components.Admin
+@inject RoiApiClient Api
+@inject UserSession Session
+
+<PageTitle>Slot polygons · PAKAR</PageTitle>
+<AdminOnly><PolygonWorkspace /></AdminOnly>

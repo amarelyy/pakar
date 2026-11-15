@@ -1,0 +1,10 @@
+{
+  "guestBlocked": true,
+  "drawSaveThroughApi": true,
+  "reloadAndResizePreservePolygon": true,
+  "dragAtDifferentScale": true,
+  "invalidPolygonRejected": true,
+  "clearPersists": true,
+  "nonAdminBlocked": true,
+  "passed": true
+}

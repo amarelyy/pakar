@@ -1,5 +1,15 @@
 # Konteks AI PAKAR — status terkini 28 Oktober 2026
 
+## Keputusan terbaru 15 November 2026 — runtime wajib .NET
+
+TODO `origin/main` commit `e08e7b3` mengubah rencana: video rekaman loop,
+ONNX Runtime, mapper C#, dan editor polygon Blazor SVG. Python `edge/python-agent`
+dipertahankan hanya sebagai referensi; PR #34 bukan usulan runtime untuk main.
+Penyelesaian Python di checkpoint berikut tidak menyelesaikan #15 scope baru.
+Nabil dan Brian adalah orang yang sama (`nabilabrianap06`), dikonfirmasi pengguna;
+dashboard #19 juga tugasnya bersama Deva. Lihat
+[audit tugas terbaru](../progress-alignment-2026-11-15.md) dan TODO bagian 0/1.
+
 ## Update 15 November 2026 — implementasi issue #15
 
 Lihat [laporan #15](issue-15-validation-2026-11-15.md) untuk checkpoint terbaru.

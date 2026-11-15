@@ -1,12 +1,17 @@
 # Issue #15 — ROI mapping dan occupancy counting
 
+> **Perubahan scope pada 15 November 2026:** TODO main commit `e08e7b3`
+> menetapkan runtime .NET, mapper C#, dan editor polygon Blazor SVG. Checklist
+> di laporan ini adalah hasil referensi Python, bukan penyelesaian scope terbaru.
+> Lihat [audit kesesuaian](../progress-alignment-2026-11-15.md).
+
 Tanggal: 15 November 2026. Scope: komponen AI Python pada branch `AI-PAKAR`,
 enam ROI demo pada rekaman nyata 145 detik. Integrasi dengan backend PostgreSQL
 terbaru, SignalR/UI, RTSP nyata, editor ROI dalam dashboard, dan port C#/ONNX
 tetap merupakan pekerjaan integrasi/fitur lain. Laporan ini tidak menyatakan
 semua FR sistem sudah lulus atau detektor selalu akurat.
 
-## Checklist task asli
+## Checklist historis referensi Python
 
 - [x] Confidence thresholding dan NMS: inferensi custom memakai confidence 0,10;
   class-aware NMS IoU 0,7 diteruskan eksplisit ke Ultralytics. Test memakai fungsi

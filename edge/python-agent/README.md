@@ -50,6 +50,14 @@ separate decision, not a prerequisite for testing this agent.
 Read [MODEL_CARD.md](MODEL_CARD.md) before selecting weights. The current default is custom `best.pt`; `yolov8n.pt` remains the comparison
 baseline with COCO vehicle labels. Both model contracts have explicit adapters.
 
+## Current project scope (2026-11-15)
+
+TODO main commit `e08e7b3` requires a .NET/ONNX recorded-video runtime and a
+Blazor SVG polygon editor. This Python agent is retained as a validated reference
+for model parity, ROI format and occupancy behavior; it is not the target runtime
+to merge into main. The instructions and measurements below reproduce that
+reference. See [the current progress audit](../../docs/progress-alignment-2026-11-15.md).
+
 ## Install and run (PowerShell, repository root)
 
 ```powershell

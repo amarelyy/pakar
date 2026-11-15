@@ -77,3 +77,8 @@ dotnet ef migrations bundle --project src/Pakar.Migrations.Postgres --startup-pr
 
 Zones and cameras are soft-deleted (`DeletedAt`) so detection history is kept; queries hide them
 automatically, and `IgnoreQueryFilters()` reads them for history.
+
+
+## Referensi kode untuk tim
+
+Lihat [kumpulan referensi berdasarkan peran](referensi/README.md) untuk prototipe UI/UX, snapshot backend lama, frontend, AI, cloud, dan dokumentasi proyek. Asal dan versi setiap sumber dicatat di dalamnya.

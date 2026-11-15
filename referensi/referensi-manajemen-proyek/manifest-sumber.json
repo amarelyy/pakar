@@ -1,0 +1,1393 @@
+{
+  "date": "2026-11-15",
+  "branch": "referensi-codepakar",
+  "baseCommit": "e410db3fde34d69bfd5fec2612c0da2141387d71",
+  "sources": [
+    {
+      "directory": "brian-senpro",
+      "repository": "https://github.com/nabilabrianap06/senpro-PAKAR",
+      "commit": "24aa76ef97883240d2765f58b29f5dcba221a0cc",
+      "note": "Working-tree snapshot; generated/runtime files excluded."
+    },
+    {
+      "directory": "pakar",
+      "repository": "https://github.com/amarelyy/pakar",
+      "commit": "686e57272c65608130cec42dea44a5cf522b7f34",
+      "note": "Working-tree snapshot; generated/runtime files excluded."
+    }
+  ],
+  "files": [
+    {
+      "source": "brian-senpro/.gitignore",
+      "destination": "referensi-code-ui-ux/.gitignore",
+      "sha256": "7911eaa4f3a36d2af6ddf84eb38f32c986ca46f7c8f1a5f316c4c8eb5ff7a04b",
+      "bytes": 94
+    },
+    {
+      "source": "brian-senpro/DESIGN REFERENCE & BENCHMARKING INSTRUCTION.md",
+      "destination": "referensi-code-ui-ux/DESIGN REFERENCE & BENCHMARKING INSTRUCTION.md",
+      "sha256": "bd070808c98fd9da961598f2625889759b9894da699fc01f37f04a9968fb743f",
+      "bytes": 5416
+    },
+    {
+      "source": "brian-senpro/pakar/README.md",
+      "destination": "referensi-code-ui-ux/README.md",
+      "sha256": "30dad1acfe48f056f288701159c6e6d5dfacef0c242fce47f251b83aab8e698a",
+      "bytes": 2643
+    },
+    {
+      "source": "brian-senpro/pakar/docs/00-plan.md",
+      "destination": "referensi-code-ui-ux/docs/00-plan.md",
+      "sha256": "600bc839e59a1131c6fcfcf4b420789ae8b9e8f0553b2899ddab4b5930990fec",
+      "bytes": 22461
+    },
+    {
+      "source": "brian-senpro/pakar/docs/design-rationale.md",
+      "destination": "referensi-code-ui-ux/docs/design-rationale.md",
+      "sha256": "9bb65d71a59f5fbe0be1be93fda598be644dc9686bdcd81b5d2fcf1966e2a9f4",
+      "bytes": 8229
+    },
+    {
+      "source": "brian-senpro/pakar/docs/design-review.md",
+      "destination": "referensi-code-ui-ux/docs/design-review.md",
+      "sha256": "5fa339817acfbac8d390bb29046f775a95c9f0aa5ddfc1eb9f6607e009f1669a",
+      "bytes": 8363
+    },
+    {
+      "source": "brian-senpro/pakar/docs/research/01-reference-benchmarking.md",
+      "destination": "referensi-code-ui-ux/docs/research/01-reference-benchmarking.md",
+      "sha256": "6e5dd9a5a4ac270b9847929b3b3bd56cf44320995e4442d2feec7142de31de3f",
+      "bytes": 31280
+    },
+    {
+      "source": "brian-senpro/pakar/docs/research/02-prediction-ux-and-forecasting.md",
+      "destination": "referensi-code-ui-ux/docs/research/02-prediction-ux-and-forecasting.md",
+      "sha256": "eb3e855a7337204a2804121e04b94cab013e1762643782f443c445fc2544a1e4",
+      "bytes": 50637
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D1-desktop.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D1-desktop.png",
+      "sha256": "1a31eddb695248923586057ca273c87c5d6a1399342e9177b128e7612e1a4d9a",
+      "bytes": 707849
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D1-now-evening.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D1-now-evening.png",
+      "sha256": "92c01c2385e10930fae030bd3b75062c2c9921605b61448672bbdd469c7b2e4f",
+      "bytes": 569673
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D1-now-full.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D1-now-full.png",
+      "sha256": "15b40e6a4356f5f57535ea30a375ffd177bc001883bd0354234ed03ba7826952",
+      "bytes": 174080
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D1-now-half.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D1-now-half.png",
+      "sha256": "b67776768b139849237d23ffc0d5637a30f15159d203a72ce641c7b025afc1c8",
+      "bytes": 566693
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D1-now-peek.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D1-now-peek.png",
+      "sha256": "cdffa46109b43b9b0102272c0ec1e486cdaef32628c772587ecb818374e12800",
+      "bytes": 632064
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D2-zone-A1.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D2-zone-A1.png",
+      "sha256": "3aafc3aa244eef0e2ff91a89ab744aa1ddbb8786a6ea189ff5bf334cdb35bfb9",
+      "bytes": 160256
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D2-zone-S1-nodata.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D2-zone-S1-nodata.png",
+      "sha256": "dd63cd2cb10c3b6a633fc12380f4ee6c5bf882daeac1cd681e48c8eba8371886",
+      "bytes": 145901
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D3-plan-full.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D3-plan-full.png",
+      "sha256": "fe50ac66bb298b62feea913074de94e50db519e4bde44edec4b4ec557fb6c230",
+      "bytes": 173082
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D3-plan.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D3-plan.png",
+      "sha256": "7efbe4854b39256f6a9ef379602f347e4011b342efbab43bd520ea12a5cf8733",
+      "bytes": 573020
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D4-best.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D4-best.png",
+      "sha256": "af74c9a6bba29528824d79300a282a92fa4f9f6404d2d5442034a626293ebd30",
+      "bytes": 167477
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D5-code.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D5-code.png",
+      "sha256": "adf4eacb552581c5e80f03c518d72c4ed654d810a1dc03067f0601cc0b989990",
+      "bytes": 68162
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D6-saved.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D6-saved.png",
+      "sha256": "3a1fb20a030f979ab85b3dfa19c06c0a79bd6510094b4c932159cafd750f887c",
+      "bytes": 53764
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/D7-how-we-pick.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/D7-how-we-pick.png",
+      "sha256": "1b3e8f503b6f8803442eabdbf34a564c64f3f10c4bca6d526c1e7e2b0b0be8f0",
+      "bytes": 150303
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O1-overview.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O1-overview.png",
+      "sha256": "55668ca3f052bdd3a9a3cdfab48608ded51edd0d991214ca2c1968d226587c28",
+      "bytes": 279037
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O2-live-map-forecast.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O2-live-map-forecast.png",
+      "sha256": "6c590fa3e1c8f834bba48f69d89bc35304d9bff586751a871e362255b06e88f3",
+      "bytes": 2724759
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O2-live-map.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O2-live-map.png",
+      "sha256": "432ec8c815a8bae02231c4c54f85592dc19bc069a57ea7099c1f56f0d4f9f734",
+      "bytes": 2667470
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O3-zones.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O3-zones.png",
+      "sha256": "bc6ea42e132a93964551d71c9bb75412d172d38c440964564fd2d902205c06ab",
+      "bytes": 358625
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O4-zone-inspector.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O4-zone-inspector.png",
+      "sha256": "bcbf61ab888d226ce6fc4e523b31c3ed5ed0606207ae7f08b453d687212de641",
+      "bytes": 356381
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O5-alerts.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O5-alerts.png",
+      "sha256": "e3d25ead9cf0ce5ba9ffe7d544ffc29ae592842361bf55984dce5f80b91ddb5d",
+      "bytes": 314588
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O6-devices.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O6-devices.png",
+      "sha256": "a3c5a696d15a5c9169d821d44ac58c86902c4390b61c1c0c693a55e2c1e7129e",
+      "bytes": 274667
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O7-analytics.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O7-analytics.png",
+      "sha256": "e11c5b433d4805c21ec67272d886eda091e29c591b5ce5f1dce87a5cc8e0d8ad",
+      "bytes": 299552
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O7-forecast-health.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O7-forecast-health.png",
+      "sha256": "c97e3ce99926ac581cb0b6da8817b95c3e7cb9a03727d68a74974a60d4f94864",
+      "bytes": 290345
+    },
+    {
+      "source": "brian-senpro/pakar/docs/screenshots/O8-settings.png",
+      "destination": "referensi-code-ui-ux/docs/screenshots/O8-settings.png",
+      "sha256": "3c16280776ebb51007f9ff0c843c8a6f976a109d959f049f77cbafd0f6bde876",
+      "bytes": 278066
+    },
+    {
+      "source": "brian-senpro/pakar/index.html",
+      "destination": "referensi-code-ui-ux/index.html",
+      "sha256": "0281c4f6e3f85887ddf65af6941c6881dc27824c2f28410bbd087e47b2f03099",
+      "bytes": 362
+    },
+    {
+      "source": "brian-senpro/pakar/package-lock.json",
+      "destination": "referensi-code-ui-ux/package-lock.json",
+      "sha256": "6e96265e54c1024dca70dfdd30d1816ea8401901b5cc6d118002da986fc0596a",
+      "bytes": 111860
+    },
+    {
+      "source": "brian-senpro/pakar/package.json",
+      "destination": "referensi-code-ui-ux/package.json",
+      "sha256": "47819bf1cbf52419a624539466026bee03b063693f4564384d4511a7bc860628",
+      "bytes": 1152
+    },
+    {
+      "source": "brian-senpro/pakar/postcss.config.js",
+      "destination": "referensi-code-ui-ux/postcss.config.js",
+      "sha256": "f291af35aed970d241227c61b79861d3ff8f08705babd56649fd8fe8776c360b",
+      "bytes": 69
+    },
+    {
+      "source": "brian-senpro/pakar/scripts/screenshots.mjs",
+      "destination": "referensi-code-ui-ux/scripts/screenshots.mjs",
+      "sha256": "bc6f481e364184c7f0fc63c97e01e470f128014e43206cd753cd91f935d5ef56",
+      "bytes": 3937
+    },
+    {
+      "source": "brian-senpro/pakar/src/App.tsx",
+      "destination": "referensi-code-ui-ux/src/App.tsx",
+      "sha256": "4ca0857551a2aa72d142f62054f904030aca9a6060a5f048e198cf1011bf7b6f",
+      "bytes": 582
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/charts/BarList.tsx",
+      "destination": "referensi-code-ui-ux/src/components/charts/BarList.tsx",
+      "sha256": "7226e5f29464fcc6788583e265fa8eb845cd9645e4cad1c3d5571f0f78f04874",
+      "bytes": 1368
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/charts/ChartFrame.tsx",
+      "destination": "referensi-code-ui-ux/src/components/charts/ChartFrame.tsx",
+      "sha256": "0ffe4f4bbf8a62c650c35fc676a6d64dd1bebed0027c0c893d428fb04f8033a2",
+      "bytes": 2392
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/charts/Heatmap.tsx",
+      "destination": "referensi-code-ui-ux/src/components/charts/Heatmap.tsx",
+      "sha256": "2b2d5669fe5c7ff49e4525571b70517569a9aa9b04e97cef7c509fa3f0f66078",
+      "bytes": 3119
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/charts/OccupancyChart.tsx",
+      "destination": "referensi-code-ui-ux/src/components/charts/OccupancyChart.tsx",
+      "sha256": "aced6ef042c2710100cf5dee54e076fcdab9cc6777f37448c3fc05dedd1f903d",
+      "bytes": 9401
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/charts/Sparkline.tsx",
+      "destination": "referensi-code-ui-ux/src/components/charts/Sparkline.tsx",
+      "sha256": "1096e97f222458a5cc1cf41877e8356002fc050ca1bd6ae6ea669c05ec43809d",
+      "bytes": 1010
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/charts/StatusDistributionBar.tsx",
+      "destination": "referensi-code-ui-ux/src/components/charts/StatusDistributionBar.tsx",
+      "sha256": "464a8bf45031ebe771e52acaa13643cf17ae963e77d94f3b5422baee7f2cb458",
+      "bytes": 1470
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/charts/scales.ts",
+      "destination": "referensi-code-ui-ux/src/components/charts/scales.ts",
+      "sha256": "ed666b22f363750ccd41628e9ee6916b1860b042f1053dd2ba4add44839e2e2e",
+      "bytes": 1618
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/charts/useMeasure.ts",
+      "destination": "referensi-code-ui-ux/src/components/charts/useMeasure.ts",
+      "sha256": "aeeaac057184678ce8058197168c27fb61c829b6b6e317c1137d71055c727ee2",
+      "bytes": 589
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/map/HatchDefs.tsx",
+      "destination": "referensi-code-ui-ux/src/components/map/HatchDefs.tsx",
+      "sha256": "7920936d2d770c552d6050b873038063fe362cdf6fb7dd78037f5b7c6c6f2c53",
+      "bytes": 1944
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/map/ZoneMap.tsx",
+      "destination": "referensi-code-ui-ux/src/components/map/ZoneMap.tsx",
+      "sha256": "e241e4ab8d945dff69df03d59c58b259ed320a81484204cd1684a378291d034b",
+      "bytes": 6936
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Button.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Button.tsx",
+      "sha256": "eceb2224804202ab4923b339599ec9c44e2df7eabbf6900c2370926858771bb5",
+      "bytes": 1121
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/ConfidenceTag.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/ConfidenceTag.tsx",
+      "sha256": "05510445f577b199d54f807c519cd41170c624ef1c980e67c1452b3c51048a20",
+      "bytes": 1480
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/DemoBar.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/DemoBar.tsx",
+      "sha256": "958daa7dc2830f69582f94864a743c17c9fc72abf9767fc7b6c2227bfb293fea",
+      "bytes": 3016
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Drawer.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Drawer.tsx",
+      "sha256": "5685f2629ce7cc42c8a2d8f5641d3d1dc826061da94b189591d4e057e0893f00",
+      "bytes": 1458
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/FillBar.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/FillBar.tsx",
+      "sha256": "3872ddf8d4e5a2e9c2ca1b154f327f33ac5a699318ca5e9105b7f7861b2047f5",
+      "bytes": 1849
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Freshness.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Freshness.tsx",
+      "sha256": "8e2e068a617bdc64f17b8b1eaa398b248d42914a3d8227bf85a7f553e507410c",
+      "bytes": 1448
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Hint.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Hint.tsx",
+      "sha256": "9f5f9a368d42474488b30d64bca83323be6aa6595bb4b7a58b685c9265634278",
+      "bytes": 984
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/KpiTile.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/KpiTile.tsx",
+      "sha256": "fb6e51d4e44fb1201f7fad522b4e14d97debece99c8b74c02147e713f277d9f3",
+      "bytes": 1756
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Panel.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Panel.tsx",
+      "sha256": "bedcd07e18bbec448b26508f06e8af57455f242fa345f662698dc15d0da1dba2",
+      "bytes": 924
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/PredictedTag.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/PredictedTag.tsx",
+      "sha256": "dc009c6b26bd8b0ea67fe22e5d318ce32411a2b6c2b74758ef704fb8140a8891",
+      "bytes": 571
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Segmented.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Segmented.tsx",
+      "sha256": "6a3616d43d97141e6f547c6b4943f374d33e284995411d37dcea7d1c641decb7",
+      "bytes": 1089
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Sheet.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Sheet.tsx",
+      "sha256": "1c95efa743ea3c82ac70d5a28e4d047227ad37d90933a25c204c16379fbaf80e",
+      "bytes": 3234
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Skeleton.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Skeleton.tsx",
+      "sha256": "28134d3336026df06b7c000697efb5bbb2b962e8d43400e1e36e350bbd5121f8",
+      "bytes": 540
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/StatusChip.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/StatusChip.tsx",
+      "sha256": "b7aa369db8b7e94dd1fbe9f0fdcafd7d89d6d201ea76950c57f68b6d8fad4359",
+      "bytes": 3828
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Table.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Table.tsx",
+      "sha256": "788a88c040d13b218c39c6667ee220153eda4dd939b56d562b17d1f1bc85b8f7",
+      "bytes": 987
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/ThresholdHint.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/ThresholdHint.tsx",
+      "sha256": "250f0f5cd8366dd681f5387b0668e834594f2d18b48996da1d0f0daa2d3a4684",
+      "bytes": 380
+    },
+    {
+      "source": "brian-senpro/pakar/src/components/ui/Wordmark.tsx",
+      "destination": "referensi-code-ui-ux/src/components/ui/Wordmark.tsx",
+      "sha256": "6b64c2c017dce014a2af522dc603e05a603b0437e5769fa43ddcd6b657699ae0",
+      "bytes": 892
+    },
+    {
+      "source": "brian-senpro/pakar/src/copy.ts",
+      "destination": "referensi-code-ui-ux/src/copy.ts",
+      "sha256": "52d42d94eed97fb9002f63fa83433250508a8510538d96b66a9930201320ac3f",
+      "bytes": 5504
+    },
+    {
+      "source": "brian-senpro/pakar/src/design/thresholds.ts",
+      "destination": "referensi-code-ui-ux/src/design/thresholds.ts",
+      "sha256": "2ce1c33ace004a0f20555d18f69d702e4cd2b4e3184a9aee0a8fad45b425405f",
+      "bytes": 1509
+    },
+    {
+      "source": "brian-senpro/pakar/src/design/tokens.css",
+      "destination": "referensi-code-ui-ux/src/design/tokens.css",
+      "sha256": "eeabe8f973d21831b7d774054d9933aa4665691f89396e9d2c4d2965a9e7236e",
+      "bytes": 2809
+    },
+    {
+      "source": "brian-senpro/pakar/src/domain/types.ts",
+      "destination": "referensi-code-ui-ux/src/domain/types.ts",
+      "sha256": "39a7d533905098b944d33c351dc7f9b0e40eb60db5a2c9b47b4a8351c796ccd3",
+      "bytes": 4033
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/BestPickCard.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/BestPickCard.tsx",
+      "sha256": "538e4f35cbd1385c3237b5340884082c63ab77a59ed56e8a469bedd51178433b",
+      "bytes": 6184
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/DriverApp.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/DriverApp.tsx",
+      "sha256": "66c6c27b3dea5a50d6163e45c4f7c11d2722100817e9edaabf64e296b76ffe1d",
+      "bytes": 10283
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/PlanScrubber.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/PlanScrubber.tsx",
+      "sha256": "4c903fa7a03d9a091535077f430cec8aa4af235c3b6d3c8dd6c2fb669580205d",
+      "bytes": 1593
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/PredictionStrip.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/PredictionStrip.tsx",
+      "sha256": "e6be6b27b75214fda4717da829504eacb56d13c3d93e8728c6f46d9d52c2bcf7",
+      "bytes": 2354
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/ZoneDetailView.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/ZoneDetailView.tsx",
+      "sha256": "e62ea959f74796f208a9ad87d8ad84545ff663c8530944365d4e901a55f92078",
+      "bytes": 8731
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/ZoneRow.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/ZoneRow.tsx",
+      "sha256": "4108047c612085538cec657f6d326e97e2286a00e700dc1f300e34e2b5c4c26c",
+      "bytes": 4099
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/views/BestView.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/views/BestView.tsx",
+      "sha256": "208b25d015a4a1b92324308e522c2322406729675f7ac4c59b16d8d3950e2a40",
+      "bytes": 3253
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/views/CodePanel.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/views/CodePanel.tsx",
+      "sha256": "4cc3cf249545922954a8d489cd0839a569c478427e4d4b18f2da103e23ba9523",
+      "bytes": 2739
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/views/HowWePickPanel.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/views/HowWePickPanel.tsx",
+      "sha256": "03d87e4ce84d58875cea62a94fba3d3475a1a6094c65d3ac60e49a8102397c7d",
+      "bytes": 1912
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/views/NowView.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/views/NowView.tsx",
+      "sha256": "9a8dc800db2414f8e1446a2119822bdf4e402c0c8695519727c01772685e1fe1",
+      "bytes": 5494
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/views/SavedPanel.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/views/SavedPanel.tsx",
+      "sha256": "ae590ecccec2c551585d8873e0d589db27940f8ecbd505b80f388842f7848e6a",
+      "bytes": 1086
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/driver/views/ZoneView.tsx",
+      "destination": "referensi-code-ui-ux/src/features/driver/views/ZoneView.tsx",
+      "sha256": "b6dea7d725c9ee6b77697f4983ba613b330a91fe2056b6fc4a7721f420be0825",
+      "bytes": 1102
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/OperatorApp.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/OperatorApp.tsx",
+      "sha256": "090d22e01ec534d211b82caa17597923651c9219bbceeca85dab41a1b8de9205",
+      "bytes": 8366
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/ZoneInspector.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/ZoneInspector.tsx",
+      "sha256": "69d457b32d7f9225218db53cc483be04304bd42336734f2b5dd4ef64f3e71261",
+      "bytes": 8618
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/pages/AlertsPage.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/pages/AlertsPage.tsx",
+      "sha256": "bc73d260fa6c8fa6a9ac772824e5bbd25c7ab2d5858b1e95952921ff4b367e95",
+      "bytes": 7706
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/pages/AnalyticsPage.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/pages/AnalyticsPage.tsx",
+      "sha256": "147da938d694b530bc3b82a80aa4441df4719afc4ec9f86f9c748b0afc127d4d",
+      "bytes": 11240
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/pages/DevicesPage.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/pages/DevicesPage.tsx",
+      "sha256": "9e1b0200f8c0dfed23674c1d0851158b30fc1cac96e89d87929a44714e5d8afb",
+      "bytes": 5412
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/pages/LiveMapPage.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/pages/LiveMapPage.tsx",
+      "sha256": "acb93f85ffe1f970a8cf643f617a6f2d9aff3e75b1bfc1d07123c7823aba45fb",
+      "bytes": 4698
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/pages/OverviewPage.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/pages/OverviewPage.tsx",
+      "sha256": "f3f9daae3462ccdfdf92618a1358ba8643dd69a0b7c3b9ac177b069f0a2c4135",
+      "bytes": 10361
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/pages/SettingsPage.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/pages/SettingsPage.tsx",
+      "sha256": "260d55e0d58126c32d3e44fcce6e040b8715248254dc6254ce47660955710b9e",
+      "bytes": 3475
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/pages/ZonesPage.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/pages/ZonesPage.tsx",
+      "sha256": "4ec9fb153819f61807d4e7d061174b040077220c1e820fcd94f847b2adc5dde3",
+      "bytes": 9312
+    },
+    {
+      "source": "brian-senpro/pakar/src/features/operator/parts.tsx",
+      "destination": "referensi-code-ui-ux/src/features/operator/parts.tsx",
+      "sha256": "8568f4f7d796b9369839fcfa5f92a748268830ca9ba324add95c7032fc1a0ad6",
+      "bytes": 2306
+    },
+    {
+      "source": "brian-senpro/pakar/src/lib/format.ts",
+      "destination": "referensi-code-ui-ux/src/lib/format.ts",
+      "sha256": "ef2575d3d7ec1987ff518b4ffa65acda52bc6138a062a57fb1ead068d402a542",
+      "bytes": 1634
+    },
+    {
+      "source": "brian-senpro/pakar/src/lib/geo.ts",
+      "destination": "referensi-code-ui-ux/src/lib/geo.ts",
+      "sha256": "a134bdbcc4378ce2f35d6d51473b80b56af54d5bf38e9ce116d055088c5c6aff",
+      "bytes": 1851
+    },
+    {
+      "source": "brian-senpro/pakar/src/lib/time.ts",
+      "destination": "referensi-code-ui-ux/src/lib/time.ts",
+      "sha256": "ec4ba76a73959f47eb433393ae8fa9bd93430710180d3d7b01427fbd9e1de5b6",
+      "bytes": 3517
+    },
+    {
+      "source": "brian-senpro/pakar/src/main.tsx",
+      "destination": "referensi-code-ui-ux/src/main.tsx",
+      "sha256": "f116fcf8cd4a03a42af2c8aadb51c04204db289085158f5498224b84cd7d7e5a",
+      "bytes": 403
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/alerts.ts",
+      "destination": "referensi-code-ui-ux/src/sim/alerts.ts",
+      "sha256": "f4118a74248671f1e82780908f4716bf25685dcd3d9f0679c99edd0bea47b689",
+      "bytes": 5086
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/engine.ts",
+      "destination": "referensi-code-ui-ux/src/sim/engine.ts",
+      "sha256": "5c26c3e379f5c96cb57e33152b8ad49d42b3379597d85e64b16429aef9448fcd",
+      "bytes": 12076
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/forecast.ts",
+      "destination": "referensi-code-ui-ux/src/sim/forecast.ts",
+      "sha256": "3f8085c6874ef28cd6a6eb0d3c3ed9c007f1dd1e92020f9706ee1e50d0a476ea",
+      "bytes": 8101
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/history.ts",
+      "destination": "referensi-code-ui-ux/src/sim/history.ts",
+      "sha256": "b5c0d34aad19163228b4472995306eeddabd0ba9cb271e848b2f2424facea4a2",
+      "bytes": 8780
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/profiles.ts",
+      "destination": "referensi-code-ui-ux/src/sim/profiles.ts",
+      "sha256": "3b1c08795807d72348673228dd4100c03e3c94d8ff4106869a6fe27286570096",
+      "bytes": 5131
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/recommend.ts",
+      "destination": "referensi-code-ui-ux/src/sim/recommend.ts",
+      "sha256": "41ad954221291b36a0d17fca0f83b7f7d66a1a84516c0883020481f361e9a413",
+      "bytes": 7160
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/rng.ts",
+      "destination": "referensi-code-ui-ux/src/sim/rng.ts",
+      "sha256": "f345342a55f30202e5afb312d33cf3da57607a095fa8867f4877fad3af0e0ea3",
+      "bytes": 1555
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/sim.test.ts",
+      "destination": "referensi-code-ui-ux/src/sim/sim.test.ts",
+      "sha256": "b3aa66964ccd9bc2f9a68765028637d197173be0f71c51e2cfbc2ee1ee618e48",
+      "bytes": 9487
+    },
+    {
+      "source": "brian-senpro/pakar/src/sim/zones.ts",
+      "destination": "referensi-code-ui-ux/src/sim/zones.ts",
+      "sha256": "9ed4f37209ab4535121442aef24aa248eac19cbef1af8783be2a44373f3b216a",
+      "bytes": 8443
+    },
+    {
+      "source": "brian-senpro/pakar/src/store/derived.ts",
+      "destination": "referensi-code-ui-ux/src/store/derived.ts",
+      "sha256": "7697870e7f6b2a090b8eb407d263fbae9255c9e0d069ce444928757697b91891",
+      "bytes": 2892
+    },
+    {
+      "source": "brian-senpro/pakar/src/store/operator.ts",
+      "destination": "referensi-code-ui-ux/src/store/operator.ts",
+      "sha256": "714152c121f2d6c1ee707173534a7934a29c29ff2475891d87cff9f278f98c08",
+      "bytes": 1299
+    },
+    {
+      "source": "brian-senpro/pakar/src/store/useSim.ts",
+      "destination": "referensi-code-ui-ux/src/store/useSim.ts",
+      "sha256": "96a7a2dbd95643d05d1a85fabd226c4f2b1a9f9381e09c6580a9108d008f8897",
+      "bytes": 3918
+    },
+    {
+      "source": "brian-senpro/pakar/tailwind.config.ts",
+      "destination": "referensi-code-ui-ux/tailwind.config.ts",
+      "sha256": "7ba488f72a1503499267d1a3205ec82d791f89fecebf30973693861b91d296dd",
+      "bytes": 1402
+    },
+    {
+      "source": "brian-senpro/pakar/tsconfig.json",
+      "destination": "referensi-code-ui-ux/tsconfig.json",
+      "sha256": "8133e717a37e1c8be29ce6e5c9c65d95c1bd116d93c42fe26b9c7eca7a65091d",
+      "bytes": 619
+    },
+    {
+      "source": "brian-senpro/pakar/vercel.json",
+      "destination": "referensi-code-ui-ux/vercel.json",
+      "sha256": "791aeedd874d15888c5ce0c8c4f321dc6a6c6786a59371ad17bbe1dcf3dfced5",
+      "bytes": 67
+    },
+    {
+      "source": "brian-senpro/pakar/vite.config.ts",
+      "destination": "referensi-code-ui-ux/vite.config.ts",
+      "sha256": "ceaaf23587749e58ce93c40151a69b9d99d081ed41adc004ba748f3ed8f0c64c",
+      "bytes": 413
+    },
+    {
+      "source": "pakar/.gitattributes",
+      "destination": "referensi-backend/.gitattributes",
+      "sha256": "0ff3733b943148249aecea4b0b08c63a966240c25e7d92442b6aea879c3513bf",
+      "bytes": 87
+    },
+    {
+      "source": "pakar/.gitignore",
+      "destination": "referensi-backend/.gitignore",
+      "sha256": "3aa4eaeb8e49da6d6b8a5c223ce6c1d17b574e970cc09608867503d35c25b5a3",
+      "bytes": 1027
+    },
+    {
+      "source": "pakar/Directory.Build.props",
+      "destination": "referensi-backend/Directory.Build.props",
+      "sha256": "76911a98153694fa50f2af97353b0e046fb17c94c085100b71ef99598cedd30b",
+      "bytes": 119
+    },
+    {
+      "source": "pakar/Pakar.slnx",
+      "destination": "referensi-backend/Pakar.slnx",
+      "sha256": "d157468ad4e44791d6800331476cad7dff3dbbad15ddf3e5145e118e498a4e95",
+      "bytes": 514
+    },
+    {
+      "source": "pakar/README.md",
+      "destination": "referensi-backend/README.md",
+      "sha256": "60b93f7480b6876c7de8251e77fec580f5a0a7f61618334869fbd14352dc23ba",
+      "bytes": 609
+    },
+    {
+      "source": "pakar/dl/requirements.txt",
+      "destination": "referensi-ai/dl/requirements.txt",
+      "sha256": "142b24f7f50d8dd8d3b1ce72d61b3af062fdc7a29bf09f6b29da6f84072af963",
+      "bytes": 36
+    },
+    {
+      "source": "pakar/dl/scripts/export_onnx.py",
+      "destination": "referensi-ai/dl/scripts/export_onnx.py",
+      "sha256": "3a759f92bbe3731ee14176c2e2ca9a6c4377e0a1c6eccc2ae663af25bbf2d435",
+      "bytes": 22
+    },
+    {
+      "source": "pakar/dl/scripts/train.py",
+      "destination": "referensi-ai/dl/scripts/train.py",
+      "sha256": "07c8a6332b3fa9acef498a8de0d1bfb6f65d7705a069bbc667c423be05865d17",
+      "bytes": 22
+    },
+    {
+      "source": "pakar/dl/scripts/validate_model.py",
+      "destination": "referensi-ai/dl/scripts/validate_model.py",
+      "sha256": "493aa2467f320d7acb23bfd16072b2ccce4b8331cea237f07a0038e73933b725",
+      "bytes": 21
+    },
+    {
+      "source": "pakar/docs/_config.yml",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/_config.yml",
+      "sha256": "946874ef5dc7adf0244b0b85d31376f81dca47c11297674df0c9c7fcd32668a2",
+      "bytes": 306
+    },
+    {
+      "source": "pakar/docs/img_ERD.png",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/img_ERD.png",
+      "sha256": "f2cd16fe6a4afb3905a31cb93e73c0ab94076b3b18daf7084c7f936bf05a185b",
+      "bytes": 59833
+    },
+    {
+      "source": "pakar/docs/img_fr.png",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/img_fr.png",
+      "sha256": "0c86c0f29ea8bc342e1f554ca204526d66ffe0200d651f22854ef373cd55ed74",
+      "bytes": 120147
+    },
+    {
+      "source": "pakar/docs/img_lofi1.jpeg",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/img_lofi1.jpeg",
+      "sha256": "5b0959fb3b2fde0bb0bc230b8828c23d6f67603581b9693bc076dfe6cec21c7c",
+      "bytes": 66210
+    },
+    {
+      "source": "pakar/docs/img_lofi2.jpeg",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/img_lofi2.jpeg",
+      "sha256": "55d86142ca891b0104c5712b675111a1438497d3c2a6e89567b135910ad36285",
+      "bytes": 74493
+    },
+    {
+      "source": "pakar/docs/img_lofi3.jpeg",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/img_lofi3.jpeg",
+      "sha256": "7f358bad6867aeec5b040d32b64828362e4255723ba28e2ba1e0c9e146777265",
+      "bytes": 48110
+    },
+    {
+      "source": "pakar/docs/img_lofi4.jpeg",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/img_lofi4.jpeg",
+      "sha256": "4d70f1c8a64bf4158baff3d92567661eec521326b798bc717c271f5696e43bee",
+      "bytes": 45078
+    },
+    {
+      "source": "pakar/docs/img_timeline.png",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/img_timeline.png",
+      "sha256": "43c703661e23689adaa854bf61bd942b05e4a2315cd03d65df86c28c41d83cd6",
+      "bytes": 29173
+    },
+    {
+      "source": "pakar/docs/img_usecase.png",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/img_usecase.png",
+      "sha256": "b41521585daf1f1f4345c719c6b9eaf913b8dd5f7a36ab406307f29f9a899c52",
+      "bytes": 112587
+    },
+    {
+      "source": "pakar/docs/index.md",
+      "destination": "referensi-manajemen-proyek/dokumentasi-lama/index.md",
+      "sha256": "2201eafff5170c637d87babf5da8208b90e9e7d05ba34f98e6ffd51e005f6b56",
+      "bytes": 2868
+    },
+    {
+      "source": "pakar/edge/android-agent/setup-guide.md",
+      "destination": "referensi-ai/edge/android-agent/setup-guide.md",
+      "sha256": "8a1e958daa0148cbf5ecd7cec03fb21d061783f521f03f2e9bc1b8d3b169fa9c",
+      "bytes": 25
+    },
+    {
+      "source": "pakar/edge/calibration/roi-mapper.html",
+      "destination": "referensi-ai/edge/calibration/roi-mapper.html",
+      "sha256": "063479af0627abe2c8cf209b78f6ff5d228d0e8659732107f289564887f4a3e2",
+      "bytes": 19
+    },
+    {
+      "source": "pakar/global.json",
+      "destination": "referensi-backend/global.json",
+      "sha256": "60747dae03e9068eeccc507acb0207a5a9095f3de0e3d68aa56a6b4817dd6b66",
+      "bytes": 69
+    },
+    {
+      "source": "pakar/infra/bicep/containerapps.bicep",
+      "destination": "referensi-cloud-devops/infra/bicep/containerapps.bicep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/infra/bicep/keyvault.bicep",
+      "destination": "referensi-cloud-devops/infra/bicep/keyvault.bicep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/infra/bicep/main.bicep",
+      "destination": "referensi-cloud-devops/infra/bicep/main.bicep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/infra/bicep/sql.bicep",
+      "destination": "referensi-cloud-devops/infra/bicep/sql.bicep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/infra/bicep/storage.bicep",
+      "destination": "referensi-cloud-devops/infra/bicep/storage.bicep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/infra/docker-compose.yml",
+      "destination": "referensi-cloud-devops/infra/docker-compose.yml",
+      "sha256": "ca39b439cef297d9f5b348058ebacdd98f16a6324efe69bc48c67eed0b0b8a41",
+      "bytes": 588
+    },
+    {
+      "source": "pakar/sample_parkir.mp4",
+      "destination": "referensi-ai/assets/sample_parkir.mp4",
+      "sha256": "bf63052ca4f91885951c46c41b297054f94d2c7086673ba117514a91e9566325",
+      "bytes": 5319
+    },
+    {
+      "source": "pakar/src/Pakar.AiInference/Detection/RoiMapper.cs",
+      "destination": "referensi-backend/src/Pakar.AiInference/Detection/RoiMapper.cs",
+      "sha256": "3016ff80eb613d89cf91075d4bc60820d2130d478a840bbe6fcd97ad0d954850",
+      "bytes": 28
+    },
+    {
+      "source": "pakar/src/Pakar.AiInference/Dockerfile",
+      "destination": "referensi-backend/src/Pakar.AiInference/Dockerfile",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.AiInference/Pakar.AiInference.csproj",
+      "destination": "referensi-backend/src/Pakar.AiInference/Pakar.AiInference.csproj",
+      "sha256": "9299a84d08dbbcbc1279d0a23d0d1a3d1ed9c72b755b4217075f377dd49bd7ab",
+      "bytes": 540
+    },
+    {
+      "source": "pakar/src/Pakar.AiInference/Program.cs",
+      "destination": "referensi-backend/src/Pakar.AiInference/Program.cs",
+      "sha256": "69517cef21fe73908b9dc68f6bfa73c281698d5dd840f5e15a351f02d233bbce",
+      "bytes": 170
+    },
+    {
+      "source": "pakar/src/Pakar.AiInference/Services/IInferenceEngine.cs",
+      "destination": "referensi-backend/src/Pakar.AiInference/Services/IInferenceEngine.cs",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.AiInference/Services/OnnxOpenVinoEngine.cs",
+      "destination": "referensi-backend/src/Pakar.AiInference/Services/OnnxOpenVinoEngine.cs",
+      "sha256": "2ef2b56afc5fa08728ef6d6a088469993970ae7ef3e727c26b43a94100528ec2",
+      "bytes": 27
+    },
+    {
+      "source": "pakar/src/Pakar.AiInference/Worker.cs",
+      "destination": "referensi-backend/src/Pakar.AiInference/Worker.cs",
+      "sha256": "e7a083897ab63c103a33c94cd24b8c3b6477d5b2a8e797d11fac80889015d99c",
+      "bytes": 504
+    },
+    {
+      "source": "pakar/src/Pakar.AiInference/appsettings.json",
+      "destination": "referensi-backend/src/Pakar.AiInference/appsettings.json",
+      "sha256": "ab16b7b75d012475e615a41c21000c9215c6e02cd70b9c2618d25d885aa6ff33",
+      "bytes": 137
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Controllers/ParkingControllers.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Controllers/ParkingControllers.cs",
+      "sha256": "b3b73529eb9987ce285c50948512824f52439c2193a4770df0d81c7fb3541ecf",
+      "bytes": 1257
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Data/DbSeeder.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Data/DbSeeder.cs",
+      "sha256": "b994f3a06a56ea7ee9765d711a649534198143ef86c40fe8beb0cf38ed41557c",
+      "bytes": 4621
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Hubs/OccupancyHub.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Hubs/OccupancyHub.cs",
+      "sha256": "8af8d16be09f8111e218a6d7ad4cecf6e8f860efbc29b5632c06b8ec3f579832",
+      "bytes": 278
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Hubs/ParkingHub.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Hubs/ParkingHub.cs",
+      "sha256": "ed138061331f54958a538c1b9742a9f78328e4dfc005f08663779bc4f631b317",
+      "bytes": 534
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Middlewares/CameraAuthMiddleware.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Middlewares/CameraAuthMiddleware.cs",
+      "sha256": "8e680e9df003a9862a7861e4d711793bdc5f62050ddc471be74ec7a40e2a5217",
+      "bytes": 29
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Pakar.Api.csproj",
+      "destination": "referensi-backend/src/Pakar.Api/Pakar.Api.csproj",
+      "sha256": "f6a2522300957910e04c41574a7f7cf372d797ace126e0da799bc009c2b1f766",
+      "bytes": 874
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Pakar.Api.http",
+      "destination": "referensi-backend/src/Pakar.Api/Pakar.Api.http",
+      "sha256": "b4fd8dda7255378ee856b71f049160870b18681a82f6d236ebb035585f974dcf",
+      "bytes": 131
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Program.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Program.cs",
+      "sha256": "e9e63f86450dfeefbdf24e4ec7883496771d7a2a616745cb5f3cbf86e62676e5",
+      "bytes": 9660
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Realtime/IngestEndpoints.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Realtime/IngestEndpoints.cs",
+      "sha256": "c676b12cc0b44b3f0f4b8d28a7d867ffc590ff01699b3c7dea0d6de5839af525",
+      "bytes": 5305
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Realtime/Models.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Realtime/Models.cs",
+      "sha256": "07e41d4922bb9c097e29e0231f77f521cf23e13ba23664785e50e96eed7573ac",
+      "bytes": 1003
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Realtime/ParkingHub.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Realtime/ParkingHub.cs",
+      "sha256": "05d48d3079e7efbaecdae3b5473aa795e364b6c21b9cf760013fea978ae37096",
+      "bytes": 1303
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Realtime/ParkingStateStore.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Realtime/ParkingStateStore.cs",
+      "sha256": "c500fda9ca20471f3f18367624a854ae967eea87b98d7433e30479adef2e8306",
+      "bytes": 5146
+    },
+    {
+      "source": "pakar/src/Pakar.Api/Services/FakeOccupancyBroadcaster.cs",
+      "destination": "referensi-backend/src/Pakar.Api/Services/FakeOccupancyBroadcaster.cs",
+      "sha256": "dea6af13d4a37b81cb100250b4f99ccc7932031ab96ade20a68cfdadcfa3366e",
+      "bytes": 940
+    },
+    {
+      "source": "pakar/src/Pakar.Api/appsettings.json",
+      "destination": "referensi-backend/src/Pakar.Api/appsettings.json",
+      "sha256": "a22bca5280a59922a26deab4a535185290e7812505d657f3650743046d0cb36b",
+      "bytes": 746
+    },
+    {
+      "source": "pakar/src/Pakar.Application/DTOs/CameraDto.cs",
+      "destination": "referensi-backend/src/Pakar.Application/DTOs/CameraDto.cs",
+      "sha256": "ea812cec2a24f13a914df5f5bb4a2ef71a8e31fa80f2c5582ad01d63540357f7",
+      "bytes": 316
+    },
+    {
+      "source": "pakar/src/Pakar.Application/DTOs/HealthCheckDto.cs",
+      "destination": "referensi-backend/src/Pakar.Application/DTOs/HealthCheckDto.cs",
+      "sha256": "70e62ed654fee91118203fd896e8c0f8b393163fff7be8c100e30789a936706b",
+      "bytes": 168
+    },
+    {
+      "source": "pakar/src/Pakar.Application/DTOs/ZoneDto.cs",
+      "destination": "referensi-backend/src/Pakar.Application/DTOs/ZoneDto.cs",
+      "sha256": "8de1fa012b28958c49ed75ddda4f229de70f3426d50c24eaea6e5010ae183630",
+      "bytes": 633
+    },
+    {
+      "source": "pakar/src/Pakar.Application/DTOs/ZoneResponseDto.cs",
+      "destination": "referensi-backend/src/Pakar.Application/DTOs/ZoneResponseDto.cs",
+      "sha256": "c12647fa228556a0c9b9b76672e6cc57fc5a0b252f510748eadf683eaac6cfc8",
+      "bytes": 203
+    },
+    {
+      "source": "pakar/src/Pakar.Application/Pakar.Application.csproj",
+      "destination": "referensi-backend/src/Pakar.Application/Pakar.Application.csproj",
+      "sha256": "2b8c01e163e57d7d94a3b97a0b2f5664f42bbf2c710c1957a461caa815f4a22c",
+      "bytes": 396
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/AppUser.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/AppUser.cs",
+      "sha256": "74356001c22faf700e4f388e055ffcc17027918ed31a321ecdf6cb3f7bdae218",
+      "bytes": 604
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/Camera.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/Camera.cs",
+      "sha256": "24a42be4665e97f0f37e34915dec29c5896247be7d18fc0c789b0a728fe2c204",
+      "bytes": 748
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/Detection.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/Detection.cs",
+      "sha256": "595b4231e6f5f408ed3217b7b4e7fe647816eb0902f5ae1be4ebe0beb07250c1",
+      "bytes": 944
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/ParkingArea.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/ParkingArea.cs",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/ParkingSpot.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/ParkingSpot.cs",
+      "sha256": "08af734e36d41052833a8f7eb642f2ca35d3aee089be0f15acf6923f9a192499",
+      "bytes": 704
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/ParkingZone.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/ParkingZone.cs",
+      "sha256": "c681d4e8ebd641add97d105cc4614cee9f6f26adff46196d75ad37e97e0b46ee",
+      "bytes": 676
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/Report.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/Report.cs",
+      "sha256": "2fb4124ff6876d0f8e0a3757dac9cc67bd1cb6deecbe1581ecf8d64115ca1352",
+      "bytes": 612
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/SavedZone.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/SavedZone.cs",
+      "sha256": "1731afc94a0c39b2b0f3d3b27c7d4e2221fa3d3c8df1ef7d1353a897508f151d",
+      "bytes": 381
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Entities/SpotStatus.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Entities/SpotStatus.cs",
+      "sha256": "23aefb75c1cdc014616481068178ea2a401369f296e61d68cf0490f3202c1a07",
+      "bytes": 109
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Pakar.Domain.csproj",
+      "destination": "referensi-backend/src/Pakar.Domain/Pakar.Domain.csproj",
+      "sha256": "26df2363b8d694f5f20cb4d407d42a83b399642871534e0ac2d51844a1e65254",
+      "bytes": 324
+    },
+    {
+      "source": "pakar/src/Pakar.Domain/Services/OccupancyCalculator.cs",
+      "destination": "referensi-backend/src/Pakar.Domain/Services/OccupancyCalculator.cs",
+      "sha256": "e31ee513589629cb342c75d3a41f0d8193ac6849c70b97f0a8235ef3b699d2cc",
+      "bytes": 29
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/Camera/CameraTimeoutService.cs",
+      "destination": "referensi-backend/src/Pakar.Infrastructure/Camera/CameraTimeoutService.cs",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/Migrations/20261005134755_SqliteInitialSchema.Designer.cs",
+      "destination": "referensi-backend/src/Pakar.Infrastructure/Migrations/20261005134755_SqliteInitialSchema.Designer.cs",
+      "sha256": "7c28a161e87e190cc041e081e6f017d91216b7a39137a709291ffacb5065c3b3",
+      "bytes": 12059
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/Migrations/20261005134755_SqliteInitialSchema.cs",
+      "destination": "referensi-backend/src/Pakar.Infrastructure/Migrations/20261005134755_SqliteInitialSchema.cs",
+      "sha256": "9369436ef728596f37649daefa84cf175752167998fca02b3c655db4f8756465",
+      "bytes": 11356
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/Migrations/AppDbContextModelSnapshot.cs",
+      "destination": "referensi-backend/src/Pakar.Infrastructure/Migrations/AppDbContextModelSnapshot.cs",
+      "sha256": "115cde2a432ec707834826c02c6756ec4723395663d352a6ded9ded1b18a62a7",
+      "bytes": 11943
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/Pakar.Infrastructure.csproj",
+      "destination": "referensi-backend/src/Pakar.Infrastructure/Pakar.Infrastructure.csproj",
+      "sha256": "dcc802b187dd45538182f763f6e94c1a656ba1a13af4caa0f147081495f2414e",
+      "bytes": 901
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/Persistence/AppDbContext.cs",
+      "destination": "referensi-backend/src/Pakar.Infrastructure/Persistence/AppDbContext.cs",
+      "sha256": "f2116d4e9320101718ab71cef2e2354fc39f1a89dd5aaaa8d05a51dd1f4c6043",
+      "bytes": 2477
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/Persistence/AppDbContextFactory.cs",
+      "destination": "referensi-backend/src/Pakar.Infrastructure/Persistence/AppDbContextFactory.cs",
+      "sha256": "8818812ae95946130aea2be860c153da1a7c3ad982c7778f80af20896354e215",
+      "bytes": 1550
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/Storage/BlobSnapshotService.cs",
+      "destination": "referensi-backend/src/Pakar.Infrastructure/Storage/BlobSnapshotService.cs",
+      "sha256": "99ab142cad1131139ae074ca355c081ddf7b29caaad47aedb67ee19ef3d7ce92",
+      "bytes": 25
+    },
+    {
+      "source": "pakar/src/Pakar.Shared/Dtos/ParkingSpotDto.cs",
+      "destination": "referensi-backend/src/Pakar.Shared/Dtos/ParkingSpotDto.cs",
+      "sha256": "05c49324f4626d77ad02c39a9d02e302f1a7149dea63d1a2bc0cdd3c33775678",
+      "bytes": 280
+    },
+    {
+      "source": "pakar/src/Pakar.Shared/Dtos/ReportDto.cs",
+      "destination": "referensi-backend/src/Pakar.Shared/Dtos/ReportDto.cs",
+      "sha256": "eb97f805f0aa5f4e1b030015d7860f70cfabf3504a927e36013c9699c7b8c865",
+      "bytes": 18
+    },
+    {
+      "source": "pakar/src/Pakar.Shared/Enums/ReportStatus.cs",
+      "destination": "referensi-backend/src/Pakar.Shared/Enums/ReportStatus.cs",
+      "sha256": "630bc28fefc39cebb69078788729f7525b15733fc77712bd14f536f3aa4d0479",
+      "bytes": 30
+    },
+    {
+      "source": "pakar/src/Pakar.Shared/Enums/SpotStatus.cs",
+      "destination": "referensi-backend/src/Pakar.Shared/Enums/SpotStatus.cs",
+      "sha256": "07d4c9ec856899c3a71adda95a649b0bc2e1bd1842f4c400c46f72d40223e430",
+      "bytes": 32
+    },
+    {
+      "source": "pakar/src/Pakar.Shared/Pakar.Shared.csproj",
+      "destination": "referensi-backend/src/Pakar.Shared/Pakar.Shared.csproj",
+      "sha256": "61e3f2d043e37f0db4be1d8083dd31bebbfbb8fde2cf027327db2556c16bc385",
+      "bytes": 219
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/App.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/App.razor",
+      "sha256": "aa81634e6d0d75a65871f668cec4a994b04d108e77a7959e3048862715401758",
+      "bytes": 667
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/CampusMap.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/CampusMap.razor",
+      "sha256": "805949d6d6f1e37bd97480ad97e0b29cfb25ece6675299a6ab16ee8659e9ebd4",
+      "bytes": 22
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Layout/MainLayout.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Layout/MainLayout.razor",
+      "sha256": "9612f8b0086834d92cd7d8e4765febd14baf89f5b7aa8f2661fcd1b380296439",
+      "bytes": 547
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Layout/MainLayout.razor.css",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Layout/MainLayout.razor.css",
+      "sha256": "36cf337480e0579cf70b4765195eef361f52a9c5d44b66f8117d2351210e318a",
+      "bytes": 1940
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Layout/NavMenu.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Layout/NavMenu.razor",
+      "sha256": "46e835b579443e2898d2db227d005c3ce172e4229e869dc118038fd4a710a107",
+      "bytes": 1088
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Layout/NavMenu.razor.css",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Layout/NavMenu.razor.css",
+      "sha256": "a493035d026138e9b2a69a3e6d7bccf7c82672800c1340401c2ab0f6f6a6699e",
+      "bytes": 3418
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Layout/ReconnectModal.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Layout/ReconnectModal.razor",
+      "sha256": "e1c8308c1ec6656c8f5cd50df3f1879b614e43109ad6b1e23ab26d6f1007c6db",
+      "bytes": 1362
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Layout/ReconnectModal.razor.css",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Layout/ReconnectModal.razor.css",
+      "sha256": "ba73539337ecff370e1ce8ebb9ebc0992d6ed100080a29f4bcac888f1ce1abd8",
+      "bytes": 3873
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Layout/ReconnectModal.razor.js",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Layout/ReconnectModal.razor.js",
+      "sha256": "e6efaff747ceb6d105cc4daa1cc18c3979b2f77224fc1686a8baeb9eeea67465",
+      "bytes": 2448
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Pages/Counter.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Pages/Counter.razor",
+      "sha256": "779f65d35e2683a6be0a75bdcfb898e1a24bc1d2ed3cfe40269a86ba685f2df9",
+      "bytes": 363
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Pages/Error.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Pages/Error.razor",
+      "sha256": "e77473780e53f2ba6d42105b745d3eca7cdbdaec1d407bc46a8ce9338b43eb29",
+      "bytes": 1215
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Pages/Home.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Pages/Home.razor",
+      "sha256": "a9a489615e6b324df78d257b7cc2abe3d62bf2fc860f460a9a0ff2a0032f99e6",
+      "bytes": 99
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Pages/NotFound.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Pages/NotFound.razor",
+      "sha256": "c267b98a248a516f8ca8c79dd8410d9f09d9ad302466e65c6b9b959b5ffc7cbd",
+      "bytes": 126
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Pages/Weather.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Pages/Weather.razor",
+      "sha256": "9785353b05c2779c01380729e0a638a43074244dcf8b8a8a3b284ea03893d2ab",
+      "bytes": 1922
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/Routes.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/Routes.razor",
+      "sha256": "d8ad5bf563c9a858dc9d74bddb4a437f4347cd1cfce5fc81147d324668100c4e",
+      "bytes": 300
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/SpotMarker.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/SpotMarker.razor",
+      "sha256": "8ce5345d77afcf3ff824fbfe238862e737881557b2526e6d70b1f85a28692507",
+      "bytes": 26
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Components/_Imports.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Components/_Imports.razor",
+      "sha256": "4fb3cd5a2b9d773af1216a2468ee040aa3da63532dc89205ead0d02ee82d1f90",
+      "bytes": 426
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Extensions/StringExtensions.cs",
+      "destination": "referensi-backend/src/Pakar.Web/Extensions/StringExtensions.cs",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Admin/Cameras.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Admin/Cameras.razor",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Admin/Dashboard.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Admin/Dashboard.razor",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Admin/Reports.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Admin/Reports.razor",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Admin/Users.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Admin/Users.razor",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Admin/Zones.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Admin/Zones.razor",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Login.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Login.razor",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Park.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Park.razor",
+      "sha256": "c19dad47d4d9316c6acf2a33d415ed7d36d7f3fcd0715aec43e045e0eff29765",
+      "bytes": 1132
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Plan.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Plan.razor",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Register.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Register.razor",
+      "sha256": "13e3a680c58afb2cb2d033b5d39be6c0daf27f7700f98c7d947d76eabb08c4ed",
+      "bytes": 1948
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pages/Saved.razor",
+      "destination": "referensi-backend/src/Pakar.Web/Pages/Saved.razor",
+      "sha256": "6b452187802d1e1a022476d59f0372a4a54169e8befaddec9f54796fb0649108",
+      "bytes": 17
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Pakar.Web.csproj",
+      "destination": "referensi-backend/src/Pakar.Web/Pakar.Web.csproj",
+      "sha256": "265b8ee66845b19268a9e88dde0b408010b29180a6bea99222e2d2086968d01d",
+      "bytes": 537
+    },
+    {
+      "source": "pakar/src/Pakar.Web/Program.cs",
+      "destination": "referensi-backend/src/Pakar.Web/Program.cs",
+      "sha256": "dfc835a88fc41681aaec16b38cd61cc12fa4cd6187ca9603a1699071abf82cd4",
+      "bytes": 790
+    },
+    {
+      "source": "pakar/src/Pakar.Web/appsettings.json",
+      "destination": "referensi-backend/src/Pakar.Web/appsettings.json",
+      "sha256": "200332b434757a0054a3d356c91cde01f2c48712be8aa2bcb0f3e973619f06e3",
+      "bytes": 151
+    },
+    {
+      "source": "pakar/src/Pakar.Web/wwwroot/app.css",
+      "destination": "referensi-backend/src/Pakar.Web/wwwroot/app.css",
+      "sha256": "68d3dc2c5c1d082192dafd60b9247ae07b5de0bcb9b9c953eed680a6d9cc3dbb",
+      "bytes": 2900
+    },
+    {
+      "source": "pakar/src/Pakar.Web/wwwroot/css/map-styles.css",
+      "destination": "referensi-backend/src/Pakar.Web/wwwroot/css/map-styles.css",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "pakar/src/Pakar.Web/wwwroot/favicon.png",
+      "destination": "referensi-backend/src/Pakar.Web/wwwroot/favicon.png",
+      "sha256": "e265ac0f2dda1e5dfa65b1adf330722bb3ef7789115283604d8cd19f098f1f08",
+      "bytes": 1148
+    },
+    {
+      "source": "pakarmodelsenpro.pt",
+      "destination": "referensi-ai/models/pakarmodelsenpro.pt",
+      "sha256": "1b5b8f3b662146c5259710f83c0eb198bb982f96f815c6d59e9e2681a99c5272",
+      "bytes": 6251050
+    }
+  ],
+  "excluded": [
+    {
+      "source": "pakar/pakar_api_stderr.log",
+      "reason": "Local database or runtime log; not source code"
+    },
+    {
+      "source": "pakar/pakar_api_stdout.log",
+      "reason": "Local database or runtime log; not source code"
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/PakarDev.db",
+      "reason": "Local database or runtime log; not source code"
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/PakarDev.db-shm",
+      "reason": "Local database or runtime log; not source code"
+    },
+    {
+      "source": "pakar/src/Pakar.Infrastructure/PakarDev.db-wal",
+      "reason": "Local database or runtime log; not source code"
+    }
+  ]
+}

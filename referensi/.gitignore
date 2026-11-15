@@ -1,0 +1,12 @@
+# Reference bundle: dependencies and local runtime state
+node_modules/
+dist/
+.vite/
+test-results/
+playwright-report/
+*.log
+*.db
+*.db-shm
+*.db-wal
+# Include only the explicitly requested, small reference model (about 6 MB).
+!referensi-ai/models/pakarmodelsenpro.pt

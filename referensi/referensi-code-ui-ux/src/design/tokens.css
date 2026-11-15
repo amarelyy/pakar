@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ground: #f4f5f7;
+  --card: #ffffff;
+  --hairline: #e3e6ea;
+  --ink: #14181f;
+  --muted: #5b6470;
+  --muted-2: #8a93a0;
+
+  --accent: #1f4fd8;
+  --accent-soft: #e8eeff;
+  --accent-ink: #163daa;
+
+  /* availability semantics: green always means good for the driver */
+  --ok: #0f7a4a;
+  --ok-soft: #e3f3ea;
+  --ok-ink: #0b5a37;
+  --warn: #e39b00;
+  --warn-soft: #fff3d6;
+  --warn-ink: #7a4d00;
+  --bad: #c42b2b;
+  --bad-soft: #fce9e9;
+  --bad-ink: #9b1c1c;
+  --closed: #6b7280;
+  --closed-soft: #eef0f3;
+  --nodata: #9aa3ae;
+  --nodata-soft: #f1f3f5;
+
+  color-scheme: light;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.tnum { font-variant-numeric: tabular-nums lining-nums; }
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+
+/* predicted material: 45° hatch at ~45% tint, used for anything that is a forecast */
+.hatch {
+  background-image: repeating-linear-gradient(45deg, var(--hatch-color, var(--nodata)) 0 2px, transparent 2px 6px);
+}
+
+/* ---------- map ---------- */
+.leaflet-container {
+  background: var(--ground);
+  font-family: inherit;
+}
+.leaflet-container .leaflet-tile-pane { filter: saturate(0.2) contrast(0.92) brightness(1.04); }
+.leaflet-tooltip.zone-badge {
+  background: var(--card);
+  border: 1.5px solid var(--badge-color, var(--muted-2));
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(20, 24, 31, 0.12);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 14px;
+  padding: 2px 7px;
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+}
+.leaflet-tooltip.zone-badge::before { display: none; }
+.leaflet-tooltip.zone-badge.is-muted { color: var(--muted); font-weight: 500; }
+.leaflet-tooltip.zone-badge.is-predicted { border-style: dashed; }
+.leaflet-tooltip.zone-badge.is-best { border-color: var(--accent); border-width: 2px; }
+.leaflet-tooltip.zone-badge .badge-sub { font-weight: 500; color: var(--muted); margin-left: 3px; font-size: 11px; }
+.leaflet-tooltip.zone-badge .badge-best { color: var(--accent); margin-right: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+.leaflet-control-attribution { font-size: 9px; background: rgba(255,255,255,0.7); }
+.leaflet-control-zoom a { color: var(--ink); }
+.leaflet-tooltip.zone-badge .badge-flag { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; margin-right:4px; border-radius:999px; background: var(--bad); color:#fff; font-size:10px; font-weight:700; }

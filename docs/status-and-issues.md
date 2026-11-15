@@ -1,5 +1,30 @@
 # PAKAR Status: Done, Problems and Mismatches
 
+## Current AI branch verification — 2026-11-15
+
+`codex/dotnet-ai-pipeline` implements ONNX inference, C# ROI/debounce, looped video
+worker, ROI/worker-config/reference-image APIs and the admin SVG polygon editor.
+The missing-engine/ROI statements in the historical main audit below are
+superseded on this implementation branch; they are retained as historical context.
+
+- 290 frame box parity passed; 1,740 slot observations had zero parity differences.
+- Sparse visual labels: 170 matched / 1 debounce mismatch / 3 undecided of 174.
+- 43 real API checks passed on isolated PostgreSQL 16, including authorization,
+  polygon persistence and PNG/JPEG upload. No shared Neon migration was applied.
+- Native worker loop/retry/API restart and missing/corrupt video recovery passed.
+- Real browser editor tests passed: draw/drag at different scales, save/reload,
+  validation, removal and guest/non-admin gating. Concurrent session restore fixed.
+- Live worker -> ingest -> PostgreSQL and ParkingHub passed; six slot events
+  matched the database, zone count 5 occupied / 1 available.
+- Linux-x64 publish passed; Docker execution and map UI latency remain unverified.
+
+See [full evidence, test counts and ownership](ai/dotnet-pipeline-progress.md) and
+[reproduction](ai/runtime-validation.md). Persisted watchdog/IsActive and override
+remain Deva's work. Model/video binaries remain local with hashes; public/team
+distribution URL is still pending.
+
+## Historical main audit
+
 Checked on 2026-11-15 against the code in `main` (commit `0024db6`), a live run of `Pakar.Api`
 on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `docs/api-reference.md` for the endpoint list.
 

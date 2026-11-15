@@ -5,6 +5,27 @@
 @reportId = paste-id-returned-by-POST-api-reports
 @zoneId = paste-a-zone-id-from-GET-api-parking-zones
 @userId = paste-a-user-id-from-GET-api-users
+@cameraId = paste-a-camera-guid-from-GET-api-cameras
+@ingestKey = set-your-local-Ingest-ApiKey
+
+### Admin: all available spots and saved normalized polygons
+GET {{host}}/api/cameras/{{cameraId}}/rois
+Authorization: Bearer {{adminToken}}
+
+### Admin: replace all polygons; omitted spots lose their polygon
+PUT {{host}}/api/cameras/{{cameraId}}/rois
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"slots":[{"spotId":"{{spotId}}","points":[[0.10,0.20],[0.25,0.20],[0.25,0.40],[0.10,0.40]]}]}
+
+### Worker: shared ingest key, no JWT, numeric ExternalIds in response
+GET {{host}}/api/internal/video-sources
+X-Api-Key: {{ingestKey}}
+
+### Admin: reference image bytes (upload through /admin/polygons, multipart field file)
+GET {{host}}/api/cameras/{{cameraId}}/reference-frame
+Authorization: Bearer {{adminToken}}
 
 ### Log in and copy the returned token into @adminToken; the response also has expiresAt and user (name, role)
 POST {{host}}/api/auth/login

@@ -25,6 +25,7 @@ builder.Services.AddHttpClient("api", client =>
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<AuthApiClient>();
 builder.Services.AddScoped<UserSession>();
+builder.Services.AddScoped<RoiApiClient>();
 
 var app = builder.Build();
 

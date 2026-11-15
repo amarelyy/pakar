@@ -1,5 +1,19 @@
 # PAKAR To-Do
 
+## AI implementation update — `codex/dotnet-ai-pipeline`, 2026-11-15
+
+Implemented and locally verified on this branch: ONNX export/inference (#14),
+C# ROI/occupancy rules, ROI/config/reference-frame APIs (2a–2c), video-loop worker
+(#13 AI scope), and admin SVG polygon editor (#15). See
+[implementation evidence and limits](docs/ai/dotnet-pipeline-progress.md).
+These changes still need branch review/merge; this is not a claim of production
+deployment or completion of Deva's persisted watchdog, override or map integration.
+The task details below remain the acceptance specification; descriptions of
+previously missing placeholders refer to the pre-implementation main snapshot.
+Nabil and Brian are the same person (`nabilabrianap06`). The user confirmed admin
+screenshot upload for reference frames. `AddCameraFrames` was applied only to an
+isolated local database; shared Neon application remains with the merge owner.
+
 Project status and remaining work until QA testing. Updated 2026-11-15, branch `main`.
 Setup and configuration docs are in `README.md`.
 

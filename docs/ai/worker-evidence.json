@@ -1,0 +1,9 @@
+{
+  "looped": true,
+  "sixSlotsExpectedCount": true,
+  "apiRestartResynced": true,
+  "missingFileRecovered": true,
+  "corruptFileRecovered": true,
+  "undecidedHeartbeatKeepsLastKnown": true,
+  "passed": true
+}

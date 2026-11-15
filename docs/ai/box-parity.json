@@ -1,0 +1,13 @@
+{
+  "frames": 290,
+  "unmatched": 0,
+  "maxPixelError": 0.00102996826171875,
+  "maxConfidenceError": 4.157423973083496E-06,
+  "meanMilliseconds": 89.58306413793107,
+  "p95Milliseconds": 112.2249,
+  "tolerance": {
+    "pixels": 1,
+    "confidence": 0.001
+  },
+  "passed": true
+}

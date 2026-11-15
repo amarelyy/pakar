@@ -19,7 +19,7 @@ Next team progress check: **2026-11-17**.
 | Deva | Devzka | Admin dashboard frontend (#19), the camera-status watchdog and zone override endpoints (2d, 2e), integration (#20), CI/CD, QA, deployment |
 | Brian | (add GitHub handle) | Admin dashboard frontend (#19), including the override control button |
 
-**Open decisions:** twelve decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
+**Open decisions:** fourteen decisions need the whole team (section 0.6), for example where the slot-drawing picture and the video files live and who builds the report form. Decide them at the 2026-11-17 progress check and write the answer in the table.
 
 The GitHub issue assignees were not changed from this repository (no write access to GitHub issues here).
 Use the "Assign on GitHub" column in section 1 to update them by hand.
@@ -193,6 +193,8 @@ Until a row is decided, nobody starts the tasks listed in its "Blocks" column; e
 | 8 | Who builds the report form (#18, FR 5 and 6)? | Brian, Deva, Nabil or Ursula. | **Brian**, after the admin pages. | Blocks #18 and the report path of the acceptance tests. | | |
 | 9 | Who builds the search bar and alternate-zone suggestion (P8, #17)? Nabil's list (P3, P5, P6, P7, 2a to 2c) is the longest. | Keep with Nabil, or move to Brian or Deva. | **Move to Brian** once the admin pages are done, or to Deva after integration. | Blocks P8. | | |
 | 12 | Where does the AI run? | A) On a demo laptop with `dotnet run` (video and model local, results posted to the API). B) In a container in Azure. C) In the browser (needs JavaScript for ONNX Runtime Web, which the .NET-only rule may not allow). | **A.** Pure .NET, cheapest, least change to the plan. B costs money all day; C needs the course to allow JavaScript interop and a new ingest route for admin logins. | Everyone: Nabil (P3, P5), Deva (P13, P10), Ursula (P12). Decided by Ursula on 2026-11-15, **the team should confirm**. | **A** | Ursula, 2026-11-15 - team to confirm |
+| 13 | What must be on Vercel? | A) Only the React UI/UX prototype that is deployed now at https://senpro-pakar.vercel.app (it uses simulated numbers and does not call the API). B) The real Blazor application too, which means converting `Pakar.Web` from Blazor Server to Blazor WebAssembly (static files) and hosting the API somewhere else. | **A** if the course accepts the prototype on Vercel: no conversion. Ask the lecturer. B only if the real app must be on Vercel. | Everyone doing frontend (P4, P7, P8, P9). Blocks any further decision about where the Blazor app is hosted. | | |
+| 14 | Where do the API and the Blazor web app run, if not Azure? | A) Azure for Students (about $100 credit, university email, no card; check eligibility). B) A demo laptop, opened to others with a tunnel (free, only while the laptop is on). C) Another host (free tiers vary; several need a card, many sleep when idle). Whatever the host, the API must be ONE process that stays running. | **A** first (the Bicep is ready), **B** as the backup for demo day. | Ursula (P12), Deva (P13). Blocks the first deployment. | | |
 | 10 | Brian's GitHub handle | (information, not a choice) | - | Needed to assign #19 and to fill the owners table. | | |
 | 11 | Which Azure region? | A) `eastus2`, near the Neon project (AWS `us-east-2`): fast database queries, slower for users in Indonesia. B) `southeastasia`, near the users: slower database queries unless Neon is recreated in an Asian region. | **A** for now: every page makes several database queries, so the distance to Neon matters more. | Ursula (Bicep, P12), Deva (P13). Blocks the first deployment. | | |
 
@@ -246,6 +248,8 @@ because `Camera.IsActive` and `SpotRois` were already added by `AddVideoSourceRo
 ---
 
 ## 1. TODO in priority order
+
+**Branch status (2026-11-15).** Nabil's branch `ai-dotnet` (commit `deaa635`, not merged yet, needs review) already contains: the ONNX engine and parity checks (P3), the video worker, mapper and occupancy rules (P5), the ROI, worker-config and reference-image endpoints (2a, 2b, 2c, with the `AddCameraFrames` migration, applied only to a local database) and the SVG polygon editor at `/admin/polygons` (P6); 113 tests pass according to its notes. It also adds a Dockerfile for the worker and edits `TODO.md` and the docs, so expect merge conflicts there. Before the migration is applied to Neon, the branch must be reviewed and merged. Deva's pull request #39 (admin Zones page, `AdminApiClient`) is merged into `main`.
 
 Priority 1 blocks the most work. "Assign on GitHub" is the GitHub handle to put on the issue.
 Tasks marked **(new issue)** have no issue yet.
@@ -596,3 +600,28 @@ Optional. Start only when section 1 is stable.
 | 8 | "Zone/camera CRUD endpoints already exist (#10)" | Was only add and remove; edit and list were added in commit `4db5538`. |
 | 9 | Bicep and secrets run in parallel | Yes (P12). |
 | 10 | End to end testing and deployment last | Yes (P14). |
+
+---
+
+## 5. Planned later: about 8 parking zones and an admin video wall (saved, to expand when needed)
+
+**Plan as it stands (2026-11-15).** The real system will probably have about 8 parking zones, one video per zone. Only the **admin dashboard** shows video:
+a "CCTV-like" view that you slide through to switch between locations (zone A, B, C ...), looping each video. Normal users **cannot see the video**; they only see
+the map and the zone status. This is not part of Ursula's frontend work; the owner is still to be decided.
+
+**What it changes for the backend and database (Ursula).**
+- [ ] Seed data from 3 zones to about 8: real names, capacity, and the latitude and longitude of every spot (the map needs them). The seed only runs on an empty database, so the existing Neon data is changed through the admin API or SQL.
+- [ ] One video source per zone: the 3 seeded cameras become about 8.
+- [ ] Slot polygons: one set per video, drawn by hand in the polygon editor (`/admin/polygons`). This is the biggest manual task; plan time for it.
+- [ ] Check that the zone list, search and map still feel fast with 8 zones and several dozen spots (the limits in the code are far above this: 500 spots per ingest request).
+
+**Design points to keep in mind.**
+- **Detection must run for all 8 videos in the background**, not only for the video currently shown in the carousel. Otherwise a zone that is not on screen stops sending data and is flagged inactive after 2 minutes (FR 12).
+- The carousel only **shows** a video with the slot polygons coloured from the status events; it does not run detection itself.
+- Load: 8 videos at about 2 frames per second each is 16 inferences per second on one machine. Not measured yet; measure on the real laptop before promising it, and lower the rate per video if needed.
+- Viewers do not need the video files, so nothing about the videos has to be public.
+
+**Open items for the owner of the video wall (to be decided).**
+- [ ] Who builds it (not Ursula).
+- [ ] Where the admin's browser gets the video files from (the same folder as the worker, or served by the API to admins only).
+- [ ] Whether the admin can start and stop the loop from the dashboard (the worker would read a start/stop flag from the API).

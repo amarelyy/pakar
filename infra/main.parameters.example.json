@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": { "value": "eastus2" },
+    "appName": { "value": "pakar" },
+    "adminEmail": { "value": "admin@example.com" },
+    "deployVideoStorage": { "value": false },
+    "webMinReplicas": { "value": 0 },
+    "aiMinReplicas": { "value": 1 },
+    "apiExternalIngress": { "value": true }
+  }
+}

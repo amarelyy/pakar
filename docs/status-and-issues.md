@@ -42,6 +42,16 @@ on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `d
 | Admin password | Rotated afterwards: a random 24-character value stored in the local user-secrets (`Admin:Password`); the old development password now returns 401 and the new one 200. The hash was written directly to `Users` in Neon because the seeder never changes an existing account |
 | Not in Neon | The `test@example.com` and `demo` users only ever existed in the old local database; register new users for demos |
 
+**Azure infrastructure (2026-11-15, `infra/`)**
+
+| Step | Result |
+| --- | --- |
+| Bicep rewritten for Neon (Azure SQL removed): resource group, Log Analytics, Container Apps environment, user-assigned identity, Key Vault with five secrets, Api, Web and AiInference apps, optional Azure Files share | `bicep build` and `bicep lint` (Bicep CLI 0.49.2) pass with no warnings; all six secret parameters are `securestring` |
+| Deployed or `what-if` | **No.** No Azure subscription was available; images do not exist yet (Dockerfiles are P13) |
+| Runbook | `infra/README.md` (deploy, change a secret, upload videos, stop the worker, delete everything) |
+| Git history secrets | Checked; old development values only, nothing deployed (item 13) |
+| Needs a team decision | Azure region (default `eastus2`, near the Neon project in AWS `us-east-2`), video storage, model location, replicas (TODO.md section 0.6) |
+
 How the API picks its database: `DATABASE_URL` wins when set, otherwise `ConnectionStrings:DefaultConnection`
 from user-secrets. Run it against Neon with `DATABASE_URL="$DATABASE_URL_UNPOOLED"` for the first start so the
 migration does not go through the pooler.
@@ -112,8 +122,8 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | # | Severity | Problem |
 | --- | --- | --- |
 | 12 | Medium | `GET /test-db` and `GET /api/parking/snapshot` are public, not just in Development. `/test-db` has no purpose in production. |
-| 13 | Medium | Secrets that appeared in git history (old SQL password, JWT key, ingest key) still need rotation (TODO #29). |
-| 14 | Done | ~~Seeded cameras use `admin:admin` RTSP credentials~~: removed from the seed and from Neon. The credentials remain in git history, so rotation (TODO #29) is still open. |
+| 13 | Low | Secrets in git history (old local SQL `sa` password, JWT key, ingest key, fake RTSP credentials) were checked on 2026-11-15: all were development values for `localhost`, nothing was deployed with them, the current files hold empty placeholders and the local and Neon secrets were regenerated. They count as burned and must never be reused; the history is not rewritten. Production gets brand new values at the first deployment (`infra/README.md`). |
+| 14 | Done | ~~Seeded cameras use `admin:admin` RTSP credentials~~: removed from the seed and from Neon. The fake credentials remain in git history only (see item 13). |
 | 15 | Low | `docker compose` could not be run here (no Docker daemon in this environment), so the compose file and `infra/.env` flow were not tested. A temporary local PostgreSQL was used first, then the new Neon project. |
 | 15a | Medium | **Neon project is now in another organization.** Teammates must be invited to org `org-shy-field-47154575` in the Neon Console (the connector here cannot invite). Until they accept, they will not show up in project permissions. |
 | 15b | Medium | **Production secrets are not set up yet.** `.env.local` holds the Neon password locally only. `DATABASE_URL` and `DATABASE_URL_UNPOOLED` still have to be stored as Container App secrets or Key Vault entries (TODO #28). |

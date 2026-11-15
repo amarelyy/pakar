@@ -1,7 +1,7 @@
 # PAKAR Status: Done, Problems and Mismatches
 
 Checked on 2026-11-15 against the code in `main` (commit `0024db6`), a live run of `Pakar.Api`
-on a local PostgreSQL 18, and `TODO.md`. See `docs/api-reference.md` for the endpoint list.
+on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `docs/api-reference.md` for the endpoint list.
 
 ## 1. What was verified in this run
 
@@ -18,6 +18,22 @@ on a local PostgreSQL 18, and `TODO.md`. See `docs/api-reference.md` for the end
 | `GET /api/parking/zones`, `/search`, `/snapshot` as guest | 200 |
 | `POST /api/ingest/detections` without API key | 401 |
 | Unit tests (`dotnet test`) | 50 passed, 0 failed |
+
+**Neon database move (2026-11-15)**
+
+| Step | Result |
+| --- | --- |
+| Link the new Neon project (`neon init`, org `org-shy-field-47154575`, project `muddy-star-17263468`, branch `production`) | OK, written to `.neon` |
+| `neon deploy` (needs `npm install` first for `@neon/config`) | OK, "No changes", pulled `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `NEON_BRANCH`, `NEON_BRANCH_ID` into `.env.local` (git-ignored) |
+| API start against Neon with the unpooled URL (Development auto-migrates) | OK: migration and seed ran, `/health/ready` Healthy, `/test-db` shows 3 zones |
+| Admin login and `GET /api/parking/zones` on Neon | OK (zone ids differ from the local database, so it is the Neon one) |
+| Old Neon project `pakar` (`misty-lab-12677041`, org Ursula) | Held only `neon_auth` tables, no Pakar data; deleted. Recoverable for 7 days. |
+| `psql` to the Neon URL | Timed out (possibly `channel_binding=require`); verification was done through the API instead |
+| `dotnet ef` | Not installed here; migrations were applied by the API at startup |
+
+How the API picks its database: `DATABASE_URL` wins when set, otherwise `ConnectionStrings:DefaultConnection`
+from user-secrets. Run it against Neon with `DATABASE_URL="$DATABASE_URL_UNPOOLED"` for the first start so the
+migration does not go through the pooler.
 
 Not exercised: SignalR hubs, a real ingest with the API key, `/hubs/frames`, review and deactivate calls, the Web app.
 
@@ -46,6 +62,7 @@ Not exercised: SignalR hubs, a real ingest with the API key, `/hubs/frames`, rev
 
 **Database (#8, #24, #27)**
 - PostgreSQL on Neon, single migration, health probes, seed data, soft delete, unique email.
+- Moved to the new Neon project (`muddy-star-17263468`); migration and seed applied and verified through the API.
 
 **Security**
 - Secrets moved to user-secrets and environment variables; app refuses to start without them.
@@ -83,14 +100,18 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | 12 | Medium | `GET /test-db` and `GET /api/parking/snapshot` are public, not just in Development. `/test-db` has no purpose in production. |
 | 13 | Medium | Secrets that appeared in git history (old SQL password, JWT key, ingest key) still need rotation (TODO #29). |
 | 14 | Medium | Seeded cameras still use `admin:admin` RTSP credentials (TODO #29). |
-| 15 | Low | `docker compose` could not be run here (no Docker daemon in this environment), so the compose file and `infra/.env` flow were not tested. A temporary local PostgreSQL was used instead. |
+| 15 | Low | `docker compose` could not be run here (no Docker daemon in this environment), so the compose file and `infra/.env` flow were not tested. A temporary local PostgreSQL was used first, then the new Neon project. |
+| 15a | Medium | **Neon project is now in another organization.** Teammates must be invited to org `org-shy-field-47154575` in the Neon Console (the connector here cannot invite). Until they accept, they will not show up in project permissions. |
+| 15b | Medium | **Production secrets are not set up yet.** `.env.local` holds the Neon password locally only. `DATABASE_URL` and `DATABASE_URL_UNPOOLED` still have to be stored as Container App secrets or Key Vault entries (TODO #28). |
+| 15c | Low | The first start after linking needs `npm install` in the repo root (`@neon/config`) or `neon deploy` fails; the root `package.json` has no script that does this. |
+| 15d | Low | The seeded admin on the new Neon database uses the local development password from user-secrets. Change `Admin:Password` before any shared or production use. |
 | 16 | Low | Swagger groups some endpoints under the tag `Pakar.Api` (ingest, snapshot) and the routes are shown as `/api/Auth/...` and `/api/Parking/...` (capital letters), while docs and README write them in lowercase. They work either way. |
 
 ### 3.4 Documentation drift and leftovers
 
 | # | Severity | Problem |
 | --- | --- | --- |
-| 17 | Low | `TODO.md` lists "re-test on local PostgreSQL" as open; it now works (this run). Migration against Neon is still unconfirmed. |
+| 17 | Low | `TODO.md` lists "re-test on local PostgreSQL" and "migration SQL not yet applied" as open; both now work (local and the new Neon project). `TODO.md` also still names the old Neon project. |
 | 18 | Low | `TODO.md` says `Domain/Services/OccupancyCalculator.cs` is empty, but the file has content and is used. |
 | 19 | Low | Inline comments in `Realtime/*` and `ZoneDto` are still in Indonesian. |
 | 20 | Low | Template pages `Counter.razor`, `Weather.razor` remain; `Plan.razor` is empty; `Saved.razor` is a stub. |
@@ -100,7 +121,8 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 
 - `OnnxInferenceEngine` (inference returns 503 until it exists).
 - ROI polygons and point-in-polygon mapping (FR 10, 11 end to end).
-- Dockerfiles, Bicep, CI/CD, Azure deployment.
+- Dockerfiles, Bicep, CI/CD, Azure deployment (wire `DATABASE_URL` and `DATABASE_URL_UNPOOLED` as secrets).
+- Add teammates to the new Neon organization and decide their access (admin role or a scoped database role).
 - API integration tests (current 50 tests are unit tests: report review, admin safeguard, geo distance, occupancy, paging).
 - Prediction and history (product goal, not in FR 1-17).
 

@@ -99,18 +99,32 @@ Contributor alone cannot do).
 
 ## Running the AI worker on a laptop
 
-The worker is a normal .NET program; it needs the video file and the ONNX model on the laptop (neither goes to Azure).
+The worker is `src/Pakar.AiInference` (built by Nabil on the `ai-dotnet` branch). It is a normal .NET program; the model (`.onnx`) and the video files stay
+on the laptop, and only the results go to the API. Full details and the validated model are in `docs/ai/model-runtime.md` and `docs/ai/runtime-validation.md` of that branch.
+
+Settings (environment variables or `dotnet user-secrets`; these are the real key names the code reads):
+
+| Setting | Meaning |
+| --- | --- |
+| `Worker__Enabled=true` | **Must be set.** It defaults to `false`, and then the program starts but does nothing |
+| `Worker__ApiBaseUrl` | The API address, for example `http://localhost:5249/` or the `apiUrl` printed by the deployment |
+| `Worker__ApiKey` | The same value as the API's `Ingest:ApiKey` (at least 32 characters) |
+| `Worker__VideoRoot` | Folder that holds the video files |
+| `Model__Path` | The exported model, for example `/assets/best.onnx` |
 
 ```bash
-cd src/Pakar.AiInference
-dotnet user-secrets set "Api:BaseUrl" "https://<apiUrl>/"       # the apiUrl printed by the deployment
-dotnet user-secrets set "Ingest:ApiKey" "<the Ingest--ApiKey value>"
-dotnet user-secrets set "Video:Root" "/path/to/the/folder/with/the/videos"
-dotnet run
+# example (Linux/macOS shell); on Windows use $env:Name="value"
+export Worker__Enabled=true Worker__ApiBaseUrl="https://<apiUrl>/" Worker__ApiKey="<Ingest--ApiKey value>"
+export Worker__VideoRoot=/assets/videos Model__Path=/assets/best.onnx
+dotnet run --project src/Pakar.AiInference --no-launch-profile
 ```
-The worker asks the API which video and polygons to use (`GET /api/internal/video-sources`), plays the video, and posts results.
-While it runs, the video source shows as active in the admin pages; when it stops, the source turns inactive after 2 minutes.
-These settings and the worker itself are built in TODO.md tasks 2b and P5; until then this section describes the target.
+The worker asks the API every 10 seconds which videos and polygons to use (`GET /api/internal/video-sources`), plays each video in a loop at about 2 frames per second,
+and posts changes plus a heartbeat every 15 seconds. While it runs, the video source is active; when it stops, the source turns inactive after 2 minutes.
+Nothing is shown to users until the worker has been started by someone on the team; the website itself works without it and shows the last known status.
+
+**Container (optional, later):** the same program can run as a container in Azure. `src/Pakar.AiInference/Dockerfile` is in the `ai-dotnet` branch and needs
+`libdrm2 libatomic1` added to its `apt-get install` line (see TODO.md, branch review). The `.onnx` and the videos are not in the image (`.dockerignore` excludes
+them), so they must be mounted, which needs Azure Files storage that the Bicep no longer contains.
 
 ## Choices worth knowing
 

@@ -93,6 +93,12 @@ Verified against the running API on 2026-11-15 (Swagger at `http://localhost:524
 
 ---
 
+## Running the API locally
+
+- Database: set `DATABASE_URL` (Neon, from `neon env pull` into `.env.local`) or `ConnectionStrings:DefaultConnection` in user-secrets. `DATABASE_URL` wins when both exist.
+- First start on a new Neon database: use `DATABASE_URL_UNPOOLED` as `DATABASE_URL` so the automatic Development migration avoids the pooler.
+- Start: `cd src/Pakar.Api && ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://localhost:5249 dotnet run --no-launch-profile`, then open `http://localhost:5249/`.
+
 ## Quick test (Swagger)
 
 1. `POST /api/auth/login` with the admin from user-secrets (`Admin:Email`, `Admin:Password`).

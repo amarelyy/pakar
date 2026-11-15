@@ -23,6 +23,7 @@ from ingestion import FrameValidator, iter_frames
 from occupancy import DEFAULT_VEHICLE_CLASSES, Detection, OccupancyEngine
 from roi_mapping import CameraROIConfig
 from slot_labels import SlotOccupancyAdapter, validate_slot_classes
+from zone_occupancy import ZoneOccupancyTracker
 
 
 def validate_model_classes(names, requested):
@@ -40,8 +41,10 @@ def validate_model_classes(names, requested):
 class YOLODetector:
     kind = "ultralytics_vehicle_detector"
 
-    def __init__(self, model_path, conf=None, imgsz=640):
+    def __init__(self, model_path, conf=None, imgsz=640, nms_iou=.7):
         from ultralytics import YOLO
+        if not math.isfinite(nms_iou) or not 0 <= nms_iou <= 1:
+            raise ValueError("NMS IoU must be finite and between 0 and 1")
         if not Path(model_path).is_file():
             raise FileNotFoundError(f"Local model not found: {model_path}")
         self.model = YOLO(str(model_path))
@@ -50,9 +53,11 @@ class YOLODetector:
             self.kind = "ultralytics_slot_detector"
         self.conf = conf if conf is not None else (.10 if self.kind == "ultralytics_slot_detector" else .25)
         self.imgsz = imgsz
+        self.nms_iou = nms_iou
 
     def __call__(self, frame):
         result = self.model.predict(frame, conf=self.conf, imgsz=self.imgsz,
+                                    iou=self.nms_iou, agnostic_nms=False,
                                     device="cpu", verbose=False)[0]
         return [Detection(tuple(b.xyxy[0].tolist()), float(b.conf[0]),
                           result.names[int(b.cls[0])]) for b in result.boxes]
@@ -91,6 +96,7 @@ def parse_args(argv=None):
     p.add_argument("--vehicle-classes", nargs="+", default=list(DEFAULT_VEHICLE_CLASSES))
     p.add_argument("--conf", type=float, default=None, help="YOLO floor: default .10 custom slots / .25 vehicles")
     p.add_argument("--min-conf", type=float, default=None, help="Assignment: default .10 slots / .35 vehicles")
+    p.add_argument("--nms-iou", type=float, default=.7, help="Class-aware YOLO NMS IoU (Ultralytics default .7)")
     p.add_argument("--imgsz", type=int, default=640)
     p.add_argument("--infer-fps", type=float, default=2)
     p.add_argument("--occupy-after", type=float, default=2)
@@ -120,7 +126,7 @@ def run_pipeline(args, detector=None, client=None):
     if args.max_frames is not None and args.max_frames <= 0:
         raise ValueError("max_frames must be positive")
     cfg = CameraROIConfig.load(args.roi)
-    detector = detector if detector is not None else YOLODetector(args.model, args.conf, args.imgsz)
+    detector = detector if detector is not None else YOLODetector(args.model, args.conf, args.imgsz, args.nms_iou)
     requested = tuple(c.lower() for c in args.vehicle_classes)
     labels = {str(n).lower() for n in (detector.names.values() if isinstance(detector.names, dict) else detector.names)}
     mode = args.mode if args.mode != "auto" else ("slots" if labels == {"empty", "occupied"} else "vehicles")
@@ -133,6 +139,7 @@ def run_pipeline(args, detector=None, client=None):
         engine = OccupancyEngine(cfg, requested, min_conf=min_conf,
                                  occupy_after_s=args.occupy_after, free_after_s=args.free_after)
     validator = FrameValidator(args.frozen_after)
+    zone_tracker = ZoneOccupancyTracker(cfg.area_id, len(cfg.spots))
     if client is None and args.backend_url:
         client = BackendClient(args.backend_url, os.getenv("PAKAR_API_KEY"))
     for path in [args.events, args.summary, args.annotated_video]:
@@ -153,6 +160,7 @@ def run_pipeline(args, detector=None, client=None):
     def disconnected():
         nonlocal reconnects
         reconnects += 1
+        zone_tracker.invalidate()
         write({"kind": "source_disconnected"})
 
     stream = iter_frames(args.source, args.infer_fps, args.source_kind, on_disconnect=disconnected)
@@ -177,6 +185,7 @@ def run_pipeline(args, detector=None, client=None):
             reasons[reason] += 1
             if not valid:
                 engine.reset_pending(now)
+                zone_tracker.invalidate()
                 # CameraWatchdog will expire the camera because no heartbeat is
                 # sent for invalid images. Preserve the last known slot state.
                 write({"kind": "frame_rejected", "frame": sample.index,
@@ -189,6 +198,9 @@ def run_pipeline(args, detector=None, client=None):
             times.append((time.perf_counter() - t0) * 1000)
             h, w = sample.image.shape[:2]
             events = engine.update(detections, w, h, now=now)
+            zone, zone_event = zone_tracker.observe(engine.zone_counts(), now, engine.pending_counts())
+            if zone_event:
+                write(zone_event)
             changes += len(events)
             beat_due = last_beat is None or now - last_beat >= args.heartbeat
             payload = None
@@ -213,7 +225,7 @@ def run_pipeline(args, detector=None, client=None):
                                   for d in detections],
                    "states": {e.spot_number: e.status for e in engine.snapshot(now)},
                    "unknown": getattr(engine, "unknown", {}),
-                   "zone": engine.zone_counts(), "payload": payload})
+                   "zone": zone, "payload": payload})
             if args.annotated_video:
                 if writer is None:
                     writer = cv2.VideoWriter(str(args.annotated_video), cv2.VideoWriter_fourcc(*"mp4v"),
@@ -226,7 +238,9 @@ def run_pipeline(args, detector=None, client=None):
                     status = states.get(spot.spot_number, "unknown")
                     color = (0, 0, 255) if status == "occupied" else (0, 220, 0) if status == "available" else (0,180,255)
                     cv2.polylines(overlay, [spot.to_pixels(w, h)], True, color, 3)
-                cv2.putText(overlay, f"{detector.kind} | {now:.1f}s | {engine.zone_counts()['occupied']}/{len(cfg.spots)}",
+                count_text = (str(zone['occupied']) if zone['complete'] else
+                              f"{zone['occupiedMin']}-{zone['occupiedMax']} ({zone['unknown']} unknown, {zone['pending']} pending)")
+                cv2.putText(overlay, f"{detector.kind} | {now:.1f}s | {count_text}/{len(cfg.spots)} {zone['status']}",
                             (8, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
                 writer.write(overlay)
             if args.max_frames and processed >= args.max_frames:
@@ -242,6 +256,7 @@ def run_pipeline(args, detector=None, client=None):
     summary = {
         "detector_kind": detector.kind,
         "mode": mode, "min_conf": min_conf, "inference_conf": getattr(detector, "conf", args.conf),
+        "nms_iou": getattr(detector, "nms_iou", None),
         "source": str(args.source),
         "source_sha256": sha256(args.source) if Path(args.source).is_file() else None,
         "model": str(args.model),
@@ -252,6 +267,8 @@ def run_pipeline(args, detector=None, client=None):
         "slot_events_including_initial_snapshot": changes, "emitted_payloads": emitted,
         "http_accepted": accepted, "http_failures": failures, "reconnects": reconnects,
         "final_zone": engine.zone_counts(),
+        "final_zone_status": zone_tracker.current.copy(),
+        "zone_count_change_events": zone_tracker.count_changes,
         "occupy_after_s": args.occupy_after, "free_after_s": args.free_after,
         "replay_speed": args.replay_speed,
         "inference_ms_mean": float(np.mean(times)) if times else None,

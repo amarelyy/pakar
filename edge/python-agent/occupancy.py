@@ -217,3 +217,7 @@ class OccupancyEngine:
         total = len(self.states)
         occ = sum(1 for s in self.states.values() if s.occupied)
         return {"areaId": self.cfg.area_id, "capacity": total, "occupied": occ, "available": total - occ}
+
+    def pending_counts(self) -> dict:
+        return {"toOccupied":sum(st.candidate and not st.occupied for st in self.states.values()),
+                "toAvailable":sum(st.occupied and not st.candidate for st in self.states.values())}

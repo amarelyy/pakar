@@ -54,5 +54,20 @@ saat ini dibuat saat pengiriman, bukan pengambilan frame; replay dipercepat
 tidak mengukur latensi tersebut. Laporkan p50/p95/maksimum dan jumlah sampel.
 
 Model custom memerlukan file best.pt, hash, kelas, konfigurasi/dataset split,
-serta provenance training. Periksa kontrak sebelum integrasi; label slot
-empty/occupied belum didukung adapter vehicle-ROI saat ini.
+serta provenance training. Mode `slots` sekarang memakai adapter khusus
+`slot_labels.py` untuk kelas empty/occupied; jangan memakai adapter vehicle-ROI
+untuk model slot. Prediksi yang hilang/bertentangan tetap unknown.
+
+## Validasi ulang issue #15
+
+`py -X utf8 tests/ai/validate_issue15.py` menjalankan model aktual pada video demo,
+mengevaluasi label yang sama tanpa mengubahnya, dan menulis hasil ke
+`output/ai-validation/issue15-2026-11-15/`. Hasil mencakup perbandingan jumlah
+per frame berlabel, alasan mismatch/unknown, frame review, dan event jumlah zona.
+Gunakan hasil lengkap: hitungan eksak, frame unknown, dan selisih karena debounce;
+jangan mengubah label atau membuang frame bermasalah agar angka terlihat sempurna.
+
+`zone_snapshot` membentuk baseline pertama yang lengkap. `zone_count_changed`
+hanya muncul jika jumlah occupied dari observasi lengkap berubah. Perubahan
+per-slot tetap dikirim ke HTTP meskipun total tidak berubah. Event AI di journal
+belum mengubah perilaku broadcast SignalR backend utama; itu bagian #20.

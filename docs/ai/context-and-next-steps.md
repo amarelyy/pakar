@@ -1,5 +1,19 @@
 # Konteks AI PAKAR — status terkini 28 Oktober 2026
 
+## Update 15 November 2026 — implementasi issue #15
+
+Lihat [laporan #15](issue-15-validation-2026-11-15.md) untuk checkpoint terbaru.
+Komponen Python kini memiliki ringkasan status/rentang zona, penanda pending
+debounce, serta event jumlah zona yang terpisah dari event per-slot. NMS class-aware
+0,7 diteruskan eksplisit; nama ROI duplikat ditolak. 47 tes lulus. Inferensi baru
+290 frame mempertahankan hasil status slot 170 cocok/1 beda/3 unknown pada 174
+label; ringkasan zona menyatakan 25 frame sebagai hitungan pasti yang cocok,
+1 pending dan 3 unknown. Tidak ada klaim perbaikan akurasi model atau latency UI.
+Patch aplikasi lokal lama tetap terpisah. Backend main kini PostgreSQL/Neon;
+integrasi ulang menjadi pekerjaan #20, bukan memakai patch SQLite secara mentah.
+Bagian bertanggal 28 Oktober berikut adalah konteks historis dan dapat menyebut
+jumlah tes/commit lama. Rujuk git log dan laporan #15 untuk penyerahan terbaru.
+
 Dokumen ini menggantikan ringkasan sesi lama yang bertumpuk. Laporan pengujian
 bertanggal tetap disimpan sebagai bukti historis; jangan menganggap hasil lama
 sebagai kondisi runtime terbaru.

@@ -85,6 +85,9 @@ class CameraROIConfig:
         ids = [s.spot_id for s in self.spots]
         if len(ids) != len(set(ids)):
             raise ValueError("spot_id duplikat di ROI config.")
+        names = [s.spot_number for s in self.spots]
+        if any(not name.strip() or name != name.strip() for name in names) or len(names) != len(set(names)):
+            raise ValueError("spot_number must be unique, nonempty, and have no surrounding whitespace.")
 
         for s in self.spots:
             p = s.polygon

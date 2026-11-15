@@ -115,6 +115,47 @@ maintain camera liveness. Failed HTTP deliveries resynchronize with a fresh
 snapshot rather than replaying obsolete transitions. Authentication failures
 stop with an explicit error.
 
+## Issue #15: zone status and count events
+
+`zone_occupancy.py` separates the configured zone's count from per-slot updates.
+Complete observations report `available`, `almost_full` (90% occupied, matching
+the backend rule), or `full`. Missing detections or pending debounce transitions
+report `unknown` and an occupied range (`occupiedMin`..`occupiedMax`); missing
+evidence is not a free slot. `unknown` counts missing/conflicting observations;
+`pending` counts observed transitions still waiting for stabilization.
+All counts describe stabilized states after the configured debounce, not an
+instantaneous count of every vehicle in the image.
+
+With `--events`, the journal includes an initial `zone_snapshot` and a
+`zone_count_changed` record only when the complete occupied count changes.
+An unchanged count, slot swap, heartbeat, temporary missing detection, or pending transition cannot
+create a false zone count change. Partial observations remain visible in each
+`observation` record. The first complete frame after an incomplete startup
+establishes the baseline; it is not a fabricated change from zero.
+
+Per-slot HTTP payloads are unchanged, so slot swaps still update the map.
+These AI journal events are distinct from backend SignalR `ZoneUpdated`.
+Connecting those semantics to the latest backend is integration issue #20.
+Summary fields `final_zone_status` and `zone_count_change_events` expose the
+final zone result and number of count changes; legacy `final_zone` is retained.
+
+Confidence filtering and class-aware NMS run inside Ultralytics YOLO inference.
+`--nms-iou` defaults to 0.7 (the existing Ultralytics default), is passed explicitly,
+and is recorded in the summary. It is separate from the slot assignment IoU of 0.1.
+The tests exercise actual NMS with duplicate, low-confidence, and different-class boxes.
+
+Fresh real-model validation (no HTTP/database writes):
+
+```powershell
+py -X utf8 -m pytest tests/ai -q
+py -X utf8 tests/ai/validate_issue15.py
+```
+
+The validator needs the local `best.pt` and `parking-demo.mp4` assets, performs
+fresh inference, writes an overlay and review frames, and scores the unchanged
+reference labels. See [the #15 report](../../docs/ai/issue-15-validation-2026-11-15.md)
+for actual errors, unknowns, and scope limits.
+
 ## Ingestion health and timing
 
 - Live capture reconnects with exponential backoff capped at 30 seconds.

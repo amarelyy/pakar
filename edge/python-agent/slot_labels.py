@@ -113,15 +113,19 @@ class SlotOccupancyAdapter:
         self.engine = SlotLabelEngine(config, min_conf=min_conf, occupy_after=occupy_after, free_after=free_after)
         self.visible = {}
         self.unknown = {s.spot_number:'not_observed' for s in config.spots}
+        self.pending = {}
 
     def reset_pending(self, now=None):
         self.engine.reset_pending()
         self.visible = {}
         self.unknown = {s.spot_number:'source_gap' for s in self.cfg.spots}
+        self.pending = {}
 
     def update(self, detections, width, height, now):
         result = self.engine.update(detections, width, height, now)
         self.visible, self.unknown = result['states'], result['unknown']
+        self.pending = {name:result['raw_states'][name] for name,status in self.visible.items()
+                        if result['raw_states'][name] != status}
         changed = {r['spot'] for r in result['changes']}
         return [e for e in self.snapshot(now) if e.spot_number in changed]
 
@@ -138,3 +142,7 @@ class SlotOccupancyAdapter:
         return {'areaId': self.cfg.area_id, 'capacity': len(self.cfg.spots),
                 'occupied': occupied, 'available': len(self.visible)-occupied,
                 'unknown': len(self.cfg.spots)-len(self.visible)}
+
+    def pending_counts(self):
+        return {'toOccupied':sum(status=='occupied' for status in self.pending.values()),
+                'toAvailable':sum(status=='available' for status in self.pending.values())}

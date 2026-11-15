@@ -5,9 +5,7 @@
     "location": { "value": "eastus2" },
     "appName": { "value": "pakar" },
     "adminEmail": { "value": "admin@example.com" },
-    "deployVideoStorage": { "value": false },
     "webMinReplicas": { "value": 0 },
-    "aiMinReplicas": { "value": 1 },
     "apiExternalIngress": { "value": true }
   }
 }

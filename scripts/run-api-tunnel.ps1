@@ -20,7 +20,7 @@ $root = Split-Path -Parent $PSScriptRoot
 
 # The user-secrets id is declared in the API project file.
 $csproj = [xml](Get-Content (Join-Path $root "src/Pakar.Api/Pakar.Api.csproj"))
-$secretsId = ($csproj.Project.PropertyGroup.UserSecretsId | Where-Object { $_ })[0]
+$secretsId = @($csproj.Project.PropertyGroup.UserSecretsId | Where-Object { $_ })[0]   # @() keeps a single id from being treated as a string
 $secretsFile = Join-Path $env:APPDATA "Microsoft/UserSecrets/$secretsId/secrets.json"
 if (-not (Test-Path $secretsFile)) { throw "No user-secrets found. Set Jwt:Key, Ingest:ApiKey, Admin:Email and Admin:Password first (README.md)." }
 $secrets = Get-Content $secretsFile -Raw | ConvertFrom-Json

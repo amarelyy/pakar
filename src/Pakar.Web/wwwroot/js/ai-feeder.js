@@ -156,3 +156,21 @@ export async function play(video) {
 export function pause(video) {
     video.pause();
 }
+
+let localVideoUrl = null;
+
+/** Uses a video file picked on this computer. It is read by the browser only; nothing is uploaded. */
+export function useLocalVideo(input) {
+    const file = input.files && input.files[0];
+    releaseLocalVideo();
+    if (!file) return null;
+    localVideoUrl = URL.createObjectURL(file);
+    return { url: localVideoUrl, name: file.name, size: file.size };
+}
+
+export function releaseLocalVideo() {
+    if (localVideoUrl) {
+        URL.revokeObjectURL(localVideoUrl);
+        localVideoUrl = null;
+    }
+}

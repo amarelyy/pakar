@@ -10,6 +10,15 @@
     max-width: 24rem;
 }
 
+.feeder-local {
+    max-width: 32rem;
+    margin-bottom: 0.5rem;
+}
+
+.feeder-note {
+    margin: 0.25rem 0 0;
+}
+
 .feeder-stage {
     position: relative;
     max-width: 960px;

@@ -40,6 +40,17 @@
         <button type="button" class="btn btn-link" @onclick="LoadSourcesAsync" disabled="@(running || starting)">Reload sources</button>
     </div>
 
+    <div class="feeder-local">
+        <label for="local-video" class="form-label">Video dari komputer ini (dibaca browser, tidak diunggah ke mana pun)</label>
+        <input id="local-video" type="file" accept="video/*" class="form-control" @ref="localInput"
+               @onchange="OnLocalVideoAsync" disabled="@(running || starting)" />
+        @if (localName is not null)
+        {
+            <p class="feeder-note">Memakai <strong>@localName</strong> (@FormatSize(localSize)).
+                <button type="button" class="btn btn-link" @onclick="ClearLocalVideoAsync" disabled="@(running || starting)">Pakai video situs</button></p>
+        }
+    </div>
+
     <p class="feeder-status" role="status">@status</p>
 
     <div class="feeder-stage">
@@ -85,7 +96,29 @@
     private double lastMilliseconds;
     private string? lastSent;
 
-    private string? VideoSrc => selected is null ? null : AiSettings.Value.VideoUrl(selected.VideoFile);
+    private ElementReference localInput;
+    private string? localUrl, localName;
+    private long localSize;
+
+    // A video chosen on this computer wins over the one served by the site.
+    private string? VideoSrc => localUrl ?? (selected is null ? null : AiSettings.Value.VideoUrl(selected.VideoFile));
+
+    private async Task OnLocalVideoAsync()
+    {
+        error = null;
+        var picked = await Detector.UseLocalVideoAsync(localInput);
+        (localUrl, localName, localSize) = picked is null ? (null, null, 0L) : (picked.Url, picked.Name, picked.Size);
+    }
+
+    private async Task ClearLocalVideoAsync()
+    {
+        await Detector.ReleaseLocalVideoAsync();
+        localUrl = localName = null;
+        localSize = 0;
+    }
+
+    private static string FormatSize(long bytes) =>
+        bytes >= 1_000_000 ? $"{bytes / 1_000_000.0:0.#} MB" : $"{bytes / 1000.0:0.#} KB";
 
     protected override async Task OnInitializedAsync() => await LoadSourcesAsync();
 
@@ -211,5 +244,6 @@
         stop?.Cancel();
         if (loop is not null) { try { await loop; } catch { } }
         stop?.Dispose();
+        await Detector.ReleaseLocalVideoAsync();
     }
 }

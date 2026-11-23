@@ -5,6 +5,9 @@ using Pakar.Shared.Dtos;
 
 namespace Pakar.Web.Services;
 
+/// <summary>A video file picked on this computer, played from a temporary browser address.</summary>
+public sealed record LocalVideo(string Url, string Name, long Size);
+
 /// <summary>One analysed frame: boxes normalized to the frame, its size and timing.</summary>
 public sealed record FrameDetection(IReadOnlyList<BoundingBoxDto> Boxes, int Width, int Height, double VideoTime, double Milliseconds);
 
@@ -19,10 +22,13 @@ public sealed class BrowserDetector(IJSRuntime js, IOptions<AiOptions> options) 
     /// <summary>Execution provider in use ("webgpu" or "wasm"); set after <see cref="LoadAsync"/>.</summary>
     public string? Provider { get; private set; }
 
+    private async Task<IJSObjectReference> ModuleAsync(CancellationToken ct = default) =>
+        module ??= await js.InvokeAsync<IJSObjectReference>("import", ct, "./js/ai-feeder.js");
+
     public async Task LoadAsync(CancellationToken ct = default)
     {
         if (Provider is not null) return;
-        module ??= await js.InvokeAsync<IJSObjectReference>("import", ct, "./js/ai-feeder.js");
+        var module = await ModuleAsync(ct);
         Provider = await module.InvokeAsync<string>("load", ct, options.Value.OrtBaseUrl, options.Value.ModelUrl);
     }
 
@@ -42,6 +48,15 @@ public sealed class BrowserDetector(IJSRuntime js, IOptions<AiOptions> options) 
     public async Task PauseAsync(ElementReference video)
     {
         if (module is not null) await module.InvokeVoidAsync("pause", video);
+    }
+
+    /// <summary>Uses the video file chosen in the given file input; null when the selection was cleared.</summary>
+    public async Task<LocalVideo?> UseLocalVideoAsync(ElementReference input) =>
+        await (await ModuleAsync()).InvokeAsync<LocalVideo?>("useLocalVideo", input);
+
+    public async Task ReleaseLocalVideoAsync()
+    {
+        if (module is not null) await module.InvokeVoidAsync("releaseLocalVideo");
     }
 
     public async ValueTask DisposeAsync()

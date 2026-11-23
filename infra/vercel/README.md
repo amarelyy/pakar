@@ -54,7 +54,33 @@ Check Vercel's size limits for static files before adding long videos.
 2. Draw the slot polygons on `/admin/polygons` (once per source).
 3. Open `/admin/feeder`, choose the source, press **Start**. Keep the tab open and visible; browsers slow down hidden tabs.
 
+## 4. Open the API with a tunnel (when the API runs on your laptop)
+
+A tunnel gives the laptop a public https address, so the Vercel site can reach the API. With Cloudflare's free quick tunnel:
+
+```powershell
+cloudflared tunnel --url http://localhost:5249
+```
+
+It prints an address such as `https://random-words.trycloudflare.com` that changes every run (WebSockets work, which SignalR needs).
+Use that address in two places: `-ApiUrl` of the publish script (rebuild and redeploy), and `Cors__Origins__0` of the API (the Vercel address).
+For a fixed address, use a named tunnel with your own domain. The laptop and the API must stay on while people use the site.
+
+## Video from your own computer
+
+On `/admin/feeder` the admin can pick a video file from their computer. The browser plays and analyses it locally;
+nothing is uploaded. The slot polygons still come from the selected source, so use a video with the same camera view.
+This is the "upload then process" flow: choose the file, press Start.
+
 ## Local development
+
+One command starts the postgres container, the API and the web app (each in its own window):
+
+```powershell
+./scripts/dev-local.ps1
+```
+
+Or step by step:
 
 ```powershell
 # API (uses user-secrets and the local postgres container)

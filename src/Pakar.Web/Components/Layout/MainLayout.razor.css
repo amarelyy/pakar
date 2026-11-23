@@ -1,1 +1,119 @@
-#blazor-error-ui{display:none;position:fixed;inset:auto 0 0;z-index:3000;padding:1rem;background:#fff3d6;color:#7a4d00}#blazor-error-ui .dismiss{float:right}
+.app-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    min-height: 72px;
+    padding: 0 2rem;
+    background: white;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.wordmark {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    color: var(--ink);
+    font-size: 1.25rem;
+    font-weight: 750;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.brand-icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--ink);
+    color: white;
+}
+
+.brand-icon i {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+}
+
+.brand-sub {
+    border-left: 1px solid var(--hairline);
+    padding-left: .75rem;
+    color: var(--muted);
+    font-size: .75rem;
+    font-weight: 500;
+}
+
+.header-nav, .account {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: .875rem;
+}
+
+.header-nav ::deep a {
+    padding: .5rem 0;
+    color: var(--muted);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.header-nav ::deep a.active {
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+}
+
+.account {
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.skip-link {
+    position: fixed;
+    z-index: 2000;
+    top: -70px;
+    left: 12px;
+    padding: .75rem;
+    background: white;
+}
+
+.skip-link:focus {
+    top: 5px;
+}
+
+@media (max-width: 700px) {
+    .app-header {
+        flex-wrap: wrap;
+        gap: .5rem 1rem;
+        min-height: 60px;
+        padding: .75rem 1rem;
+    }
+
+    .brand-sub {
+        display: none;
+    }
+
+    .account {
+        gap: .5rem;
+    }
+}
+
+.account ::deep .account-name {
+    max-width: 38ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account ::deep a {
+    white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+    .account { flex-wrap: wrap; }
+    .account ::deep .account-name { max-width: 16ch; }
+}

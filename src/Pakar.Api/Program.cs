@@ -100,8 +100,6 @@ builder.Services.AddHttpClient<InferenceClient>(client =>
 });
 
 builder.Services.AddSingleton<ParkingStateStore>();
-builder.Services.AddSingleton<CurrentObservations>();
-builder.Services.AddSingleton<ProcessedFrameStore>();
 builder.Services.AddHostedService<CameraWatchdog>();
 
 builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
@@ -112,6 +110,7 @@ builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
 var app = builder.Build();
 
 await DbSeeder.SeedAsync(app);
+app.Services.GetRequiredService<ParkingStateStore>().PreloadOverrides();
 
 if (app.Environment.IsDevelopment())
 {
@@ -142,17 +141,22 @@ app.MapControllers();
 app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
 
-app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
+// Manual database check for local work only; deployed hosts use /health/ready instead.
+if (app.Environment.IsDevelopment())
 {
-    Message = "DB Connected!",
-    TotalZones = await db.Zones.CountAsync()
-}).WithTags("System");
+    app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
+    {
+        Message = "DB Connected!",
+        TotalZones = await db.Zones.CountAsync()
+    }).WithTags("System");
+}
 
 app.MapAdminEndpoints();
 app.MapRoiEndpoints();
+app.MapFeederEndpoints();
+app.MapZoneOverrideEndpoints();
+app.MapHistoryEndpoints();
 app.MapReferenceFrameEndpoints();
-app.MapVideoPreviewEndpoints();
-app.MapProcessedFrames();
 app.MapReportEndpoints();
 app.MapUserEndpoints();
 

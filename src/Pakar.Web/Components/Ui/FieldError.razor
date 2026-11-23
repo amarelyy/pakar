@@ -1,6 +1,0 @@
-@foreach (var message in Messages) { <span class="validation-message" role="alert">@message</span> }
-@code {
-    [Parameter] public ApiException? Error { get; set; }
-    [Parameter] public string Field { get; set; } = "";
-    private IEnumerable<string> Messages => Error?.Errors.FirstOrDefault(e => e.Key.Equals(Field, StringComparison.OrdinalIgnoreCase)).Value ?? [];
-}

@@ -1,225 +1,196 @@
-@using Pakar.Shared.Dtos
-@using Microsoft.AspNetCore.SignalR.Client
-@using System.Globalization
-@inject IConfiguration Configuration
-@inject ParkingApiClient Api
-@inject IHttpClientFactory HttpClients
-@inject IJSRuntime JS
-@inject ILogger<CampusMap> Logger
-@implements IAsyncDisposable
+@using Pakar.Web.Components.Ui
 
 <div class="parking-page">
-    @if(Configuration.GetValue<bool>("Demo:Enabled")){<p class="demo-label">Demo mobil · Rekaman siang hari · DTETI, TNTF, DTMI, DTK · Posisi dan kapasitas untuk demonstrasi.</p>}
-    <div class="parking-heading"><div><p class="eyebrow">FAKULTAS TEKNIK · UNIVERSITAS GADJAH MADA</p><h1>Temukan tempat parkirmu.</h1><p class="muted">Cek ketersediaan zona sebelum menuju lokasi.</p></div><span class="connection-label @(connected ? "online" : "offline")"><span aria-hidden="true">●</span> @(connected ? "Pembaruan langsung aktif" : "Pembaruan langsung terputus")</span></div>
+    <div class="parking-heading">
+        <div>
+            <p class="eyebrow">FAKULTAS TEKNIK · UNIVERSITAS GADJAH MADA</p>
+            <h1>Temukan tempat parkirmu.</h1>
+            <p class="muted">Cek ketersediaan zona sebelum menuju lokasi.</p>
+        </div>
+        <span class="connection-label @(IsLive ? "online" : "offline")" role="status">
+            <span aria-hidden="true">●</span>
+            @(IsLive ? "Pembaruan langsung aktif" : loading ? "Menghubungkan…" : "Pembaruan berkala")
+        </span>
+    </div>
+
     <div class="parking-workspace">
         <section class="parking-panel" aria-label="Pencarian dan daftar zona">
-            <form @onsubmit="Search" @onsubmit:preventDefault class="parking-search">
+            <form @onsubmit="SearchAsync" @onsubmit:preventDefault class="parking-search">
                 <label for="zone-search">Mau parkir di mana?</label>
-                <div class="search-row"><input id="zone-search" @bind="query" placeholder="Cari zona atau gedung…" maxlength="100" /><button type="submit" class="primary" disabled="@searching">Cari</button></div>
-                <div class="filter-row"><label>Status<select @bind="status" @bind:after="Search"><option value="">Semua status</option><option value="available">Tersedia</option><option value="almost_full">Hampir penuh</option><option value="full">Penuh</option></select></label><label>Minimal slot kosong<input type="number" min="0" max="500" @bind="minimum" @bind:after="Search" /></label></div>
-                @if(hasSearch){<button type="button" class="text-button small" @onclick="ResetSearch">Reset filter</button>}
-            </form>
-            <div class="zone-list-heading"><h2>@(hasSearch ? "Hasil pencarian" : "Zona parkir")</h2><span>@Visible.Count() zona</span></div>
-            <div class="zone-list" aria-busy="@(loading || searching)">
-                @if (loading) { <div class="empty-state" role="status">Memuat zona parkir…</div> }
-                @if (error is not null) { <div class="notice danger" role="alert">@error <button class="small" @onclick="Retry">Coba lagi</button></div> }
-                @if (searchError is not null) { <p class="notice danger" role="alert">@searchError</p> }
-                @if (searching) { <p role="status" class="muted">Mencari zona…</p> }
-                @if (!loading && error is null && !Visible.Any()) { <div class="empty-state"><h2>@(state.Zones.Count == 0 ? "Belum ada zona" : "Zona tidak ditemukan")</h2><p>@(state.Zones.Count == 0 ? "Zona akan muncul setelah admin menambahkannya." : "Coba kata kunci lain atau ubah filter.")</p>@if(hasSearch){<button @onclick="ResetSearch">Reset pencarian</button>}</div> }
-                @foreach (var zone in Visible)
+                <div class="search-row">
+                    <input id="zone-search" @bind="query" placeholder="Cari zona atau gedung…" maxlength="100" />
+                    <button type="submit" class="btn btn-primary" disabled="@searching">Cari</button>
+                </div>
+                <div class="filter-row">
+                    <div>
+                        <label for="zone-status">Status</label>
+                        <select id="zone-status" class="form-select" @bind="status">
+                            <option value="">Semua status</option>
+                            <option value="available">Tersedia</option>
+                            <option value="almost_full">Hampir penuh</option>
+                            <option value="full">Penuh</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="zone-minimum">Minimal slot kosong</label>
+                        <input id="zone-minimum" class="form-control" type="number" min="0" @bind="minimum" />
+                    </div>
+                </div>
+                @if (HasFilters)
                 {
-                    <button class="zone-card @(selected?.Id == zone.Id ? "selected" : "")" @onclick="() => Select(zone.Id)" aria-pressed="@(selected?.Id == zone.Id)">
-                        <div class="zone-card-top"><span class="zone-name">@zone.Name</span><StatusChip Status="@zone.Status" /></div>
-                        <div class="zone-count"><strong class="tnum">@zone.AvailableSpots</strong><span>kosong <span class="muted">/ @zone.TotalCapacity slot</span></span><span class="zone-arrow" aria-hidden="true">↗</span></div>
-                        @if(zone.UsesObservations && zone.UnknownSpots>0){<span class="stale">@zone.UnknownSpots slot belum diketahui</span>}
-                        <div class="fill-track" aria-hidden="true"><span class="@zone.Status" style="width:@Fill(zone)%"></span></div>
-                        <div class="zone-meta">@if (ParkingLiveState.IsStale(zone, now)) { <span class="stale">◷ Data terakhir · sumber belum terkonfirmasi</span> } else { <span>● Sumber aktif</span> } @if(zone.IsOverridden){<span>Diatur admin</span>}</div>
+                    <button type="button" class="text-button small" @onclick="ResetFilters">Reset filter</button>
+                }
+            </form>
+            @{
+                var visible = VisibleZones.ToList();
+            }
+            <div class="zone-list-heading">
+                <h2>@(HasFilters ? "Hasil pencarian" : "Zona parkir")</h2><span>@visible.Count zona</span>
+            </div>
+            <div class="zone-list" aria-busy="@(loading || searching)">
+                @if (loading)
+                {
+                    <p class="empty-state" role="status">Memuat zona parkir…</p>
+                }
+                @if (error is not null)
+                {
+                    <div class="notice danger" role="alert">
+                        @error <button type="button" class="text-button small" @onclick="ConnectAsync">Coba lagi</button>
+                    </div>
+                }
+                @if (searchError is not null)
+                {
+                    <p class="notice danger" role="alert">@searchError</p>
+                }
+                @if (searching)
+                {
+                    <p class="muted" role="status">Mencari zona…</p>
+                }
+                @if (!loading && !searching && error is null && searchError is null && visible.Count == 0)
+                {
+                    <div class="empty-state">
+                        <h2>@(state.Zones.Count == 0 ? "Belum ada zona" : "Zona tidak ditemukan")</h2>
+                        @if (HasFilters)
+                        {
+                            <button type="button" class="text-button" @onclick="ResetFilters">Reset pencarian</button>
+                        }
+                    </div>
+                }
+                @foreach (var zone in visible)
+                {
+                    <button type="button" @key="zone.Id" class="zone-card @(zone.Id == selectedId ? "selected" : null)"
+                            @onclick="() => SelectAsync(zone.Id)" aria-pressed="@(zone.Id == selectedId)">
+                        <span class="zone-card-top"><span class="zone-name">@zone.Name</span><StatusChip Status="@zone.Status" /></span>
+                        <span class="zone-count"><strong class="tnum">@zone.AvailableSpots</strong><span>kosong <span class="muted">/ @zone.TotalCapacity slot</span></span><span class="zone-arrow" aria-hidden="true">↗</span></span>
+                        <span class="fill-track" aria-hidden="true"><span class="@zone.Status" style="width:@Fill(zone)%"></span></span>
+                        <span class="zone-meta">
+                            @if (state.IsStale(zone, now))
+                            {
+                                <span class="stale">Data terakhir · sumber tidak aktif</span>
+                            }
+                            @if (zone.IsOverridden)
+                            {
+                                <span>Diatur admin</span>
+                            }
+                        </span>
                     </button>
                 }
             </div>
             <div class="panel-foot">Ketersediaan dapat berubah saat Anda tiba.</div>
         </section>
+
         <section class="map-panel" aria-label="Peta parkir Fakultas Teknik UGM">
             <div id="campus-map" class="campus-map"></div>
-            <div class="map-top-note"><span class="map-location">FT UGM · Yogyakarta</span><button class="small" @onclick="FitMap">Lihat semua zona</button></div>
-            <div class="map-legend"><span><i class="available"></i> Tersedia</span><span><i class="almost_full"></i> Hampir penuh</span><span><i class="full"></i> Penuh</span><span><i class="unknown"></i> Data lama</span></div>
-            @if (!connected && !loading) { <div class="map-connection notice warning" role="status">Menampilkan data terakhir. <button class="small" @onclick="Retry" disabled="@connecting">@(connecting ? "Menyambungkan…" : "Sambungkan kembali")</button></div> }
-            @if (mapError is not null) { <div class="map-connection notice warning" role="status">@mapError</div> }
-            @if(selected is not null)
+            <div class="map-top-note">
+                <span class="map-location">FT UGM · Yogyakarta</span>
+                <button type="button" class="btn btn-light small" @onclick="FitMapAsync" disabled="@(!mapReady)">Lihat semua zona</button>
+            </div>
+            <div class="map-legend">
+                <span><i class="available"></i> Tersedia</span><span><i class="almost_full"></i> Hampir penuh</span>
+                <span><i class="full"></i> Penuh</span><span><i class="unknown"></i> Data lama</span>
+            </div>
+            @if (mapError is not null)
+            {
+                <p class="map-connection notice warning" role="status">@mapError</p>
+            }
+            else if (!IsLive && !loading)
+            {
+                <div class="map-connection notice warning" role="status">
+                    Pembaruan berkala aktif.
+                    <button type="button" class="text-button small" @onclick="ConnectAsync" disabled="@connecting">Sambungkan kembali</button>
+                </div>
+            }
+            @if (Selected is { } selected)
             {
                 <section class="zone-detail card" aria-label="Detail zona">
-                    <div class="zone-card-top"><p class="eyebrow">ZONA PILIHAN</p><button class="text-button" @onclick="CloseDetail" aria-label="Tutup detail zona">×</button></div>
-                    <h2 @ref="detailHeading" tabindex="-1">@selected.Name</h2><div class="detail-count"><strong>@selected.AvailableSpots</strong><span>slot kosong teramati dari @selected.TotalCapacity</span><StatusChip Status="@selected.Status" /></div>
-                    @if(selected.UsesObservations && selected.UnknownSpots>0){<p class="notice warning">@selected.UnknownSpots slot belum diketahui. Slot tersebut tidak dihitung sebagai kosong.</p>}
-                    @if (ParkingLiveState.IsStale(selected, now)) { <p class="stale">Sumber tidak aktif atau data berusia lebih dari 2 menit. Angka ini adalah kondisi terakhir yang diketahui.</p> }
-                    @if(alternateLoading){<p role="status">Mencari alternatif…</p>}
-                    @if(alternateError is not null){<p class="notice danger" role="alert">@alternateError <button class="small" @onclick="LoadAlternate">Coba lagi</button></p>}
-                    @if(selected.Status == "full" && alternate is not null)
+                    <div class="zone-card-top">
+                        <p class="eyebrow">ZONA PILIHAN</p>
+                        <button type="button" class="text-button" @onclick="CloseDetailAsync" aria-label="Tutup detail zona">×</button>
+                    </div>
+                    <h2 @ref="detailHeading" tabindex="-1">@selected.Name</h2>
+                    <div class="detail-count">
+                        <strong>@selected.AvailableSpots</strong><span>slot kosong dari @selected.TotalCapacity</span><StatusChip Status="@selected.Status" />
+                    </div>
+                    @if (selected.IsOverridden)
                     {
-                        <div class="alternative"><p class="eyebrow">@(alternate.Alternative is null ? "BELUM ADA ALTERNATIF" : "ALTERNATIF ZONA")</p>
-                        @if(alternate.Alternative is {} other){<button class="alternative-link" @onclick="() => Select(other.Id)"><span><strong>@other.Name</strong><span class="cell-sub">@other.AvailableSpots slot kosong @(other.DistanceMeters is {} distance ? $"· {distance:0} m dari zona ini" : "· jarak belum tersedia")</span></span><span aria-hidden="true">→</span></button>}
-                        else {<p>Belum ada zona lain dengan slot kosong. Coba lagi sebentar.</p>}</div>
+                        <p class="muted">Status diatur admin.</p>
                     }
-                    @if(selected.Spots.Count > 0){<details class="slot-details"><summary>Lihat @selected.Spots.Count slot terpetakan</summary><ul>@foreach(var spot in selected.Spots){<li><span>@spot.Name</span><span>@(selected.UsesObservations ? spot.ObservedStatus switch { "occupied"=>"Terisi", "available"=>"Kosong teramati", _=>"Belum diketahui" } : spot.IsOccupied ? "Terisi" : "Kosong")</span></li>}</ul></details>}
-                    @if(selected.Spots.Count > 0){<UserReportForm @key="selected.Id" Zone="selected" />}
+                    @if (state.IsStale(selected, now))
+                    {
+                        <p class="stale">Sumber tidak aktif atau data berusia lebih dari 2 menit.</p>
+                    }
+                    @if (selected.Spots.Count > 0)
+                    {
+                        <UserReportForm @key="selected.Id" Zone="selected" />
+                    }
+                    @if (selected.Status == "full")
+                    {
+                        @if (alternateLoading)
+                        {
+                            <p role="status">Mencari alternatif…</p>
+                        }
+                        @if (alternateError)
+                        {
+                            <p class="notice danger" role="alert">
+                                Alternatif belum dapat dimuat.
+                                <button type="button" class="text-button small" @onclick="LoadAlternateAsync">Coba lagi</button>
+                            </p>
+                        }
+                        @if (alternate is { } suggestion)
+                        {
+                            <div class="alternative">
+                                <p class="eyebrow">@(suggestion.Alternative is null ? "BELUM ADA ALTERNATIF" : "ALTERNATIF ZONA")</p>
+                                @if (suggestion.Alternative is { } other)
+                                {
+                                    <button type="button" class="alternative-link" @onclick="() => SelectAsync(other.Id)">
+                                        <span>
+                                            <strong>@other.Name</strong>
+                                            <span class="cell-sub">@other.AvailableSpots slot kosong@(other.DistanceMeters is { } distance ? $" · {distance:0} m dari zona ini" : "")</span>
+                                        </span>
+                                        <span aria-hidden="true">→</span>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <p>Belum ada zona lain dengan slot kosong.</p>
+                                }
+                            </div>
+                        }
+                    }
+                    @if (selected.Spots.Count > 0)
+                    {
+                        <details class="slot-details">
+                            <summary>Lihat @selected.Spots.Count slot terpetakan</summary>
+                            <ul>
+                                @foreach (var spot in selected.Spots)
+                                {
+                                    <li @key="spot.Id"><span>@spot.Name</span><span>@(spot.IsOccupied ? "Terisi" : "Kosong")</span></li>
+                                }
+                            </ul>
+                        </details>
+                    }
                 </section>
             }
         </section>
     </div>
 </div>
-
-@code {
-    private readonly ParkingLiveState state = new();
-    private readonly CancellationTokenSource lifetime = new();
-    private readonly List<Action> buffered = [];
-    private HubConnection? hub;
-    private DotNetObjectReference<CampusMap>? reference;
-    private bool loading = true, searching, connected, connecting, syncing, mapReady, disposed;
-    private string? error, searchError, mapError, alternateError;
-    private string query = "", status = "";
-    private int? minimum;
-    private HashSet<Guid>? resultIds;
-    private ZoneDto? selected;
-    private AlternateZoneDto? alternate;
-    private bool alternateLoading;
-    private bool focusDetail;
-    private ElementReference detailHeading;
-    private int selectionVersion, searchVersion;
-    private DateTimeOffset now = DateTimeOffset.UtcNow;
-    private PeriodicTimer? freshnessTimer;
-    private bool hasSearch => !string.IsNullOrWhiteSpace(query) || status != "" || minimum > 0;
-    private IEnumerable<ZoneDto> Visible => state.Zones.Where(z => resultIds is null || resultIds.Contains(z.Id)).OrderByDescending(z => z.AvailableSpots).ThenBy(z => z.Name);
-    private static int Fill(ZoneDto zone) => zone.TotalCapacity <= 0 ? 0 : Math.Clamp((zone.UsesObservations ? zone.Spots.Count(s=>s.ObservedStatus=="occupied") : zone.TotalCapacity-zone.AvailableSpots)*100/zone.TotalCapacity,0,100);
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender)
-        {
-            if(focusDetail && selected is not null)
-            {
-                focusDetail=false;
-                try { await detailHeading.FocusAsync(); } catch(JSDisconnectedException) { }
-            }
-            return;
-        }
-        reference = DotNetObjectReference.Create(this);
-        try { await JS.InvokeVoidAsync("campusMap.init", "campus-map", reference); mapReady = true; }
-        catch (JSException) { mapError = "Peta belum dapat dimuat. Daftar zona tetap dapat digunakan."; }
-        await Retry();
-        freshnessTimer = new PeriodicTimer(TimeSpan.FromSeconds(15));
-        _ = TickFreshness();
-    }
-    private async Task TickFreshness()
-    {
-        try { while(await freshnessTimer!.WaitForNextTickAsync(lifetime.Token)) await InvokeAsync(async () => { now = DateTimeOffset.UtcNow; state.Refresh(now); await RenderMap(); StateHasChanged(); }); }
-        catch(OperationCanceledException) { }
-    }
-    private async Task Retry()
-    {
-        if(connecting || disposed) return;
-        connecting = true; error = null;
-        try
-        {
-            hub ??= CreateHub();
-            if(hub.State == HubConnectionState.Reconnecting) await hub.StopAsync(lifetime.Token);
-            if(hub.State == HubConnectionState.Disconnected) await hub.StartAsync(lifetime.Token);
-            connected = hub.State == HubConnectionState.Connected;
-        }
-        catch(Exception ex) when(ex is HttpRequestException or OperationCanceledException or InvalidOperationException)
-        { connected = false; Logger.LogWarning("Parking live connection unavailable: {Type}", ex.GetType().Name); }
-        try { await Synchronize(); }
-        catch(ApiException ex) { error = ex.Message; }
-        catch(Exception ex) when(ex is HttpRequestException or OperationCanceledException or InvalidOperationException) { error = "Sinkronisasi belum berhasil. Coba sambungkan kembali."; }
-        finally { connecting = false; loading = false; if(!disposed) StateHasChanged(); }
-    }
-    private HubConnection CreateHub()
-    {
-        var connection = new HubConnectionBuilder().WithUrl(new Uri(HttpClients.CreateClient("api").BaseAddress!, "hubs/parking")).WithAutomaticReconnect().Build();
-        connection.On<SourceObservationDto>("ObservationsUpdated", value => Receive(() => state.Apply(value)));
-        connection.On<LiveSpot>("SpotStatusChanged", value => Receive(() => state.Apply(value)));
-        connection.On<LiveZone>("ZoneUpdated", value => Receive(() => state.Apply(value)));
-        connection.On<LiveCamera>("CameraStatusChanged", value => Receive(() => state.Apply(value)));
-        connection.Reconnecting += _ => InvokeAsync(() => { connected = false; StateHasChanged(); });
-        connection.Closed += _ => InvokeAsync(() => { connected = false; StateHasChanged(); });
-        connection.Reconnected += _ => InvokeAsync(async () => { connected = true; try { await Synchronize(); error = null; } catch(Exception ex) when(ex is ApiException or HttpRequestException or InvalidOperationException or OperationCanceledException) { error = "Koneksi pulih, tetapi data belum tersinkron. Coba lagi."; } StateHasChanged(); });
-        return connection;
-    }
-    private Task Receive(Action apply) => InvokeAsync(async () =>
-    {
-        if(disposed) return;
-        if(syncing) { buffered.Add(apply); return; }
-        apply(); now = DateTimeOffset.UtcNow;
-        if(hasSearch) await Search();
-        if(selected?.Status == "full") await LoadAlternate();
-        await RenderMap(); StateHasChanged();
-    });
-    private async Task Synchronize()
-    {
-        syncing = true;
-        try
-        {
-            var zones = await Api.Get<List<ZoneDto>>("api/parking/zones", ct:lifetime.Token);
-            state.Reset(zones);
-            foreach(var observation in await Api.Get<List<SourceObservationDto>>("api/parking/observations", ct:lifetime.Token)) state.Apply(observation);
-            if(connected && hub is not null)
-            {
-                foreach(var areaId in zones.Select(z=>z.ExternalId).Distinct())
-                    await hub.InvokeAsync("JoinArea",areaId,lifetime.Token);
-                state.Apply(await hub.InvokeAsync<LiveSnapshot>("GetSnapshot", lifetime.Token));
-            }
-            foreach(var change in buffered) change();
-            selected = state.Zones.FirstOrDefault(z => z.Id == selected?.Id);
-            await Search(); await RenderMap();
-        }
-        finally { buffered.Clear(); syncing = false; }
-    }
-    private async Task Search()
-    {
-        var version = ++searchVersion;
-        searching = true; searchError = null;
-        try
-        {
-            if(!hasSearch){ resultIds=null; return; }
-            var path = $"api/parking/zones/search?q={Uri.EscapeDataString(query.Trim())}&status={Uri.EscapeDataString(status)}&limit=100";
-            if(minimum is not null) path += $"&minAvailable={minimum.Value}";
-            var results = await Api.Get<List<ZoneSummaryDto>>(path, ct:lifetime.Token);
-            if(version == searchVersion) resultIds = results.Select(z=>z.Id).ToHashSet();
-        }
-        catch(ApiException ex) { if(version == searchVersion){searchError=ex.Message;resultIds=[];} }
-        finally { if(version == searchVersion) { searching=false; await RenderMap(); } }
-    }
-    private async Task ResetSearch(){ query=""; status=""; minimum=null; await Search(); }
-    [JSInvokable] public Task SelectFromMap(string id) => Guid.TryParse(id,out var value) ? InvokeAsync(async()=>{await Select(value);StateHasChanged();}) : Task.CompletedTask;
-    private async Task Select(Guid id)
-    {
-        selected=state.Zones.FirstOrDefault(z=>z.Id==id); alternate=null; alternateError=null; ++selectionVersion;
-        if(selected is not null && mapReady) await JS.InvokeVoidAsync("campusMap.focusZone", id.ToString());
-        if(selected?.Status=="full") await LoadAlternate();
-        focusDetail=selected is not null;
-        await RenderMap();
-    }
-    private void CloseDetail(){ selected=null; alternate=null; focusDetail=false; ++selectionVersion; }
-    private async Task LoadAlternate()
-    {
-        if(selected is null) return;
-        var zoneId=selected.Id; var version=selectionVersion;
-        alternateLoading=true; alternateError=null;
-        try { var value=await Api.Get<AlternateZoneDto>($"api/parking/zones/{zoneId}/alternate",ct:lifetime.Token); if(version==selectionVersion) alternate=value; }
-        catch(ApiException ex){ if(version==selectionVersion) alternateError=ex.Message; }
-        finally { if(version==selectionVersion) alternateLoading=false; }
-    }
-    private async Task RenderMap()
-    {
-        if(!mapReady || disposed) return;
-        try { await JS.InvokeVoidAsync("campusMap.renderZones", state.Zones.Select(z=>new {z.Id,z.Name,z.Status,z.AvailableSpots,z.TotalCapacity,z.UnknownSpots,z.UsesObservations,z.Spots,Stale=ParkingLiveState.IsStale(z,now)}),selected?.Id.ToString()); }
-        catch(Exception ex) when(ex is JSDisconnectedException or TaskCanceledException) { }
-    }
-    private async Task FitMap(){ if(mapReady) await JS.InvokeVoidAsync("campusMap.fit"); }
-    public async ValueTask DisposeAsync()
-    {
-        disposed=true; lifetime.Cancel(); freshnessTimer?.Dispose();
-        if(hub is not null) await hub.DisposeAsync();
-        try { if(mapReady) await JS.InvokeVoidAsync("campusMap.dispose"); } catch(Exception ex) when(ex is JSDisconnectedException or TaskCanceledException) { }
-        reference?.Dispose(); lifetime.Dispose();
-    }
-}

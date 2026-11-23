@@ -23,6 +23,7 @@ shared deployment. The original endpoint inventory below remains for legacy cons
 | GET | `/api/cameras/{id}/rois` | Admin | Camera/zone Guid metadata, configured `slots` and all zone `spots` available for drawing. |
 | PUT | `/api/cameras/{id}/rois` | Admin | Replace all polygons atomically with `{slots:[{spotId:"<guid>",points:[[x,y],...]}]}`; empty list clears. |
 | GET | `/api/internal/video-sources` | API key | File+ROI configured sources, including currently inactive health states, with integer ExternalIds for worker ingest. JWT alone is rejected. |
+| GET | `/api/feeder/sources` | Admin JWT | Same payload as `/api/internal/video-sources`, for the browser feeder page (the ingest API key must not be sent to a browser). |
 | PUT | `/api/cameras/{id}/reference-frame` | Admin | Multipart `file`, PNG/JPEG signature, <=2 MB; replaces database-backed image. |
 | GET | `/api/cameras/{id}/reference-frame` | Admin | Image bytes/content type; 404 if absent; no-store caching. |
 
@@ -68,9 +69,11 @@ until map consumers migrate. See [runtime setup](ai/runtime-validation.md).
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/parking/zones` | Public | List every zone with capacity, available spots, status (`available`, `almost_full`, `full`) and its spots (coordinates, occupied flag). Feeds the campus map. |
+| GET | `/api/parking/zones` | Public | List every zone with capacity, available spots, status (`available`, `almost_full`, `full`), `isOverridden` and its spots (coordinates, occupied flag). Feeds the campus map. When an admin forced the status (FR 17), `status` is that value and a `full` zone shows 0 available spots. |
 | GET | `/api/parking/zones/search` | Public | Search zones. Optional query: `q` (name or description), `status`, `minAvailable`, `lat` + `lng` (sort by distance), `limit`. |
 | GET | `/api/parking/zones/{id}/alternate` | Public | Nearest other zone that still has free spots, used when a zone is full. Optional `lat` + `lng`; without them the distance starts from the zone's own spots. |
+| GET | `/api/history/zones/{id}` | Public | Occupancy of one zone over time, for charts and prediction. Optional query: `from`, `to` (ISO 8601, default the last 24 hours), `bucket` (`hour` default, or `day`). Ranges: at most 7 days per hour bucket and 92 days per day bucket. Each point has `time` (UTC), `observations`, `occupiedObservations`, `occupancyRate` (0 to 1) and `spotsObserved`; empty buckets are left out. 400 for a bad bucket or range, 404 for an unknown zone. |
+| GET | `/api/history/detections` | Admin | Raw detection records, newest first, paged. Optional query: `zoneId`, `cameraId`, `spotId` (the AI spot id), `status` (`occupied` or `available`), `from`, `to` (default the last 24 hours, at most 31 days), `page`, `pageSize` (max 100). Records of removed zones and cameras are included. |
 | GET | `/api/parking/snapshot` | Public | Current in-memory state of all spots, zones and cameras. Used by a client to sync after connecting or reconnecting. |
 
 ## 3. Reports (FR 5, 6, 16)
@@ -92,11 +95,14 @@ Validation errors return 400 with field errors (RFC 7807 `errors`); unknown ids 
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/zones` | Admin | List zones with `totalCapacity`, `spotCount`, `cameraCount` and the AI `externalId` (the area id the worker sends). |
+| GET | `/api/zones` | Admin | List zones with `totalCapacity`, `spotCount`, `cameraCount`, the AI `externalId` (the area id the worker sends) and the manual status (`overrideStatus`, `overrideNote`, `overrideSetAt`, all null when none is set). |
 | GET | `/api/zones/{id}` | Admin | Read one zone. |
 | POST | `/api/zones` | Admin | Add a zone: `name` (required, max 100), `description` (max 500), `totalCapacity` (1 to 500). The `externalId` is assigned automatically and returned. Returns 201. |
 | PUT | `/api/zones/{id}` | Admin | Edit name, description and capacity. Capacity cannot be lower than the spots already in the zone. The realtime capacity cache is refreshed. |
 | DELETE | `/api/zones/{id}` | Admin | Soft-delete a zone and its cameras so detection history is kept. Returns 204. |
+| GET | `/api/zones/status-overrides` | Admin | Zones that currently have a manual status (FR 17): `zoneId`, `zoneName`, `zoneExternalId`, `status`, `note`, `setAt`, `setBy`. |
+| PUT | `/api/zones/{id}/status-override` | Admin | Force a zone's displayed status during camera downtime (FR 17). Body `{ "status": "full", "note": "Camera 2 is offline" }`; status is `available`, `almost_full` or `full`, note is optional (max 200). Stored in the database, so it survives a restart, and pushed to open maps as a `ZoneUpdated` event. A zone forced to `full` is skipped by search and alternate-zone suggestions. A new call replaces the previous override. |
+| DELETE | `/api/zones/{id}/status-override` | Admin | Remove the manual status; the zone shows its computed status again and the change is pushed. Returns 204, also when none was set. |
 | GET | `/api/cameras` | Admin | List video sources. Optional `zoneId` filter. Each item has `zoneName`, `zoneExternalId`, `externalId` (the camera id the worker sends), `connectionType`, `videoFile`, `isActive` and `lastActiveTime`. `isActive` is false for a source that has never sent data and is kept up to date by the watchdog (planned). |
 | GET | `/api/cameras/{id}` | Admin | Read one video source. |
 | POST | `/api/cameras` | Admin | Add a video source: `name` (required), `zoneId` (must exist), `videoFile` (optional). Returns 201 with `connectionType` `Video`. |
@@ -122,6 +128,7 @@ The seed and the cameras already in the Neon database were converted to video so
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | POST | `/api/ingest/detections` | API key | The AI pipeline sends spot detections (`cameraId`, `areaId`, `type` = `change` or `heartbeat`, `timestamp`, `spots[]` max 500). Updates spot and zone state, stores detections, and pushes SignalR events. 404 if the camera is not registered. |
+| POST | `/api/feeder/detections` | Admin JWT | Same payload and effect as `/api/ingest/detections`; used by the browser feeder (`/admin/feeder`) that runs the model in the browser. |
 
 ## 7. Realtime (SignalR)
 
@@ -137,7 +144,7 @@ The seed and the cameras already in the Neon database were converted to video so
 | --- | --- | --- | --- |
 | GET | `/health/live` | Public | Process is up (Container Apps liveness probe). |
 | GET | `/health/ready` | Public | Database is reachable (readiness probe). |
-| GET | `/test-db` | Public | Returns "DB Connected!" and the zone count. Manual check. |
+| GET | `/test-db` | Public, Development only | Returns "DB Connected!" and the zone count. Not registered in other environments; use `/health/ready` there. |
 | POST | `/api/inference/trigger-update` | Dev | Simulate a detection for one spot (`spotId`, `isOccupied`) and broadcast it on `/occupancyHub`. |
 | GET | `/test-signalr` | Dev | Browser page that shows `/hubs/parking` events. |
 
@@ -162,24 +169,3 @@ The seed and the cameras already in the Neon database were converted to video so
 1. `POST /api/auth/login` with the admin from user-secrets (`Admin:Email`, `Admin:Password`).
 2. Copy `token`, click **Authorize** (top right), paste the token.
 3. Call `GET /api/users` (200). Repeat with a regular user's token and you get 403.
-
-
-## UI integration additions (`ai-dotnet`, 2026-11-15)
-
-Public `GET /api/parking/zones` now also returns numeric `externalId` on zones and
-spots, `lastUpdated` on spots, `sources` containing only externalId/isActive/lastActiveTime,
-and `isOverridden` (false until the override backend is implemented). This maps Guid
-REST identities to integer ParkingHub events without exposing source filenames/keys.
-
-`GET /api/cameras/{id}/video` requires **Admin** JWT and serves an existing video
-under API `Video:Root`, outside public static files, up to 50 MB. Supports range
-requests; returns 404 for no source/file, 413 for oversized clips, and 503 when the
-preview folder is unconfigured. Guest 401 and User 403. The Web `/admin/video/{id}`
-proxy forwards an Authorization header to this endpoint; no token goes in the URL.
-Videos are never rendered in the public map or user-report pages.
-
-ParkingHub clients must JoinArea for every desired numeric area before taking
-GetSnapshot. SpotStatusChanged is area-scoped. CameraStatusChanged is emitted on
-first ingest/reactivation and on heartbeats so a map can refresh source age without
-polling. After reconnect, reload persisted zones and then merge the hub snapshot;
-hub counts may cover only part of a zone after server restart.

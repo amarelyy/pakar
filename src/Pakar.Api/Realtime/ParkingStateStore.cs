@@ -1,4 +1,3 @@
-using Pakar.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Pakar.Domain.Entities;
@@ -17,12 +16,13 @@ public sealed class ParkingStateStore
     private readonly object _lock = new();
     private readonly Dictionary<int, SpotView> _spots = new();
     private readonly Dictionary<int, CameraView> _cameras = new();
-    private readonly Dictionary<int, int> _zoneCapacityCache = new();
+    private readonly Dictionary<int, ZoneInfo> _zoneInfoCache = new();
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly CurrentObservations? observations;
-    private readonly Dictionary<int,int[]> zoneSpots = new();
 
-    public ParkingStateStore(IServiceScopeFactory scopeFactory, CurrentObservations? current = null) { _scopeFactory = scopeFactory; observations=current; }
+    /// <summary>What the database knows about a zone: its configured capacity and the admin's manual status (FR 17).</summary>
+    private readonly record struct ZoneInfo(int Capacity, ZoneOccupancyStatus? Override);
+
+    public ParkingStateStore(IServiceScopeFactory scopeFactory) { _scopeFactory = scopeFactory; }
 
     /// <summary>Terapkan update dari kamera; return hanya slot yang statusnya benar-benar berubah + data untuk persist DB.</summary>
     public (List<SpotView> Changed, ZoneView Zone, CameraView Camera, bool CameraReactivated,
@@ -79,7 +79,11 @@ public sealed class ParkingStateStore
     {
         lock (_lock)
         {
-            var zones = _cameras.Values.Select(s => s.AreaId).Distinct().Select(BuildZone).ToList();
+            // Zones with a manual status are listed even before any spot of theirs has been seen.
+            var areas = _spots.Values.Select(s => s.AreaId)
+                .Concat(_zoneInfoCache.Where(e => e.Value.Override is not null).Select(e => e.Key))
+                .Distinct();
+            var zones = areas.Select(BuildZone).ToList();
             return new ParkingSnapshot(_spots.Values.ToList(), zones, _cameras.Values.ToList());
         }
     }
@@ -91,52 +95,61 @@ public sealed class ParkingStateStore
         var inArea = _spots.Values.Where(s => s.AreaId == areaId).ToList();
         var occ = inArea.Count(s => s.Status == "occupied");
 
-        int cap;
-        if (_zoneCapacityCache.TryGetValue(areaId, out var cached))
-        {
-            cap = cached;
-        }
-        else
+        if (!_zoneInfoCache.TryGetValue(areaId, out var info))
         {
             try
             {
                 using var scope = _scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var zone = db.Zones.AsNoTracking().FirstOrDefault(z => z.ExternalId == areaId);
-                cap = zone != null && zone.TotalCapacity > 0 ? zone.TotalCapacity : inArea.Count;
+                info = new ZoneInfo(zone != null && zone.TotalCapacity > 0 ? zone.TotalCapacity : inArea.Count, zone?.StatusOverride);
             }
             catch
             {
-                cap = inArea.Count;
+                info = new ZoneInfo(inArea.Count, null);
             }
-            _zoneCapacityCache[areaId] = cap;
+            _zoneInfoCache[areaId] = info;
             _ = Task.Delay(TimeSpan.FromHours(1)).ContinueWith(_ =>
             {
-                lock (_lock) { _zoneCapacityCache.Remove(areaId); zoneSpots.Remove(areaId); }
+                lock (_lock) _zoneInfoCache.Remove(areaId);
             });
         }
 
-        if(observations is not null)
-        {
-            if(!zoneSpots.TryGetValue(areaId,out var ids))
-            {
-                using var scope=_scopeFactory.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                ids=db.Spots.AsNoTracking().Where(s=>s.Zone.ExternalId==areaId).Select(s=>s.ExternalId).ToArray();zoneSpots[areaId]=ids;
-            }
-            var statuses=ids.Select(id=>observations.Status(id,DateTimeOffset.UtcNow)).ToArray();
-            cap=OccupancyCalculator.EffectiveCapacity(cap,ids.Length);
-            int occupied=statuses.Count(s=>s=="occupied"),available=statuses.Count(s=>s=="available");
-            return new ZoneView(areaId,cap,occupied,available,CurrentObservations.ZoneStatus(cap,occupied,available),Math.Max(0,cap-occupied-available));
-        }
-        // Legacy ingest clients retain their historical counting contract.
-        cap = OccupancyCalculator.EffectiveCapacity(cap, inArea.Count);
-        var status = OccupancyCalculator.GetStatus(cap, occ).ToApiValue();
-        return new ZoneView(areaId, cap, occ, OccupancyCalculator.Available(cap, occ), status);
+        // Same rule as the REST zone list (OccupancyCalculator), so both always agree, including a manual status (FR 17).
+        var cap = OccupancyCalculator.EffectiveCapacity(info.Capacity, inArea.Count);
+        var resolved = OccupancyCalculator.Resolve(cap, occ, info.Override);
+        return new ZoneView(areaId, cap, occ, resolved.Available, resolved.Status.ToApiValue(), resolved.IsOverridden);
     }
 
     /// <summary>Paksa refresh kapasitas dari DB (misal setelah admin edit zona via UI).</summary>
     public void InvalidateZoneCapacity(int areaId)
     {
-        lock (_lock) { _zoneCapacityCache.Remove(areaId); zoneSpots.Remove(areaId); }
+        lock (_lock) _zoneInfoCache.Remove(areaId);
+    }
+
+    /// <summary>Re-reads the zone from the database and returns its current view; call after a manual status changed (FR 17).</summary>
+    public ZoneView RefreshZone(int areaId)
+    {
+        lock (_lock)
+        {
+            _zoneInfoCache.Remove(areaId);
+            return BuildZone(areaId);
+        }
+    }
+
+    /// <summary>Loads the manual statuses saved earlier, so they apply right after a restart.</summary>
+    public void PreloadOverrides()
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var overridden = db.Zones.AsNoTracking().Where(z => z.StatusOverride != null).Select(z => z.ExternalId).ToList();
+        lock (_lock)
+        {
+            foreach (var areaId in overridden)
+            {
+                _zoneInfoCache.Remove(areaId);
+                BuildZone(areaId);
+            }
+        }
     }
 }

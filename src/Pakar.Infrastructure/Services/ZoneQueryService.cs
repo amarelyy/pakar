@@ -12,7 +12,7 @@ namespace Pakar.Infrastructure.Services;
 /// Zone availability reads. Every method runs one SQL query that aggregates spot counts per zone;
 /// status rules and distances are then applied in memory on the small per-campus zone set.
 /// </summary>
-public sealed class ZoneQueryService(AppDbContext db, CurrentObservations? current = null) : IZoneQueryService
+public sealed class ZoneQueryService(AppDbContext db) : IZoneQueryService
 {
     public const int DefaultSearchLimit = 50;
     public const int MaxSearchLimit = 100;
@@ -22,25 +22,25 @@ public sealed class ZoneQueryService(AppDbContext db, CurrentObservations? curre
     {
         var zones = await db.Zones
             .AsNoTracking()
-            .AsSplitQuery()
             .OrderBy(z => z.Name)
             .Select(z => new
             {
                 z.Id,
-                z.ExternalId,
                 z.Name,
                 z.TotalCapacity,
-                Sources = z.Cameras.Select(c => new ZoneSourceDto(c.ExternalId, c.IsActive, c.LastActiveTime)).ToList(),
+                z.StatusOverride,
+                z.ExternalId,
+                Sources = z.Cameras.Select(c => new ZoneSourceDto(c.ExternalId, c.LastActiveTime)).ToList(),
                 Spots = z.Spots
                     .OrderBy(s => s.Name)
                     .Select(s => new SpotDto
                     {
                         Id = s.Id,
-                        ExternalId = s.ExternalId,
                         Name = s.Name,
                         Latitude = s.Latitude,
                         Longitude = s.Longitude,
                         IsOccupied = s.IsOccupied,
+                        ExternalId = s.ExternalId,
                         LastUpdated = s.LastUpdated
                     }).ToList()
             })
@@ -49,19 +49,17 @@ public sealed class ZoneQueryService(AppDbContext db, CurrentObservations? curre
         return zones.Select(z =>
         {
             var capacity = OccupancyCalculator.EffectiveCapacity(z.TotalCapacity, z.Spots.Count);
-            foreach(var spot in z.Spots) spot.ObservedStatus = current?.Status(spot.ExternalId, DateTimeOffset.UtcNow);
-            var occupied = z.Spots.Count(s => current is null ? s.IsOccupied : s.ObservedStatus == "occupied");
-            var available = current is null ? OccupancyCalculator.Available(capacity, occupied) : z.Spots.Count(s=>s.ObservedStatus=="available");
+            var occupied = z.Spots.Count(s => s.IsOccupied);
+            var resolved = OccupancyCalculator.Resolve(capacity, occupied, z.StatusOverride);
             return new ZoneDto
             {
                 Id = z.Id,
-                ExternalId = z.ExternalId,
                 Name = z.Name,
                 TotalCapacity = capacity,
-                AvailableSpots = available,
-                UnknownSpots = capacity - occupied - available,
-                UsesObservations = current is not null,
-                Status = current is null ? OccupancyCalculator.GetStatus(capacity, occupied).ToApiValue() : CurrentObservations.ZoneStatus(capacity,occupied,available),
+                AvailableSpots = resolved.Available,
+                Status = resolved.Status.ToApiValue(),
+                IsOverridden = resolved.IsOverridden,
+                ExternalId = z.ExternalId,
                 Spots = z.Spots,
                 Sources = z.Sources
             };
@@ -127,7 +125,7 @@ public sealed class ZoneQueryService(AppDbContext db, CurrentObservations? curre
         var origin = overridePoint ?? CenterOf(source);
 
         var alternative = zones
-            .Where(z => z.Id != zoneId && z.AvailableSpots > 0)
+            .Where(z => z.Id != zoneId && OffersSpots(z))
             .Select(z => WithDistance(z, origin))
             .OrderBy(z => origin is null ? 0 : z.DistanceMeters ?? double.MaxValue)
             .ThenByDescending(z => z.AvailableSpots)
@@ -146,7 +144,7 @@ public sealed class ZoneQueryService(AppDbContext db, CurrentObservations? curre
     }
 
     // One query: per-zone spot counts and the average spot position as the zone's location.
-    private async Task<List<ZoneSummaryDto>> LoadSummariesAsync(IQueryable<ParkingZone> zones, CancellationToken ct)
+    private static async Task<List<ZoneSummaryDto>> LoadSummariesAsync(IQueryable<ParkingZone> zones, CancellationToken ct)
     {
         var rows = await zones
             .Select(z => new
@@ -155,8 +153,8 @@ public sealed class ZoneQueryService(AppDbContext db, CurrentObservations? curre
                 z.Name,
                 z.Description,
                 z.TotalCapacity,
+                z.StatusOverride,
                 SpotCount = z.Spots.Count(),
-                SpotIds = z.Spots.Select(s=>s.ExternalId).ToList(),
                 Occupied = z.Spots.Count(s => s.IsOccupied),
                 Latitude = z.Spots.Average(s => (double?)s.Latitude),
                 Longitude = z.Spots.Average(s => (double?)s.Longitude)
@@ -166,22 +164,25 @@ public sealed class ZoneQueryService(AppDbContext db, CurrentObservations? curre
         return rows.Select(r =>
         {
             var capacity = OccupancyCalculator.EffectiveCapacity(r.TotalCapacity, r.SpotCount);
-            var statuses = r.SpotIds.Select(id=>current?.Status(id,DateTimeOffset.UtcNow)).ToList();
-            var occupied = current is null ? r.Occupied : statuses.Count(status=>status=="occupied");
-            var available = current is null ? OccupancyCalculator.Available(capacity,occupied) : statuses.Count(status=>status=="available");
+            var resolved = OccupancyCalculator.Resolve(capacity, r.Occupied, r.StatusOverride);
             return new ZoneSummaryDto(
                 r.Id,
                 r.Name,
                 r.Description,
                 capacity,
-                occupied,
-                available,
-                current is null ? OccupancyCalculator.GetStatus(capacity, occupied).ToApiValue() : CurrentObservations.ZoneStatus(capacity,occupied,available),
+                r.Occupied,
+                resolved.Available,
+                resolved.Status.ToApiValue(),
                 r.Latitude,
                 r.Longitude,
-                DistanceMeters: null);
+                DistanceMeters: null,
+                IsOverridden: resolved.IsOverridden);
         }).ToList();
     }
+
+    // A zone the admin forced to "available" is offered even when its (stale) counts show no free spot.
+    private static bool OffersSpots(ZoneSummaryDto zone) =>
+        zone.Status != ZoneOccupancyStatus.Full.ToApiValue() && (zone.AvailableSpots > 0 || zone.IsOverridden);
 
     private static ZoneSummaryDto WithDistance(ZoneSummaryDto zone, GeoPoint? origin)
     {

@@ -1,19 +1,19 @@
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Pakar.Web.Components;
 using Pakar.Web.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-// Named client used by components to call Pakar.Api. Development falls back to the API's local
-// launch profile; every other environment must set Api:BaseUrl.
+// The API lives on a separate host. Api:BaseUrl comes from wwwroot/appsettings*.json, which the
+// Vercel publish script overwrites with the real address (see infra/vercel/README.md).
 var apiBaseUrl = builder.Configuration["Api:BaseUrl"];
-if (string.IsNullOrWhiteSpace(apiBaseUrl) && builder.Environment.IsDevelopment())
-    apiBaseUrl = "http://localhost:5249/";
 if (string.IsNullOrWhiteSpace(apiBaseUrl))
-    throw new InvalidOperationException("Api:BaseUrl is not configured.");
+    throw new InvalidOperationException("Api:BaseUrl is not configured in wwwroot/appsettings.json.");
+if (!apiBaseUrl.EndsWith('/'))
+    apiBaseUrl += "/";
 
 builder.Services.AddHttpClient("api", client =>
 {
@@ -21,30 +21,16 @@ builder.Services.AddHttpClient("api", client =>
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
-// Account registration and login (FR 7, FR 8). Scoped = one instance per browser circuit.
+// Browser-side AI settings: where the ONNX model and the demo videos are served from.
+builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
+
+// Account registration and login (FR 7, FR 8). The whole app runs in the browser, so one instance per tab.
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<AuthApiClient>();
 builder.Services.AddScoped<UserSession>();
+builder.Services.AddScoped<AuthenticatedApiClient>();
 builder.Services.AddScoped<RoiApiClient>();
-builder.Services.AddScoped<ParkingApiClient>();
+builder.Services.AddScoped<FeederApiClient>();
+builder.Services.AddScoped<BrowserDetector>();
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
-
-app.UseAntiforgery();
-
-app.MapStaticAssets();
-app.MapVideoPreviewProxy();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-app.Run();
+await builder.Build().RunAsync();

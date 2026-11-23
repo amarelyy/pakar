@@ -1,5 +1,4 @@
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.DataProtection;
+using System.Text.Json;
 using Microsoft.JSInterop;
 using Pakar.Shared.Geometry;
 using Pakar.Web.Services;
@@ -17,7 +16,8 @@ public class UserSessionTests
         public async ValueTask<T> InvokeAsync<T>(string identifier, CancellationToken ct, object?[]? args)
         {
             if (identifier.EndsWith("setItem")) Value = (string)args![1]!;
-            if (identifier.EndsWith("getItem")) { Reads++; await Gate.Task; return (T)(object)Value!; }
+            if (identifier.EndsWith("removeItem")) Value = null;
+            if (identifier.EndsWith("getItem")) { Reads++; await Gate.Task; return (T)(object?)Value!; }
             return default!;
         }
     }
@@ -25,11 +25,9 @@ public class UserSessionTests
     [Fact]
     public async Task ConcurrentComponentsWaitForTheSameSessionRestore()
     {
-        var js = new StorageJs();
-        var storage = new ProtectedSessionStorage(js, new EphemeralDataProtectionProvider());
         var expected = new SignedInUser("test-token", DateTime.UtcNow.AddHours(1), Guid.NewGuid(), "Admin", "test@example.test", "Admin");
-        await storage.SetAsync("auth-session", expected);
-        var session = new UserSession(storage, TimeProvider.System);
+        var js = new StorageJs { Value = JsonSerializer.Serialize(expected) };
+        var session = new UserSession(js, TimeProvider.System);
         var first = session.GetUserAsync().AsTask();
         var second = session.GetUserAsync().AsTask();
         Assert.False(second.IsCompleted);
@@ -37,6 +35,31 @@ public class UserSessionTests
         var users = await Task.WhenAll(first, second);
         Assert.All(users, user => Assert.Equal(expected, user));
         Assert.Equal(1, js.Reads);
+    }
+
+    [Fact]
+    public async Task SignInStoresTheSessionAndSignOutRemovesIt()
+    {
+        var js = new StorageJs();
+        js.Gate.SetResult();
+        var session = new UserSession(js, TimeProvider.System);
+        var user = new SignedInUser("token", DateTime.UtcNow.AddHours(1), Guid.NewGuid(), "Ada", "ada@example.test", "User");
+        await session.SignInAsync(user);
+        Assert.Equal(user, JsonSerializer.Deserialize<SignedInUser>(js.Value!));
+        await session.SignOutAsync();
+        Assert.Null(js.Value);
+        Assert.Null(await session.GetUserAsync());
+    }
+
+    [Fact]
+    public async Task ExpiredStoredSessionIsTreatedAsSignedOut()
+    {
+        var expired = new SignedInUser("token", DateTime.UtcNow.AddMinutes(-1), Guid.NewGuid(), "Ada", "ada@example.test", "User");
+        var js = new StorageJs { Value = JsonSerializer.Serialize(expired) };
+        js.Gate.SetResult();
+        var session = new UserSession(js, TimeProvider.System);
+        Assert.Null(await session.GetUserAsync());
+        Assert.Null(js.Value);
     }
 
     [Fact]

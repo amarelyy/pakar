@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pakar.Shared\Pakar.Shared.csproj" />
+    <ProjectReference Include="..\Pakar.Vision\Pakar.Vision.csproj" />
   </ItemGroup>
 
   <ItemGroup>

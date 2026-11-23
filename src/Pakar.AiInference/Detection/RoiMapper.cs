@@ -1,10 +1,9 @@
 using OpenCvSharp;
 using Pakar.Shared.Dtos;
 using Pakar.Shared.Geometry;
+using Pakar.Vision;
 
 namespace Pakar.AiInference.Detection;
-
-public sealed record Observation(string? Status, double Confidence, string? Reason);
 
 /// <summary>Slot-class detector adapter; raster IoU follows the Python reference.</summary>
 public sealed class RoiMapper : IDisposable

@@ -1,5 +1,4 @@
 @page "/admin/polygons"
-@rendermode AppRenderModes.InteractiveServerNoPrerender
 @using Pakar.Application.DTOs
 @using Pakar.Shared.Dtos
 @using Pakar.Shared.Geometry
@@ -8,7 +7,4 @@
 @inject UserSession Session
 
 <PageTitle>Slot polygons · PAKAR</PageTitle>
-<AdminOnly><AdminShell><PolygonWorkspace InitialCameraId="CameraId" /></AdminShell></AdminOnly>
-@code {
-    [SupplyParameterFromQuery(Name = "cameraId")] public Guid? CameraId { get; set; }
-}
+<AdminOnly><PolygonWorkspace /></AdminOnly>

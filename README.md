@@ -1,4 +1,4 @@
-# PAKAR (Parkir Akurat Real-Time): Smart Parking System with .NET 10 & Azure
+# PAKAR (Parkir Akurat Real-Time): Smart Parking System with .NET 10
 This is a Senior Project of Group 2. PAKAR is a program that will gives the user information on how many slots is left on certain parking spots in the Faculty of Engineering, Universitas Gadjah Mada. You do not have to waste your time finding a spot!
 
 Team Members:
@@ -9,6 +9,28 @@ Team Members:
 UI/UX Design Prototype:
 https://www.figma.com/design/Auql4Y3M0MsSFPgexF73C1/PAKAR?node-id=2-2&t=FBpHGCQJNRwiXnIt-1
 
+
+## How it fits together
+
+| Part | Technology | Where it runs |
+| --- | --- | --- |
+| Web app (`src/Pakar.Web`) | Blazor WebAssembly | Vercel, static files: https://pakar-parkir.vercel.app |
+| API (`src/Pakar.Api`) | ASP.NET Core .NET 10, SignalR | One always-on process; at the moment the team laptop behind a tunnel |
+| Database | PostgreSQL | Neon (project `pakar-senpro`); a postgres container for local work |
+| Slot detection | ONNX model + `Pakar.Vision` rules | An admin's browser (`/admin/feeder`), or the .NET worker (`src/Pakar.AiInference`) on the API laptop |
+
+Details and trade-offs are in [decisions.md](decisions.md); the endpoint list is in [docs/api-reference.md](docs/api-reference.md);
+what works and what is open is in [docs/status-and-issues.md](docs/status-and-issues.md).
+
+## Run it locally
+
+```powershell
+./scripts/dev-local.ps1    # postgres container, API on :5249, web app on :5184
+```
+
+First time only: create `infra/.env` from `infra/.env.example`, then set the API's user-secrets (next section).
+To use the browser detection, put `best.onnx` in `src/Pakar.Web/wwwroot/models/` and demo videos in `src/Pakar.Web/wwwroot/videos/`
+(both are git-ignored). Tests: `dotnet test` and `node tests/js/ai-feeder.test.mjs`.
 
 ## Configuration
 
@@ -45,19 +67,31 @@ dotnet user-secrets set "Admin:Email" "admin@example.com"
 dotnet user-secrets set "Admin:Password" "<at least 12 characters>"
 ```
 
-Health endpoints for Container Apps probes: `/health/live` (process) and `/health/ready` (database).
+Health endpoints: `/health/live` (process) and `/health/ready` (database). When `DATABASE_URL` is set (Neon), it wins over
+`ConnectionStrings:DefaultConnection`. `Cors:Origins` lists the web addresses allowed to call the API; deployed hosts add the
+Vercel address with `Cors__Origins__0`.
 
-### Pakar.AiInference
+### Pakar.AiInference (the .NET worker, used when no browser runs the model)
 
 | Key | Purpose |
 | --- | --- |
-| `Inference:ApiKey` | Required. Must equal `Inference:ApiKey` in Pakar.Api; at least 32 characters. |
+| `Worker__Enabled` | Must be `true`; it defaults to `false` and then the worker does nothing. |
+| `Worker__ApiBaseUrl`, `Worker__ApiKey` | The API address and the API's `Ingest:ApiKey` (at least 32 characters). |
+| `Worker__VideoRoot`, `Model__Path` | Folder with the videos and the exported `best.onnx`. |
 
 ### Pakar.Web
 
 | Key | Purpose |
 | --- | --- |
-| `Api:BaseUrl` | Pakar.Api address. Defaults to `http://localhost:5249/` in Development. |
+| `Api:BaseUrl` | Pakar.Api address, in `wwwroot/appsettings.json`. Defaults to `http://localhost:5249/`; the publish script writes the real one. |
+| `Ai:ModelUrl`, `Ai:VideoBaseUrl`, `Ai:OrtBaseUrl` | Where the browser fetches the model, the demo videos and ONNX Runtime Web. |
+| `Ai:SampleFps`, `Ai:HeartbeatSeconds` | Frames analysed per second (default 2) and the heartbeat interval (15 s). |
+
+## Deployment
+
+The team does not use Azure. The web app is published to Vercel with `scripts/publish-vercel.ps1` and the API runs behind a
+tunnel with `scripts/run-api-tunnel.ps1`. The full runbook, including the commands that were used for the live site, is
+[infra/vercel/README.md](infra/vercel/README.md). The Bicep files in `infra/` are kept only as a reference ([infra/README.md](infra/README.md)).
 
 ## Database Migrations
 
@@ -77,17 +111,3 @@ dotnet ef migrations bundle --project src/Pakar.Migrations.Postgres --startup-pr
 
 Zones and cameras are soft-deleted (`DeletedAt`) so detection history is kept; queries hide them
 automatically, and `IgnoreQueryFilters()` reads them for history.
-
-
-## UI preview (ui-ux-pakar, 2026-11-16)
-
-The native Blazor UI adapts the `referensi-codepakar` design and connects to the
-actual API. New databases seed four representative areas: DTETI, TNTF, DTMI, DTK.
-These are demo capacities/coordinates, not surveyed parking data. Existing databases
-are not overwritten. See [UI progress and validation](docs/ui-progress-17-november-2026.md).
-
-Optional settings: API `Video:Root` points to the private dummy-video folder; worker
-`Worker:VideoRoot` points to the same distributed files. Admin video preview supports
-clips up to 50 MB and requires Admin authorization. Files never belong in Web wwwroot.
-Web `Demo:Enabled=true` displays a demo-data notice. Public users see map/status/counts
-and can submit reports after signing in; they cannot fetch video.

@@ -5,7 +5,6 @@ using Pakar.AiInference.Services;
 using Pakar.Shared.Dtos;
 
 var json = new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true };
-if (args.Length == 4 && args[0] == "--evaluate-roi") return RoiEvaluation.Run(args[1],args[2],args[3]);
 if (args.Length == 2 && args[0] == "--slots") return SlotParity.Run(args[1]);
 if (args.Length != 2) throw new ArgumentException("Usage: <onnx> <parity-frame-folder>");
 using var engine = new OnnxInferenceEngine(Options.Create(new ModelOptions { Path = args[0] }));

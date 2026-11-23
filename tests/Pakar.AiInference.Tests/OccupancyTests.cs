@@ -1,4 +1,5 @@
 using Pakar.AiInference.Detection;
+using Pakar.Vision;
 using Pakar.Shared.Dtos;
 using Pakar.Shared.Geometry;
 

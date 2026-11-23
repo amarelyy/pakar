@@ -3,20 +3,20 @@
 
 @*
     Wraps admin page content (FR 9). Guests are asked to log in; signed-in non-admins see an
-    access message. The host page must use AppRenderModes.InteractiveServerNoPrerender.
+    access message.
 *@
 @switch (state)
 {
     case AccessState.Loading:
-        <p role="status">Memeriksa akses…</p>
+        <p role="status">Checking access...</p>
         break;
     case AccessState.SignedOut:
-        <h1>Area admin</h1>
-        <p>Silakan <a href="login">masuk</a> dengan akun admin untuk melanjutkan.</p>
+        <h1>Admin area</h1>
+        <p>Please <a href="login">log in</a> with an admin account to continue.</p>
         break;
     case AccessState.NotAdmin:
-        <h1>Akses ditolak</h1>
-        <p role="alert">Halaman ini hanya dapat diakses oleh admin.</p>
+        <h1>Access denied</h1>
+        <p role="alert">This page is only available to administrators.</p>
         break;
     default:
         @ChildContent

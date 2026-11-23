@@ -1,4 +1,401 @@
 @page "/admin/zones"
-@rendermode AppRenderModes.InteractiveServerNoPrerender
-<PageTitle>Zona parkir · PAKAR Admin</PageTitle>
-<AdminOnly><AdminShell><FacilitiesWorkspace /></AdminShell></AdminOnly>
+@using Pakar.Application.DTOs
+@using Pakar.Application.Validation
+@using Pakar.Web.Components.Ui
+@inject AuthenticatedApiClient Api
+@inject UserSession Session
+
+<PageTitle>Zones</PageTitle>
+
+<AdminOnly>
+    <h1>Zones</h1>
+    <p><a href="admin">Back to admin</a></p>
+
+    @if (info is not null)
+    {
+        <p role="status">@info</p>
+    }
+
+    @if (error is not null)
+    {
+        <div role="alert">
+            @if (error.Fields.Count == 0)
+            {
+                <p>@error.Message</p>
+            }
+            else
+            {
+                <p>Please fix the problems below.</p>
+            }
+            @foreach (var message in OtherMessages)
+            {
+                <p>@message</p>
+            }
+        </div>
+    }
+
+    <h2>@(editingId is null ? "Add a zone" : "Edit zone")</h2>
+    <div>
+        <label for="zone-name">Name</label>
+        <input id="zone-name" @bind="form.Name" maxlength="100" />
+        @foreach (var m in FieldMessages("name"))
+        {
+            <span role="alert"> @m</span>
+        }
+    </div>
+    <div>
+        <label for="zone-description">Description</label>
+        <input id="zone-description" @bind="form.Description" maxlength="500" />
+        @foreach (var m in FieldMessages("description"))
+        {
+            <span role="alert"> @m</span>
+        }
+    </div>
+    <div>
+        <label for="zone-capacity">Capacity (1 to 500)</label>
+        <input id="zone-capacity" type="number" min="1" max="500" @bind="form.TotalCapacity" />
+        @foreach (var m in FieldMessages("totalCapacity"))
+        {
+            <span role="alert"> @m</span>
+        }
+    </div>
+    <div>
+        <button type="button" disabled="@saving" @onclick="SaveAsync">
+            @(saving ? "Saving..." : editingId is null ? "Add zone" : "Save changes")
+        </button>
+        @if (editingId is not null)
+        {
+            <button type="button" @onclick="CancelEdit">Cancel</button>
+        }
+    </div>
+
+    <h2>All zones</h2>
+    @if (overrideListError is not null)
+    {
+        <div class="notice warning" role="alert">
+            Status manual belum dapat dimuat.
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadOverridesAsync">Coba lagi</button>
+        </div>
+    }
+    @if (overrideError is not null)
+    {
+        <div class="notice danger" role="alert">
+            @overrideError.Message
+            @foreach (var message in overrideError.Fields.Values.SelectMany(messages => messages))
+            {
+                <div>@message</div>
+            }
+        </div>
+    }
+    @if (overrideZone is { } zone)
+    {
+        <form class="card p-3 mb-3" @onsubmit="SaveOverrideAsync" @onsubmit:preventDefault>
+            <fieldset disabled="@savingOverride">
+                <legend class="h5">Atur status @zone.Name</legend>
+                <label for="manual-status" class="form-label">Status zona</label>
+                <select id="manual-status" class="form-select mb-3" @ref="overrideStatusInput" @bind="overrideStatus">
+                    <option value="available">Tersedia</option>
+                    <option value="almost_full">Hampir penuh</option>
+                    <option value="full">Penuh</option>
+                </select>
+                <label for="manual-note" class="form-label">Catatan (opsional)</label>
+                <textarea id="manual-note" class="form-control mb-3" @bind="overrideNote"
+                          maxlength="@ZoneOverrideRules.MaxNoteLength" rows="2"></textarea>
+                <button type="submit" class="btn btn-primary">Simpan status</button>
+                <button type="button" class="btn btn-light" @onclick="CloseOverride">Batal</button>
+            </fieldset>
+        </form>
+    }
+    @if (loading)
+    {
+        <p role="status">Loading zones...</p>
+    }
+    else if (loadError is not null)
+    {
+        <p role="alert">@loadError</p>
+    }
+    else if (rows.Count == 0)
+    {
+        <p>No zones yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive" aria-label="Daftar zona">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Capacity</th>
+                    <th>Spots</th>
+                    <th>Cameras</th>
+                    <th>External id</th>
+                    <th>Status manual</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    var manual = overrides.GetValueOrDefault(row.Id);
+                    <tr @key="row.Id">
+                        <td>@row.Name</td>
+                        <td>@row.Description</td>
+                        <td>@row.TotalCapacity</td>
+                        <td>@row.SpotCount</td>
+                        <td>@row.CameraCount</td>
+                        <td>@row.ExternalId</td>
+                        <td>
+                            @if (manual is not null)
+                            {
+                                <StatusChip Status="@manual.Status" />
+                                @if (!string.IsNullOrWhiteSpace(manual.Note))
+                                {
+                                    <span class="cell-sub">@manual.Note</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="muted">@(overrideListError is null ? "Otomatis" : "Belum diketahui")</span>
+                            }
+                        </td>
+                        <td>
+                            @if (confirmDeleteId == row.Id)
+                            {
+                                <span>Remove this zone?</span>
+                                <button type="button" @onclick="() => DeleteAsync(row)">Yes, remove</button>
+                                <button type="button" @onclick="() => confirmDeleteId = null">Cancel</button>
+                            }
+                            else
+                            {
+                                <button type="button" @onclick="() => StartEdit(row)">Edit</button>
+                                <button type="button" @onclick="() => confirmDeleteId = row.Id">Remove</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm"
+                                        disabled="@(savingOverride || overrideListError is not null)"
+                                        @onclick="() => EditOverride(row, manual)">Atur status</button>
+                                @if (manual is not null && overrideListError is null)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            disabled="@savingOverride" @onclick="() => ClearOverrideAsync(row)">Kembalikan otomatis</button>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+    }
+</AdminOnly>
+
+@code {
+    private static readonly string[] KnownFields = ["name", "description", "totalCapacity"];
+
+    private List<ZoneRow> rows = new();
+    private ZoneForm form = new();
+    private Guid? editingId;
+    private Guid? confirmDeleteId;
+    private bool loading = true;
+    private bool saving;
+    private string? loadError;
+    private string? info;
+    private ApiError? error;
+    private Dictionary<Guid, ZoneOverrideDto> overrides = new();
+    private ApiError? overrideListError;
+    private ApiError? overrideError;
+    private ZoneRow? overrideZone;
+    private string overrideStatus = "full";
+    private string? overrideNote;
+    private bool savingOverride;
+    private bool focusOverride;
+    private ElementReference overrideStatusInput;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusOverride)
+        {
+            focusOverride = false;
+            await overrideStatusInput.FocusAsync();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load only for admins; AdminOnly shows the login / access message to everyone else.
+        var user = await Session.GetUserAsync();
+        if (user?.IsAdmin == true) await LoadAsync();
+        else loading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        loadError = null;
+        var result = await Api.GetAsync<List<ZoneRow>>("api/zones");
+        if (result.Ok)
+        {
+            rows = result.Value ?? new();
+            await LoadOverridesAsync();
+        }
+        else loadError = result.Error!.Message;
+        loading = false;
+    }
+
+    private async Task LoadOverridesAsync()
+    {
+        var result = await Api.GetAsync<List<ZoneOverrideDto>>("api/zones/status-overrides");
+        overrideListError = result.Error;
+        if (result.Ok)
+            overrides = (result.Value ?? []).ToDictionary(value => value.ZoneId);
+    }
+
+    private void EditOverride(ZoneRow row, ZoneOverrideDto? manual)
+    {
+        overrideZone = row;
+        focusOverride = true;
+        overrideStatus = manual?.Status ?? "full";
+        overrideNote = manual?.Note;
+        overrideError = null;
+        info = null;
+    }
+
+    private void CloseOverride()
+    {
+        overrideZone = null;
+        focusOverride = false;
+        overrideError = null;
+    }
+
+    private Task SaveOverrideAsync() => overrideZone is { } row
+        ? ChangeOverrideAsync(row, HttpMethod.Put, new SetZoneOverrideRequest(overrideStatus, overrideNote))
+        : Task.CompletedTask;
+
+    private Task ClearOverrideAsync(ZoneRow row) => ChangeOverrideAsync(row, HttpMethod.Delete);
+
+    private async Task ChangeOverrideAsync(ZoneRow row, HttpMethod method, SetZoneOverrideRequest? request = null)
+    {
+        if (savingOverride)
+            return;
+
+        savingOverride = true;
+        info = null;
+        overrideError = null;
+        try
+        {
+            var result = await Api.SendAsync(method, $"api/zones/{row.Id}/status-override", request);
+            if (!result.Ok)
+            {
+                overrideError = result.Error;
+                return;
+            }
+
+            if (overrideZone?.Id == row.Id)
+                CloseOverride();
+            info = method == HttpMethod.Delete
+                ? $"Status {row.Name} kembali otomatis."
+                : $"Status {row.Name} berhasil diatur.";
+            await LoadOverridesAsync();
+        }
+        finally
+        {
+            savingOverride = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        saving = true;
+        error = null;
+        info = null;
+
+        var wasEdit = editingId is not null;
+        var body = new
+        {
+            name = form.Name.Trim(),
+            description = form.Description?.Trim() ?? "",
+            totalCapacity = form.TotalCapacity
+        };
+
+        var result = editingId is { } id
+            ? await Api.SendAsync(HttpMethod.Put, $"api/zones/{id}", body)
+            : await Api.SendAsync(HttpMethod.Post, "api/zones", body);
+        saving = false;
+
+        if (!result.Ok)
+        {
+            error = result.Error;
+            return;
+        }
+
+        info = wasEdit ? "Zone updated." : "Zone added.";
+        ResetForm();
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(ZoneRow row)
+    {
+        error = null;
+        info = null;
+        var result = await Api.SendAsync(HttpMethod.Delete, $"api/zones/{row.Id}");
+        confirmDeleteId = null;
+
+        if (!result.Ok)
+        {
+            error = result.Error;
+            return;
+        }
+
+        info = $"Zone \"{row.Name}\" removed.";
+        await LoadAsync();
+    }
+
+    private void StartEdit(ZoneRow row)
+    {
+        editingId = row.Id;
+        error = null;
+        info = null;
+        form = new ZoneForm { Name = row.Name, Description = row.Description ?? "", TotalCapacity = row.TotalCapacity };
+    }
+
+    private void CancelEdit()
+    {
+        error = null;
+        ResetForm();
+    }
+
+    private void ResetForm()
+    {
+        editingId = null;
+        form = new ZoneForm();
+    }
+
+    private IEnumerable<string> FieldMessages(string field) =>
+        error is not null && error.Fields.TryGetValue(field, out var messages)
+            ? messages
+            : Enumerable.Empty<string>();
+
+    // Errors whose field name is not one of the three inputs are shown at the top instead.
+    private IEnumerable<string> OtherMessages =>
+        error is null
+            ? Enumerable.Empty<string>()
+            : error.Fields.Where(f => !KnownFields.Contains(f.Key, StringComparer.OrdinalIgnoreCase))
+                          .SelectMany(f => f.Value);
+
+    private sealed class ZoneRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public int TotalCapacity { get; set; }
+        public int SpotCount { get; set; }
+        public int CameraCount { get; set; }
+        public int ExternalId { get; set; }
+    }
+
+    private sealed class ZoneForm
+    {
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public int TotalCapacity { get; set; } = 10;
+    }
+}

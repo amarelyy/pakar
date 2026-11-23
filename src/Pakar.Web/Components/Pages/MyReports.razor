@@ -1,21 +1,95 @@
 @page "/reports"
-@rendermode AppRenderModes.InteractiveServerNoPrerender
+@using Pakar.Application.DTOs
+@using Pakar.Web.Components.Ui
 @inject UserSession Session
-@inject ParkingApiClient Api
-<PageTitle>Laporan saya · PAKAR</PageTitle>
-<div class="parking-page"><div class="page-heading"><div><p class="eyebrow">UMPAN BALIK PARKIR</p><h1>Laporan saya</h1><p>Pantau laporan yang sudah Anda kirim.</p></div><a class="button" href="">Kembali ke peta</a></div>
-@if(loading){<p role="status">Memuat laporan…</p>}
-else if(!signedIn){<p class="notice">Silakan <a href="login">masuk</a> untuk melihat laporan Anda.</p>}
-else{
-    @if(error is not null){<p class="notice danger" role="alert">@error <button class="small" @onclick="Load">Coba lagi</button></p>}
-    @if(reports.Count==0 && error is null){<div class="card empty-state"><h2>Belum ada laporan</h2><p>Anda dapat melaporkan kondisi parkir dari detail zona di peta.</p></div>}
-    <div class="section-grid">@foreach(var report in reports){<article class="card"><div class="zone-card-top"><h2>@report.SpotName</h2><StatusChip Status="@report.Status" /></div><p class="muted">@report.ZoneName</p><p class="prose">@report.Description</p>@if(report.AdminNote is not null){<div class="notice"><strong>Catatan admin</strong><p class="prose">@report.AdminNote</p></div>}</article>}</div>
-}
+@inject AuthenticatedApiClient Api
+
+<PageTitle>Laporan Saya · PAKAR</PageTitle>
+
+<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+    <h1 class="mb-0">Laporan Saya</h1>
+    <a class="btn btn-outline-secondary btn-sm" href="">Kembali ke peta</a>
 </div>
-@code{
-    private bool loading=true,signedIn;
-    private List<ReportDto> reports=[];
+
+@if (loading)
+{
+    <p role="status">Memuat laporan…</p>
+}
+else if (!signedIn)
+{
+    <p class="notice">Silakan <a href="login">masuk</a> untuk melihat laporan Anda.</p>
+}
+else if (error is not null)
+{
+    <div class="notice danger" role="alert">
+        @error <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Coba lagi</button>
+    </div>
+}
+else if (reports.Count == 0)
+{
+    <div class="card p-3">
+        <h2 class="h5">Belum ada laporan</h2>
+        <p class="mb-0">Pilih zona di peta untuk melaporkan ketidaksesuaian status slot parkir.</p>
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Muat ulang laporan</button>
+    </div>
+    <div class="row row-cols-1 row-cols-lg-2 g-3">
+        @foreach (var report in reports)
+        {
+            <div class="col" @key="report.Id">
+                <article class="card h-100 p-3">
+                    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                        <h2 class="h5 mb-0">@report.SpotName</h2>
+                        <StatusChip Status="@report.Status" />
+                    </div>
+                    <p class="text-secondary small mt-1 mb-2">
+                        @report.ZoneName · <time datetime="@report.SubmittedAt.ToString("O")">@report.SubmittedAt.AddHours(7).ToString("dd/MM/yyyy, HH:mm") WIB</time>
+                    </p>
+                    <p class="report-text mb-2">@report.Description</p>
+                    @if (!string.IsNullOrWhiteSpace(report.AdminNote))
+                    {
+                        <div class="notice mb-0">
+                            <strong>Catatan admin</strong>
+                            <p class="report-text mb-0">@report.AdminNote</p>
+                        </div>
+                    }
+                </article>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<ReportDto> reports = [];
+    private bool loading = true, signedIn;
     private string? error;
-    protected override Task OnInitializedAsync()=>Load();
-    private async Task Load(){loading=true;error=null;try{signedIn=await Session.GetUserAsync() is not null;if(signedIn)reports=await Api.Get<List<ReportDto>>("api/reports/mine",true);}catch(ApiException ex){error=ex.Message;}finally{loading=false;}}
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            signedIn = await Session.GetUserAsync() is not null;
+            if (!signedIn)
+            {
+                reports = [];
+                return;
+            }
+
+            var result = await Api.GetAsync<List<ReportDto>>("api/reports/mine");
+            reports = result.Value ?? [];
+            error = result.Error?.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
 }

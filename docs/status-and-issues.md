@@ -1,7 +1,9 @@
 # PAKAR Status: Done, Problems and Mismatches
 
 Checked on 2026-11-15 against the code in `main` (commit `0024db6`), a live run of `Pakar.Api`
-on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `docs/api-reference.md` for the endpoint list.
+on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. Updated on 2026-11-23 against `main` at
+commit `22c3fd1` (build, unit tests and a code review only; the API was **not** run again, so the live results below
+are still those of 2026-11-15). See `docs/api-reference.md` for the endpoint list and `decisions.md` for the deployment options.
 
 ## 1. What was verified in this run
 
@@ -18,6 +20,16 @@ on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. See `d
 | `GET /api/parking/zones`, `/search`, `/snapshot` as guest | 200 |
 | `POST /api/ingest/detections` without API key | 401 |
 | Unit tests (`dotnet test`) | 80 passed, 0 failed (30 new for zone and camera rules, 2026-11-15) |
+
+**Update 2026-11-23 (`main` at `22c3fd1`)**
+
+| Check | Result |
+| --- | --- |
+| `dotnet build Pakar.slnx` | OK |
+| Unit tests (`dotnet test`) | 80 passed, 0 failed (unchanged since 2026-11-15) |
+| New since 2026-11-15 | Admin **Zones page** `Admin/Zones.razor` and `Services/AdminApiClient.cs` (Deva, PRs #39 and #40); `src/Pakar.Api/Dockerfile` and `.dockerignore`; Bicep in `infra/`; `decisions.md` (deployment and AI location options) |
+| Not merged | Branch `ai-dotnet` (Nabil, commits `deaa635` and `ddeb383`): ONNX engine, video worker, polygon editor, worker-config and reference-frame endpoints, `AddCameraFrames` migration. Latest migration on `main` is `AddVideoSourceRoi` |
+| Not exercised in this check | The running API, Neon, SignalR, the Web app in a browser (so the Zones page is only known to build) |
 
 **Neon database move (2026-11-15)**
 
@@ -101,6 +113,12 @@ Not exercised: SignalR hubs, a real ingest with the API key, `/hubs/frames`, rev
 - Rules in `FacilityRules` (names, capacity 1 to 500, capacity not below existing spots, safe video file name); video file is a plain file name, `ipAddress` removed.
 - Editing a zone's capacity refreshes the realtime capacity cache.
 
+**Admin web (#19, FR 13)**
+- `Admin/Zones.razor` with `AdminApiClient` (list, add, edit, remove zones), linked from the admin dashboard. Merged from Deva's branch `546873`. Users, Cameras and Reports pages are still empty.
+
+**Docker and Azure files (#21, #28, #29)**
+- `src/Pakar.Api/Dockerfile` (non-root, built and run against Neon on 2026-11-15) and Bicep for the Api and Web apps with Key Vault. Neither has been deployed.
+
 **Realtime and AI groundwork (#16, #20)**
 - `ParkingHub`, `FrameHub`, ingest endpoint with API key, in-memory camera watchdog (2 min).
 - Python YOLO pipeline in `dl/`; inference service skeleton.
@@ -124,7 +142,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | 1 | High | **FR 17 manual override** has no endpoint. |
 | 2 | Done | ~~FR 13, 14 edit~~: `PUT /api/zones/{id}` and `PUT /api/cameras/{id}` added (issue #10 reopened). |
 | 3 | Done | ~~No admin list endpoints~~: `GET /api/zones` and `GET /api/cameras` (with `zoneId` filter) added. |
-| 4 | Medium | **FR 12 camera status is not persisted**: the watchdog is in memory, so it is lost on restart. `Camera.IsActive` does not exist. |
+| 4 | Medium | **FR 12 camera status is not persisted**: the watchdog is in memory, so it is lost on restart. `Camera.IsActive` now exists (migration `AddVideoSourceRoi`) and the admin lists show it, but nothing writes it: it stays `false`. |
 | 5 | Done | ~~`ipAddress` validated but not saved~~: the field was removed; a video file name is stored in `Camera.StreamUrl` instead. |
 | 5a | Done | ~~Seeded cameras kept `ConnectionType` `IP` and an `rtsp://admin:admin@...` URL~~: `DbSeeder` now seeds video sources, and the three cameras in the Neon database were converted on 2026-11-15 (external ids 1 to 3 unchanged). |
 
@@ -134,7 +152,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | --- | --- | --- |
 | 6 | Medium | **Two ID systems.** REST uses `Guid` ids (zones, spots, cameras). Ingest, `ParkingHub` and `ParkingSnapshot` use `int` ids (`AreaId`, `SpotId`, `CameraId`). They are linked by `ExternalId` on `ParkingZone`, `ParkingSpot` and `Camera`; the admin zone and camera lists now show it. The map still has to map `Guid` to `int` itself. |
 | 7 | High | **Two realtime systems.** The map still polls every 4 s and `/occupancyHub` is only kept for it, while the real events are on `/hubs/parking`. `FakeOccupancyBroadcaster` also still exists. |
-| 8 | High | **Admin web pages are empty.** `Admin/Users.razor`, `Zones.razor`, `Cameras.razor` and `Reports.razor` are 0 bytes, so admins can only reach FR 13-17 through Swagger. The admin menu hides them from non-admins, but there is nothing behind it. |
+| 8 | High | **Most admin web pages are still empty.** `Admin/Zones.razor` is done (2026-11-23), but `Users.razor`, `Cameras.razor` and `Reports.razor` are 0 bytes, so FR 14 to 17 are reachable only through Swagger. The admin menu hides them from non-admins, but there is nothing behind them. |
 | 9 | Medium | **Camera auth is one shared key.** `Camera.ApiKeyHash` is the literal `"temp-hash"`, so any holder of the ingest key can post for any camera. |
 | 10 | Medium | **Duplicate parking state.** `ParkingStateStore` is in memory (one replica only) and the database is written separately in the background, so they can differ after a restart or failed save. |
 | 11 | Low | `Pakar.Api.http` sample login uses `change-me-please`, which is not the real admin password; it must be changed by hand. |
@@ -151,6 +169,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | 15b | Medium | **Production secrets are not set up yet.** `.env.local` holds the Neon password locally only. `DATABASE_URL` and `DATABASE_URL_UNPOOLED` still have to be stored as Container App secrets or Key Vault entries (TODO #28). |
 | 15c | Low | The first start after linking needs `npm install` in the repo root (`@neon/config`) or `neon deploy` fails; the root `package.json` has no script that does this. |
 | 15d | Done | ~~The seeded admin on Neon used the local development password~~: rotated on 2026-11-15. Production still needs its own secret (`Admin--Password` in Key Vault, TODO #28); changing the password later means updating the `Users` row, since the seeder skips an existing account. |
+| 15e | High | **Hosting is not decided.** The Bicep targets Azure, but it was never deployed and Azure may not be available to the team. Vercel can host only a Blazor WebAssembly build of `Pakar.Web` (it is Blazor Server today) and never the API. Options, trade-offs and the AI location are in `decisions.md`. |
 | 16 | Low | Swagger groups some endpoints under the tag `Pakar.Api` (ingest, snapshot) and the routes are shown as `/api/Auth/...` and `/api/Parking/...` (capital letters), while docs and README write them in lowercase. They work either way. |
 
 ### 3.4 Documentation drift and leftovers
@@ -167,15 +186,19 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 
 - `OnnxInferenceEngine` (inference returns 503 until it exists).
 - ROI polygons and point-in-polygon mapping (FR 10, 11 end to end).
-- Dockerfiles, Bicep, CI/CD, Azure deployment (wire `DATABASE_URL` and `DATABASE_URL_UNPOOLED` as secrets).
+- Dockerfiles for `Pakar.Web` (none) and `Pakar.AiInference` (the file on `main` is empty; Nabil's is on `ai-dotnet`, and needs `libdrm2 libatomic1`), CI/CD (there is no `.github/workflows`), and the first deployment wherever it ends up (wire `DATABASE_URL` and `DATABASE_URL_UNPOOLED` as secrets).
+- Review and merge `ai-dotnet`, then apply its migration to Neon.
+- Admin pages for Users, Cameras and Reports, and the FR 17 override endpoint.
 - Add teammates to the new Neon organization and decide their access (admin role or a scoped database role).
 - API integration tests (current 50 tests are unit tests: report review, admin safeguard, geo distance, occupancy, paging).
 - Prediction and history (product goal, not in FR 1-17).
 
 ## 4. Suggested order
 
-1. Add `PUT` for zones and cameras, list endpoints, and the FR 17 override (items 1, 2, 3).
-2. Build the admin web pages (item 8).
-3. Move the map to `ParkingHub` and remove `/occupancyHub` (item 7), and settle the id mapping (item 6).
-4. Per-camera API keys and secret rotation (items 9, 13, 14).
-5. API integration tests against PostgreSQL.
+1. Decide hosting and where the AI runs (`decisions.md`, item 15e) with the team; it blocks Dockerfiles, CI and the first deployment.
+2. FR 17 override endpoint (item 1; `PUT`, list endpoints for zones and cameras are done).
+3. Build the remaining admin web pages: Users, Cameras, Reports (item 8).
+4. Review and merge `ai-dotnet`.
+5. Move the map to `ParkingHub` and remove `/occupancyHub` (item 7), and settle the id mapping (item 6).
+6. Per-camera API keys and secret rotation (items 9, 13, 14).
+7. API integration tests against PostgreSQL.

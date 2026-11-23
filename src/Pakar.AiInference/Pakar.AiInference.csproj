@@ -9,5 +9,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pakar.Shared\Pakar.Shared.csproj" />
+    <ProjectReference Include="..\Pakar.Vision\Pakar.Vision.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.29.0" />
+    <PackageReference Include="OpenCvSharp4" Version="4.13.0.20261107" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20261107" Condition="'$(RuntimeIdentifier)' == 'win-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows')))" />
+    <PackageReference Include="OpenCvSharp4.official.runtime.linux-x64" Version="4.13.0.20261107" Condition="'$(RuntimeIdentifier)' == 'linux-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Linux')))" />
   </ItemGroup>
 </Project>

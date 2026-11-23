@@ -66,6 +66,8 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AuthPolicies.AdminOnly, policy => policy.RequireRole(Roles.Admin));
 
 builder.Services.AddControllers();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+    options.MultipartBodyLengthLimit = Pakar.Application.Validation.ReferenceFrameRules.MaxBytes);
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -127,7 +129,7 @@ else
 app.UseCors("frontend");
 
 // Edge devices authenticate with an API key rather than a user JWT.
-app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api/ingest"),
+app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api/ingest") || ctx.Request.Path.StartsWithSegments("/api/internal"),
     branch => branch.UseMiddleware<CameraAuthMiddleware>());
 
 app.UseAuthentication();
@@ -145,6 +147,9 @@ app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
 }).WithTags("System");
 
 app.MapAdminEndpoints();
+app.MapRoiEndpoints();
+app.MapFeederEndpoints();
+app.MapReferenceFrameEndpoints();
 app.MapReportEndpoints();
 app.MapUserEndpoints();
 

@@ -1,0 +1,222 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "status": 400
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/cameras",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 401
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 400
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/07baade2-bed2-4bc2-81b2-253fa1d649fd/rois",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 400
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 400
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 400
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 400
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 400
+    },
+    {
+      "method": "GET",
+      "path": "/api/internal/video-sources",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/internal/video-sources",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/internal/video-sources",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/internal/video-sources",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/internal/video-sources",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/ingest/detections",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/internal/video-sources",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 403
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 404
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 400
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 400
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/rois",
+      "status": 404
+    },
+    {
+      "method": "GET",
+      "path": "/api/cameras/4dff744f-37ab-4822-aafa-8930538f2fc8/reference-frame",
+      "status": 404
+    }
+  ],
+  "count": 43,
+  "database": "isolated PostgreSQL localhost:55439"
+}

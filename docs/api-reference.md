@@ -13,6 +13,49 @@ Verified against the running API on 2026-11-15 (Swagger at `http://localhost:524
 | API key | Edge device or AI pipeline key checked by `CameraAuthMiddleware` |
 | Dev | Mapped only when `ASPNETCORE_ENVIRONMENT=Development` |
 
+## AI branch additions — 2026-11-15
+
+Implemented and verified locally in `ai-dotnet`, pending merge and
+shared deployment. The original endpoint inventory below remains for legacy consumers.
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| GET | `/api/cameras/{id}/rois` | Admin | Camera/zone Guid metadata, configured `slots` and all zone `spots` available for drawing. |
+| PUT | `/api/cameras/{id}/rois` | Admin | Replace all polygons atomically with `{slots:[{spotId:"<guid>",points:[[x,y],...]}]}`; empty list clears. |
+| GET | `/api/internal/video-sources` | API key | File+ROI configured sources, including currently inactive health states, with integer ExternalIds for worker ingest. JWT alone is rejected. |
+| GET | `/api/feeder/sources` | Admin JWT | Same payload as `/api/internal/video-sources`, for the browser feeder page (the ingest API key must not be sent to a browser). |
+| PUT | `/api/cameras/{id}/reference-frame` | Admin | Multipart `file`, PNG/JPEG signature, <=2 MB; replaces database-backed image. |
+| GET | `/api/cameras/{id}/reference-frame` | Admin | Image bytes/content type; 404 if absent; no-store caching. |
+
+ROI coordinates are normalized 0..1, 3–50 distinct points, area >=0.0005,
+non-self-intersecting, rounded to six decimals before validation/save. Every spot
+must belong to the source's zone and occur once. Different polygons may overlap.
+Validation returns RFC 7807 field errors (400); missing/removed source 404;
+concurrent updates 409. Moving a source with saved polygons to another zone
+requires clearing its polygons first.
+
+GET ROI response: `{cameraId,cameraExternalId,zoneId,slots:[{spotId,spotName,
+spotExternalId,points,updatedAt}],spots:[{id,name,externalId}]}`. The unconfigured
+spots list enables initial drawing. Existing admin camera DTO adds
+`hasReferenceFrame`; one `AddCameraFrames` migration stores the image.
+
+Worker configuration: `[{cameraId,areaId,name,videoFile,zoneCapacity,slots:[{
+spotId,spotNumber,polygon}]}]`. All numeric IDs are ExternalIds, not Guids.
+`zoneCapacity` is separate from ROI coverage. Health `isActive` does not disable
+a source. Sources missing a file name or polygon are not listed.
+
+Ingest contract is unchanged. Unknown/conflicting slots are omitted; a valid
+all-undecided frame may send `type:"heartbeat",spots:[]`, keeping source health
+without inventing availability. Invalid frames send no health heartbeat. A 200
+response still precedes possible asynchronous database failure in the existing
+ingest code; verify database/event observations separately.
+
+AiInference `/api/detect` now returns actual model detections, same normalized
+bounding-box DTO. Missing model ->503; invalid frame ->400. The diagnostic key
+is `Inference:ApiKey`; worker uses the API's shared ingest key separately.
+`/health/ready` checks that the supported model can load. Legacy hubs are retained
+until map consumers migrate. See [runtime setup](ai/runtime-validation.md).
+
 ---
 
 ## 1. Authentication (FR 7, 8)
@@ -80,6 +123,7 @@ The seed and the cameras already in the Neon database were converted to video so
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | POST | `/api/ingest/detections` | API key | The AI pipeline sends spot detections (`cameraId`, `areaId`, `type` = `change` or `heartbeat`, `timestamp`, `spots[]` max 500). Updates spot and zone state, stores detections, and pushes SignalR events. 404 if the camera is not registered. |
+| POST | `/api/feeder/detections` | Admin JWT | Same payload and effect as `/api/ingest/detections`; used by the browser feeder (`/admin/feeder`) that runs the model in the browser. |
 
 ## 7. Realtime (SignalR)
 
@@ -104,7 +148,8 @@ The seed and the cameras already in the Neon database were converted to video so
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | GET | `/health` | Public | Service status. |
-| POST | `/api/detect` | API key (`Inference:ApiKey`) | Detect parking occupancy in one JPEG frame. Returns 503 until the ONNX engine is implemented. |
+| POST | `/api/detect` | API key (`Inference:ApiKey`) | Detect empty/occupied slot boxes in one JPEG frame using the configured ONNX model. 503 if the model is missing. |
+| GET | `/health/ready` | Public | 200 if the supported ONNX model loads; 503 if missing or incompatible. |
 
 ---
 

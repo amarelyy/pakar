@@ -88,3 +88,9 @@ coverage/
 
 # Node tooling (Neon CLI config)
 node_modules/
+
+# Browser AI assets for the Vercel build: copied in before publishing, never committed
+src/Pakar.Web/wwwroot/models/*
+src/Pakar.Web/wwwroot/videos/*
+!src/Pakar.Web/wwwroot/models/.gitkeep
+!src/Pakar.Web/wwwroot/videos/.gitkeep

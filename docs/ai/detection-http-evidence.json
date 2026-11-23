@@ -1,0 +1,8 @@
+{
+  "actualModelBoxes": true,
+  "badFrame400": true,
+  "unauthorized401": true,
+  "unsupportedContent415": true,
+  "missingModel503": true,
+  "passed": true
+}

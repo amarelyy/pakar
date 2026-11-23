@@ -1,0 +1,15 @@
+{
+  "samples": 174,
+  "matched": 170,
+  "mismatched": 1,
+  "unknown": 3,
+  "differences": [
+    {
+      "seconds": 65,
+      "spot": "VIDEO-04",
+      "expected": "available",
+      "actual": "occupied"
+    }
+  ],
+  "scope": "same tuning clip, unreviewed sparse visual labels; fixed 640 square preprocessing"
+}

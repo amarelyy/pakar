@@ -1,0 +1,58 @@
+.feeder-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: end;
+    margin-bottom: 0.75rem;
+}
+
+.feeder-controls .form-select {
+    max-width: 24rem;
+}
+
+.feeder-stage {
+    position: relative;
+    max-width: 960px;
+    background: #111;
+}
+
+.feeder-stage video,
+.feeder-stage svg {
+    display: block;
+    width: 100%;
+}
+
+.feeder-stage svg {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    pointer-events: none;
+}
+
+.feeder-stage ::deep .slot {
+    fill-opacity: 0.25;
+    stroke-width: 0.003;
+}
+
+.feeder-stage ::deep .slot.occupied { fill: #d9534f; stroke: #d9534f; }
+.feeder-stage ::deep .slot.available { fill: #5cb85c; stroke: #5cb85c; }
+.feeder-stage ::deep .slot.undecided { fill: #999; stroke: #ddd; }
+
+.feeder-stage ::deep .box {
+    fill: none;
+    stroke-width: 0.002;
+}
+
+.feeder-stage ::deep .box.occupied { stroke: #ff8080; }
+.feeder-stage ::deep .box.empty { stroke: #80ff80; }
+
+.feeder-stats {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.25rem 1rem;
+    margin-top: 1rem;
+}
+
+.feeder-stats dt {
+    font-weight: 600;
+}

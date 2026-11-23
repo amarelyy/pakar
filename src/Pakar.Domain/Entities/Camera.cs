@@ -28,4 +28,5 @@ public class Camera
 
     /// <summary>Hand-drawn slot polygons for this video source's frame.</summary>
     public ICollection<SpotRoi> Rois { get; set; } = new List<SpotRoi>();
+    public CameraFrame? ReferenceFrame { get; set; }
 }

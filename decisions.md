@@ -154,3 +154,10 @@ Which combinations work
 | B Vercel + API host | Works; worker calls the API host | Works only if the API host is Azure |
 | C Laptop + tunnel | Works; use `localhost`, no tunnel for the worker | Not meaningful |
 | D Other host | Works; worker calls the public address | Needs a second paid host |
+
+## 7. Branch `try/vercel` (experiment)
+
+An implementation of "Vercel plus a separate API host plus AI in the browser" exists on branch `try/vercel`:
+`Pakar.Web` is Blazor WebAssembly, the model runs in the browser on `/admin/feeder` (ONNX Runtime Web), and results go to
+`POST /api/feeder/detections` with the admin JWT. Setup, limits and the publish script are in `infra/vercel/README.md`.
+The .NET worker and its rules stay available: the managed mapper in `Pakar.Vision` is shared by both and is tested against the OpenCV mapper.

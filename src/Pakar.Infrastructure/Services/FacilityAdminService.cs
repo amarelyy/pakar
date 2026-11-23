@@ -144,6 +144,8 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
             return OperationResult<CameraAdminDto>.Invalid(nameof(request.ZoneId), "Target zone does not exist.");
 
         camera.Name = request.Name!.Trim();
+        if (camera.ZoneId != request.ZoneId && await db.SpotRois.AnyAsync(r => r.CameraId == id, ct))
+            return OperationResult<CameraAdminDto>.Invalid(nameof(request.ZoneId), "Clear this source's polygons before moving it to another zone.");
         camera.ZoneId = request.ZoneId;
         camera.StreamUrl = FacilityRules.NormalizeVideoFile(request.VideoFile);
         camera.ConnectionType = VideoConnectionType;
@@ -177,7 +179,8 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
             // It is never returned; the admin sets a video file name instead.
             c.StreamUrl.Contains("://") ? string.Empty : c.StreamUrl,
             c.IsActive,
-            c.LastActiveTime);
+            c.LastActiveTime,
+            c.ReferenceFrame != null);
 
     private static ZoneAdminDto ToDto(ParkingZone zone, int spotCount, int cameraCount) => new(
         zone.Id, zone.Name, zone.Description, zone.TotalCapacity, zone.ExternalId, spotCount, cameraCount);

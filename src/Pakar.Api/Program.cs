@@ -66,6 +66,8 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AuthPolicies.AdminOnly, policy => policy.RequireRole(Roles.Admin));
 
 builder.Services.AddControllers();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+    options.MultipartBodyLengthLimit = Pakar.Application.Validation.ReferenceFrameRules.MaxBytes);
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -108,6 +110,7 @@ builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
 var app = builder.Build();
 
 await DbSeeder.SeedAsync(app);
+app.Services.GetRequiredService<ParkingStateStore>().PreloadOverrides();
 
 if (app.Environment.IsDevelopment())
 {
@@ -127,7 +130,7 @@ else
 app.UseCors("frontend");
 
 // Edge devices authenticate with an API key rather than a user JWT.
-app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api/ingest"),
+app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api/ingest") || ctx.Request.Path.StartsWithSegments("/api/internal"),
     branch => branch.UseMiddleware<CameraAuthMiddleware>());
 
 app.UseAuthentication();
@@ -138,13 +141,22 @@ app.MapControllers();
 app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
 
-app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
+// Manual database check for local work only; deployed hosts use /health/ready instead.
+if (app.Environment.IsDevelopment())
 {
-    Message = "DB Connected!",
-    TotalZones = await db.Zones.CountAsync()
-}).WithTags("System");
+    app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
+    {
+        Message = "DB Connected!",
+        TotalZones = await db.Zones.CountAsync()
+    }).WithTags("System");
+}
 
 app.MapAdminEndpoints();
+app.MapRoiEndpoints();
+app.MapFeederEndpoints();
+app.MapZoneOverrideEndpoints();
+app.MapHistoryEndpoints();
+app.MapReferenceFrameEndpoints();
 app.MapReportEndpoints();
 app.MapUserEndpoints();
 

@@ -1,0 +1,77 @@
+@using System.Globalization
+@using Pakar.Shared.Geometry
+
+<div class="editor-tools">
+    <label>Display width
+        <select aria-label="Display width" @bind="displayWidth" disabled="@Disabled">
+            <option value="320">320 px</option><option value="640">640 px</option><option value="960">960 px</option>
+        </select>
+    </label>
+    <label><input type="checkbox" @bind="editVertices" disabled="@Disabled" /> Move vertices</label>
+    <button type="button" @onclick="Undo" disabled="@(Disabled || Points.Count==0)">Undo last point</button>
+    <button type="button" @onclick="DeleteSelected" disabled="@(Disabled || selected<0)">Delete selected point</button>
+    <button type="button" @onclick="Clear" disabled="@(Disabled || Points.Count==0)">Clear selected polygon</button>
+</div>
+<p id="polygon-help">Choose a spot, then click its corners. Enable Move vertices to drag a corner. Changes are saved with Save polygons.</p>
+<div class="svg-scroll">
+    @* Explicit CSS pixel dimensions keep MouseEventArgs.OffsetX/Y and the image aligned.
+       A scroll container handles narrow screens; changing display width scales both layers together.
+       The transparent top rectangle is always the pointer target, with origin (0,0).
+       No viewBox padding, CSS max-width scaling, canvas, or JavaScript drawing is involved. *@
+    <svg xmlns="http://www.w3.org/2000/svg" class="polygon-surface" role="img" aria-label="Parking slot polygon editor"
+         aria-describedby="polygon-help" width="@displayWidth" height="@DisplayHeight" viewBox="0 0 1 1" preserveAspectRatio="none">
+        <image href="@ImageUrl" width="1" height="1" preserveAspectRatio="none" pointer-events="none" />
+        @foreach(var polygon in OtherPolygons)
+        {
+            <polygon points="@Format(polygon)" fill="#0284c733" stroke="#38bdf8" stroke-width="0.002" pointer-events="none" />
+        }
+        <polygon points="@Format(Points)" fill="#f59e0b44" stroke="#fbbf24" stroke-width="0.003" pointer-events="none" />
+        @for(int i=0;i<Points.Count;i++)
+        {
+            var point=Points[i];
+            <ellipse cx="@F(point[0])" cy="@F(point[1])" rx="@F(5d/displayWidth)" ry="@F(5d/DisplayHeight)"
+                     fill="@(i==selected?"#ef4444":"#ffffff")" pointer-events="none" />
+        }
+        <rect x="0" y="0" width="1" height="1" fill="transparent" style="cursor:crosshair"
+              @onmousedown="Down" @onmousedown:preventDefault @onmousemove="Move" @onmouseup="Up" @onmouseleave="Up" />
+    </svg>
+</div>
+<p>@Points.Count vertices. Coordinates are saved as fractions of the original image.</p>
+
+@code {
+    [Parameter,EditorRequired] public string ImageUrl {get;set;}="";
+    [Parameter] public int ImageWidth {get;set;}=1280;
+    [Parameter] public int ImageHeight {get;set;}=720;
+    [Parameter,EditorRequired] public List<double[]> Points {get;set;}=[];
+    [Parameter] public EventCallback Changed {get;set;}
+    [Parameter] public IEnumerable<double[][]> OtherPolygons {get;set;}=[];
+    [Parameter] public bool Disabled {get;set;}
+    private int displayWidth=640,selected=-1;
+    private bool editVertices,dragging;
+    private double DisplayHeight=>displayWidth*(double)ImageHeight/ImageWidth;
+    private static string F(double value)=>value.ToString("0.######",CultureInfo.InvariantCulture);
+    private static string Format(IEnumerable<double[]> points)=>string.Join(" ",points.Select(p=>$"{F(p[0])},{F(p[1])}"));
+    private double[] Position(MouseEventArgs e)=>[Math.Clamp(e.OffsetX/displayWidth,0,1),Math.Clamp(e.OffsetY/DisplayHeight,0,1)];
+    private async Task Down(MouseEventArgs e)
+    {
+        if(Disabled || e.Button!=0) return;
+        var position=Position(e);
+        if(editVertices)
+        {
+            selected=Enumerable.Range(0,Points.Count).OrderBy(i=>Distance(Points[i],position)).DefaultIfEmpty(-1).First();
+            if(selected>=0 && Distance(Points[selected],position)<=14) dragging=true;
+            else selected=-1;
+        }
+        else if(Points.Count<50) { Points.Add(position);selected=Points.Count-1;await Changed.InvokeAsync(); }
+    }
+    private double Distance(double[] a,double[] b)=>Math.Sqrt(Math.Pow((a[0]-b[0])*displayWidth,2)+Math.Pow((a[1]-b[1])*DisplayHeight,2));
+    private async Task Move(MouseEventArgs e)
+    {
+        if(!Disabled && dragging && e.Buttons==1 && selected>=0 && selected<Points.Count)
+        { Points[selected]=Position(e);await Changed.InvokeAsync(); }
+    }
+    private void Up(MouseEventArgs _)=>dragging=false;
+    private async Task Undo() { if(Points.Count>0) Points.RemoveAt(Points.Count-1);selected=-1;await Changed.InvokeAsync(); }
+    private async Task DeleteSelected() { if(selected>=0 && selected<Points.Count) Points.RemoveAt(selected);selected=-1;await Changed.InvokeAsync(); }
+    private async Task Clear() { Points.Clear();selected=-1;await Changed.InvokeAsync(); }
+}

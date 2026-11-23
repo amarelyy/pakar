@@ -115,6 +115,28 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.ToTable("Cameras");
                 });
 
+            modelBuilder.Entity("Pakar.Domain.Entities.CameraFrame", b =>
+                {
+                    b.Property<Guid>("CameraId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CameraId");
+
+                    b.ToTable("CameraFrames", (string)null);
+                });
+
             modelBuilder.Entity("Pakar.Domain.Entities.Detection", b =>
                 {
                     b.Property<Guid>("Id")
@@ -218,6 +240,21 @@ namespace Pakar.Migrations.Postgres.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("StatusOverride")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StatusOverrideNote")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("StatusOverrideSetAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StatusOverrideSetBy")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -354,6 +391,17 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.Navigation("Zone");
                 });
 
+            modelBuilder.Entity("Pakar.Domain.Entities.CameraFrame", b =>
+                {
+                    b.HasOne("Pakar.Domain.Entities.Camera", "Camera")
+                        .WithOne("ReferenceFrame")
+                        .HasForeignKey("Pakar.Domain.Entities.CameraFrame", "CameraId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Camera");
+                });
+
             modelBuilder.Entity("Pakar.Domain.Entities.Detection", b =>
                 {
                     b.HasOne("Pakar.Domain.Entities.Camera", "Camera")
@@ -456,6 +504,8 @@ namespace Pakar.Migrations.Postgres.Migrations
 
             modelBuilder.Entity("Pakar.Domain.Entities.Camera", b =>
                 {
+                    b.Navigation("ReferenceFrame");
+
                     b.Navigation("Rois");
                 });
 

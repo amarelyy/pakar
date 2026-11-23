@@ -1,0 +1,249 @@
+@page "/admin/feeder"
+@implements IAsyncDisposable
+@using System.Diagnostics
+@using Microsoft.Extensions.Options
+@using Pakar.Shared.Dtos
+@using Pakar.Vision
+@inject FeederApiClient Api
+@inject BrowserDetector Detector
+@inject IOptions<AiOptions> AiSettings
+@inject TimeProvider Clock
+
+<PageTitle>Browser feeder · PAKAR</PageTitle>
+
+<AdminOnly>
+    <h1>Browser feeder</h1>
+    <p>
+        Plays a demo video, finds occupied and empty slots with the model in this browser, and sends the result
+        to the API like the video worker does. Keep this tab open and visible while it runs: if it stops, the
+        camera is marked inactive after 2 minutes.
+    </p>
+
+    @if (error is not null)
+    {
+        <p class="text-danger" role="alert">@error</p>
+    }
+
+    <div class="feeder-controls">
+        <label for="source" class="form-label">Video source</label>
+        <select id="source" class="form-select" @bind="selectedCameraId" disabled="@running">
+            <option value="0">Select a source</option>
+            @foreach (var item in sources)
+            {
+                <option value="@item.CameraId">@item.Name (@item.VideoFile)</option>
+            }
+        </select>
+        <button type="button" class="btn btn-primary" @onclick="StartAsync" disabled="@(running || starting || selected is null)">
+            @(starting ? "Starting..." : "Start")
+        </button>
+        <button type="button" class="btn btn-outline-secondary" @onclick="StopAsync" disabled="@(!running)">Stop</button>
+        <button type="button" class="btn btn-link" @onclick="LoadSourcesAsync" disabled="@(running || starting)">Reload sources</button>
+    </div>
+
+    <div class="feeder-local">
+        <label for="local-video" class="form-label">Video dari komputer ini (dibaca browser, tidak diunggah ke mana pun)</label>
+        <input id="local-video" type="file" accept="video/*" class="form-control" @ref="localInput"
+               @onchange="OnLocalVideoAsync" disabled="@(running || starting)" />
+        @if (localName is not null)
+        {
+            <p class="feeder-note">Memakai <strong>@localName</strong> (@FormatSize(localSize)).
+                <button type="button" class="btn btn-link" @onclick="ClearLocalVideoAsync" disabled="@(running || starting)">Pakai video situs</button></p>
+        }
+    </div>
+
+    <p class="feeder-status" role="status">@status</p>
+
+    <div class="feeder-stage">
+        <video @ref="video" src="@VideoSrc" muted loop playsinline crossorigin="anonymous" preload="auto"></video>
+        <svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
+            @if (selected is not null)
+            {
+                @foreach (var slot in selected.Slots)
+                {
+                    <polygon points="@Points(slot.Polygon)" class="slot @SlotClass(slot.SpotId)"></polygon>
+                }
+            }
+            @foreach (var box in boxes)
+            {
+                <rect x="@F(box.X)" y="@F(box.Y)" width="@F(box.Width)" height="@F(box.Height)" class="box @box.Label"></rect>
+            }
+        </svg>
+    </div>
+
+    <dl class="feeder-stats">
+        <dt>Model provider</dt><dd>@(Detector.Provider ?? "not loaded")</dd>
+        <dt>Frames analysed</dt><dd>@frames</dd>
+        <dt>Last inference</dt><dd>@lastMilliseconds.ToString("0") ms</dd>
+        <dt>Results sent</dt><dd>@sent (last: @(lastSent ?? "none"))</dd>
+        <dt>Occupied / available / undecided</dt><dd>@occupied / @available / @undecided</dd>
+    </dl>
+</AdminOnly>
+
+@code {
+    private ElementReference video;
+    private List<WorkerSourceDto> sources = [];
+    private int selectedCameraId;
+    private WorkerSourceDto? selected => sources.FirstOrDefault(s => s.CameraId == selectedCameraId);
+    private IReadOnlyList<BoundingBoxDto> boxes = [];
+    private Dictionary<int, string> slotStatus = [];
+
+    private CancellationTokenSource? stop;
+    private Task? loop;
+    private bool running, starting;
+    private string? error;
+    private string status = "Choose a source and press Start.";
+    private int frames, sent, occupied, available, undecided;
+    private double lastMilliseconds;
+    private string? lastSent;
+
+    private ElementReference localInput;
+    private string? localUrl, localName;
+    private long localSize;
+
+    // A video chosen on this computer wins over the one served by the site.
+    private string? VideoSrc => localUrl ?? (selected is null ? null : AiSettings.Value.VideoUrl(selected.VideoFile));
+
+    private async Task OnLocalVideoAsync()
+    {
+        error = null;
+        var picked = await Detector.UseLocalVideoAsync(localInput);
+        (localUrl, localName, localSize) = picked is null ? (null, null, 0L) : (picked.Url, picked.Name, picked.Size);
+    }
+
+    private async Task ClearLocalVideoAsync()
+    {
+        await Detector.ReleaseLocalVideoAsync();
+        localUrl = localName = null;
+        localSize = 0;
+    }
+
+    private static string FormatSize(long bytes) =>
+        bytes >= 1_000_000 ? $"{bytes / 1_000_000.0:0.#} MB" : $"{bytes / 1000.0:0.#} KB";
+
+    protected override async Task OnInitializedAsync() => await LoadSourcesAsync();
+
+    private async Task LoadSourcesAsync()
+    {
+        error = null;
+        try
+        {
+            sources = await Api.GetSourcesAsync();
+            if (selected is null) selectedCameraId = sources.Count == 1 ? sources[0].CameraId : 0;
+            status = sources.Count == 0
+                ? "No video sources are configured. Add slot polygons in the polygon editor first."
+                : "Choose a source and press Start.";
+        }
+        catch (HttpRequestException ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task StartAsync()
+    {
+        if (selected is not { } source || running) return;
+        starting = true; error = null; status = "Loading the model...";
+        try
+        {
+            await Detector.LoadAsync();
+            if (!await Detector.PlayAsync(video))
+                throw new InvalidOperationException("The browser blocked video playback or the video file was not found at " + VideoSrc + ".");
+
+            stop = new CancellationTokenSource();
+            running = true;
+            status = "Running.";
+            loop = RunAsync(source, stop.Token);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            error = ex.Message;
+            status = "Stopped.";
+        }
+        finally
+        {
+            starting = false;
+        }
+    }
+
+    private async Task StopAsync()
+    {
+        stop?.Cancel();
+        if (loop is not null) await loop;
+        await Detector.PauseAsync(video);
+        running = false; boxes = []; status = "Stopped.";
+    }
+
+    // Same sequence as VideoSourceWorker: detect, map to slots, debounce, then send changes and heartbeats.
+    private async Task RunAsync(WorkerSourceDto source, CancellationToken ct)
+    {
+        var options = AiSettings.Value;
+        var mapper = new SlotMapper(source.Slots);
+        var tracker = new OccupancyTracker(source.Slots);
+        long started = Clock.GetTimestamp();
+        double lastSent = double.NegativeInfinity, lastVideoTime = -1;
+        bool sync = true;
+        var interval = TimeSpan.FromSeconds(1 / Math.Clamp(options.SampleFps, 0.1, 30));
+
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                long tick = Clock.GetTimestamp();
+                var frame = await Detector.DetectAsync(video, ct);
+                if (frame is not null)
+                {
+                    double seconds = Clock.GetElapsedTime(started, tick).TotalSeconds;
+                    if (frame.VideoTime < lastVideoTime) { tracker.ResetPending(); sync = true; } // the video looped
+                    lastVideoTime = frame.VideoTime;
+
+                    var result = tracker.Update(mapper.Map(frame.Boxes), seconds, source.ZoneCapacity);
+                    boxes = frame.Boxes;
+                    slotStatus = result.Visible.ToDictionary(s => s.SpotId, s => s.Status);
+                    frames++; lastMilliseconds = frame.Milliseconds;
+                    occupied = result.Occupied; available = result.Available; undecided = result.Unknown.Count;
+
+                    if (sync || result.Changes.Count > 0 || seconds - lastSent >= options.HeartbeatSeconds)
+                    {
+                        var now = Clock.GetUtcNow();
+                        string kind = result.Changes.Count > 0 ? "change" : "heartbeat";
+                        var spots = result.Visible.Select(s => new
+                        {
+                            s.SpotId, s.SpotNumber, source.AreaId, source.CameraId, s.Status, s.Confidence, timestamp = now
+                        }).ToList();
+                        await Api.PostDetectionsAsync(new { source.CameraId, source.AreaId, type = kind, timestamp = now, spots }, ct);
+                        lastSent = seconds; sync = false; sent++;
+                        this.lastSent = $"{kind} at {now.LocalDateTime:HH:mm:ss}";
+                    }
+                }
+
+                StateHasChanged();
+                var remaining = interval - Clock.GetElapsedTime(tick);
+                if (remaining > TimeSpan.Zero) await Task.Delay(remaining, ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            error = ex is HttpRequestException ? ex.Message : "Detection stopped: " + ex.Message;
+            await Detector.PauseAsync(video);
+            running = false; status = "Stopped after an error.";
+            StateHasChanged();
+        }
+    }
+
+    private static string F(float value) => value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string Points(double[][] polygon) => string.Join(' ',
+        polygon.Select(p => p[0].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + "," +
+                            p[1].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)));
+
+    private string SlotClass(int spotId) => slotStatus.TryGetValue(spotId, out var value) ? value : "undecided";
+
+    public async ValueTask DisposeAsync()
+    {
+        stop?.Cancel();
+        if (loop is not null) { try { await loop; } catch { } }
+        stop?.Dispose();
+        await Detector.ReleaseLocalVideoAsync();
+    }
+}

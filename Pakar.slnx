@@ -7,9 +7,12 @@
     <Project Path="src/Pakar.Infrastructure/Pakar.Infrastructure.csproj" />
     <Project Path="src/Pakar.Migrations.Postgres/Pakar.Migrations.Postgres.csproj" />
     <Project Path="src/Pakar.Shared/Pakar.Shared.csproj" />
+    <Project Path="src/Pakar.Vision/Pakar.Vision.csproj" />
     <Project Path="src/Pakar.Web/Pakar.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Pakar.AiInference.Tests/Pakar.AiInference.Tests.csproj" />
     <Project Path="tests/Pakar.Api.Tests/Pakar.Api.Tests.csproj" />
+    <Project Path="tests/Pakar.Web.Tests/Pakar.Web.Tests.csproj" />
   </Folder>
 </Solution>

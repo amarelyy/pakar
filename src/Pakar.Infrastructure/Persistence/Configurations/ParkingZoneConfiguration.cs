@@ -12,6 +12,11 @@ public sealed class ParkingZoneConfiguration : IEntityTypeConfiguration<ParkingZ
         zone.Property(z => z.Name).HasMaxLength(100);
         zone.Property(z => z.Description).HasMaxLength(500);
 
+        // FR 17: stored as text ("Full") so the column stays readable in the database.
+        zone.Property(z => z.StatusOverride).HasConversion<string>().HasMaxLength(20);
+        zone.Property(z => z.StatusOverrideNote).HasMaxLength(200);
+        zone.Property(z => z.StatusOverrideSetBy).HasMaxLength(100);
+
         // Unique across removed zones too, so an AI pipeline ID is never reused.
         zone.HasIndex(z => z.ExternalId).IsUnique();
 

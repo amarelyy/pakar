@@ -32,6 +32,19 @@ public static class OccupancyCalculator
             : ZoneOccupancyStatus.Available;
     }
 
+    /// <summary>
+    /// Final zone numbers: the computed status, or the admin's manual status (FR 17) when one is set.
+    /// A zone forced to "full" offers no free spots, so search and alternate-zone suggestions skip it.
+    /// </summary>
+    public static (ZoneOccupancyStatus Status, int Available, bool IsOverridden) Resolve(
+        int capacity, int occupied, ZoneOccupancyStatus? manual)
+    {
+        var available = Available(capacity, occupied);
+        if (manual is null)
+            return (GetStatus(capacity, occupied), available, false);
+        return (manual.Value, manual == ZoneOccupancyStatus.Full ? 0 : available, true);
+    }
+
     public static string ToApiValue(this ZoneOccupancyStatus status) => status switch
     {
         ZoneOccupancyStatus.Available => "available",

@@ -144,6 +144,8 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
             return OperationResult<CameraAdminDto>.Invalid(nameof(request.ZoneId), "Target zone does not exist.");
 
         camera.Name = request.Name!.Trim();
+        if (camera.ZoneId != request.ZoneId && await db.SpotRois.AnyAsync(r => r.CameraId == id, ct))
+            return OperationResult<CameraAdminDto>.Invalid(nameof(request.ZoneId), "Clear this source's polygons before moving it to another zone.");
         camera.ZoneId = request.ZoneId;
         camera.StreamUrl = FacilityRules.NormalizeVideoFile(request.VideoFile);
         camera.ConnectionType = VideoConnectionType;
@@ -166,7 +168,12 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
     // ---- helpers ----
 
     private static readonly System.Linq.Expressions.Expression<Func<ParkingZone, ZoneAdminDto>> ZoneToDtoExpression =
-        z => new ZoneAdminDto(z.Id, z.Name, z.Description, z.TotalCapacity, z.ExternalId, z.Spots.Count, z.Cameras.Count);
+        z => new ZoneAdminDto(z.Id, z.Name, z.Description, z.TotalCapacity, z.ExternalId, z.Spots.Count, z.Cameras.Count,
+            z.StatusOverride == null ? null
+                : z.StatusOverride == ZoneOccupancyStatus.Full ? "full"
+                : z.StatusOverride == ZoneOccupancyStatus.AlmostFull ? "almost_full" : "available",
+            z.StatusOverrideNote,
+            z.StatusOverrideSetAt);
 
     private IQueryable<Camera> CameraQuery() => db.Cameras.AsNoTracking();
 
@@ -177,10 +184,12 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
             // It is never returned; the admin sets a video file name instead.
             c.StreamUrl.Contains("://") ? string.Empty : c.StreamUrl,
             c.IsActive,
-            c.LastActiveTime);
+            c.LastActiveTime,
+            c.ReferenceFrame != null);
 
     private static ZoneAdminDto ToDto(ParkingZone zone, int spotCount, int cameraCount) => new(
-        zone.Id, zone.Name, zone.Description, zone.TotalCapacity, zone.ExternalId, spotCount, cameraCount);
+        zone.Id, zone.Name, zone.Description, zone.TotalCapacity, zone.ExternalId, spotCount, cameraCount,
+        zone.StatusOverride?.ToApiValue(), zone.StatusOverrideNote, zone.StatusOverrideSetAt);
 
     private async Task<bool> TrySaveAsync(CancellationToken ct)
     {

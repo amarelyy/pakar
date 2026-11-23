@@ -19,6 +19,6 @@ public record IngestRequest(
 
 // Yang dikirim ke frontend
 public record SpotView(int SpotId, string SpotNumber, int AreaId, string Status, double Confidence, DateTimeOffset UpdatedAt);
-public record ZoneView(int AreaId, int Capacity, int Occupied, int Available, string Status); // Status: available | almost_full | full
+public record ZoneView(int AreaId, int Capacity, int Occupied, int Available, string Status, bool IsOverridden = false); // Status: available | almost_full | full; IsOverridden = set by an admin (FR 17)
 public record CameraView(int CameraId, int AreaId, bool Active, DateTimeOffset LastSeen);
 public record ParkingSnapshot(List<SpotView> Spots, List<ZoneView> Zones, List<CameraView> Cameras);

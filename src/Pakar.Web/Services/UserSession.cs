@@ -1,19 +1,20 @@
-using System.Security.Cryptography;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using System.Text.Json;
+using Microsoft.JSInterop;
 
 namespace Pakar.Web.Services;
 
 /// <summary>
-/// Holds the signed-in user for one browser tab. The session is kept encrypted in session storage,
+/// Holds the signed-in user for one browser tab. The session is kept in the browser's session storage,
 /// so it survives page reloads and is cleared when the tab closes or the user logs out.
-/// Scoped per circuit, so every interactive component on the page sees the same user.
+/// The token is readable by scripts of this origin; that is the trade-off of running without a server.
 /// </summary>
-public sealed class UserSession(ProtectedSessionStorage storage, TimeProvider clock)
+public sealed class UserSession(IJSRuntime js, TimeProvider clock)
 {
-    private const string SessionKey = "auth-session";
+    private const string SessionKey = "pakar-auth-session";
 
     private SignedInUser? user;
     private bool restored;
+    private readonly SemaphoreSlim restoreGate = new(1, 1);
 
     /// <summary>Raised after sign-in and sign-out so menus can re-render.</summary>
     public event Action? Changed;
@@ -22,7 +23,7 @@ public sealed class UserSession(ProtectedSessionStorage storage, TimeProvider cl
     {
         user = signedIn;
         restored = true;
-        await storage.SetAsync(SessionKey, signedIn);
+        await js.InvokeVoidAsync("sessionStorage.setItem", SessionKey, JsonSerializer.Serialize(signedIn));
         Changed?.Invoke();
     }
 
@@ -30,29 +31,28 @@ public sealed class UserSession(ProtectedSessionStorage storage, TimeProvider cl
     {
         user = null;
         restored = true;
-        await storage.DeleteAsync(SessionKey);
+        await js.InvokeVoidAsync("sessionStorage.removeItem", SessionKey);
         Changed?.Invoke();
     }
 
-    /// <summary>
-    /// Returns the signed-in user, or null when signed out or the token expired.
-    /// Needs an interactive circuit: call it from components rendered without prerendering.
-    /// </summary>
+    /// <summary>Returns the signed-in user, or null when signed out or the token expired.</summary>
     public async ValueTask<SignedInUser?> GetUserAsync()
     {
         if (!restored)
         {
-            restored = true;
+            // Components that start together must all wait for the same restore, not read a half-empty session.
+            await restoreGate.WaitAsync();
             try
             {
-                var result = await storage.GetAsync<SignedInUser>(SessionKey);
-                user = result.Success ? result.Value : null;
+                if (!restored)
+                {
+                    user = await ReadStoredUserAsync();
+                    restored = true;
+                }
             }
-            catch (CryptographicException)
+            finally
             {
-                // Encryption keys changed (for example after a redeploy); treat as signed out.
-                await storage.DeleteAsync(SessionKey);
-                user = null;
+                restoreGate.Release();
             }
         }
 
@@ -64,4 +64,19 @@ public sealed class UserSession(ProtectedSessionStorage storage, TimeProvider cl
 
     /// <summary>Bearer token for API calls, or null when signed out.</summary>
     public async ValueTask<string?> GetTokenAsync() => (await GetUserAsync())?.Token;
+
+    private async Task<SignedInUser?> ReadStoredUserAsync()
+    {
+        try
+        {
+            var json = await js.InvokeAsync<string?>("sessionStorage.getItem", SessionKey);
+            return string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<SignedInUser>(json);
+        }
+        catch (JsonException)
+        {
+            // A damaged entry is treated as signed out.
+            await js.InvokeVoidAsync("sessionStorage.removeItem", SessionKey);
+            return null;
+        }
+    }
 }

@@ -3,7 +3,7 @@ namespace Pakar.Application.DTOs;
 /// <summary>Body for adding or editing a zone (FR 13).</summary>
 public sealed record ZoneRequest(string? Name, string? Description, int TotalCapacity);
 
-/// <summary>Zone as the admin sees it, including the id the AI worker uses (<see cref="ExternalId"/>).</summary>
+/// <summary>Zone as the admin sees it, including the id the AI worker uses (<see cref="ExternalId"/>) and the manual status an admin forced (FR 17), if any.</summary>
 public sealed record ZoneAdminDto(
     Guid Id,
     string Name,
@@ -11,7 +11,10 @@ public sealed record ZoneAdminDto(
     int TotalCapacity,
     int ExternalId,
     int SpotCount,
-    int CameraCount);
+    int CameraCount,
+    string? OverrideStatus,
+    string? OverrideNote,
+    DateTime? OverrideSetAt);
 
 /// <summary>
 /// Body for adding or editing a video source (FR 14). <see cref="VideoFile"/> is a file name inside the
@@ -30,4 +33,5 @@ public sealed record CameraAdminDto(
     string ConnectionType,
     string VideoFile,
     bool IsActive,
-    DateTime? LastActiveTime);
+    DateTime? LastActiveTime,
+    bool HasReferenceFrame = false);

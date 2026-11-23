@@ -15,44 +15,50 @@ public static class IngestEndpoints
 
         app.MapGet("/api/parking/snapshot", (ParkingStateStore store) => store.GetSnapshot());
 
-        // Authenticated by CameraAuthMiddleware, which guards every /api/ingest route.
-        app.MapPost("/api/ingest/detections", async (
-            IngestRequest req,
-            AppDbContext db,
-            ParkingStateStore store,
-            IHubContext<ParkingHub> hub,
-            IServiceScopeFactory scopeFactory,
-            ILogger<ParkingStateStore> log) =>
+        // Edge devices and the video worker: authenticated by CameraAuthMiddleware, which guards every /api/ingest route.
+        app.MapPost("/api/ingest/detections", IngestAsync);
+    }
+
+    /// <summary>
+    /// Applies one detection batch: updates the realtime state, pushes SignalR events and saves history.
+    /// Shared by the edge-device route and the admin browser route.
+    /// </summary>
+    internal static async Task<IResult> IngestAsync(
+        IngestRequest req,
+        AppDbContext db,
+        ParkingStateStore store,
+        IHubContext<ParkingHub> hub,
+        IServiceScopeFactory scopeFactory,
+        ILogger<ParkingStateStore> log)
+    {
+        if (req.Spots is null || req.Spots.Count > 500)
+            return Results.BadRequest("Spots must contain between 0 and 500 entries.");
+
+        // Every detection row references a camera, so data from unregistered cameras is rejected up front.
+        if (!await db.Cameras.AnyAsync(c => c.ExternalId == req.CameraId))
         {
-            if (req.Spots is null || req.Spots.Count > 500)
-                return Results.BadRequest("Spots must contain between 0 and 500 entries.");
+            log.LogWarning("Rejected ingest from unregistered camera {Cam}.", req.CameraId);
+            return Results.NotFound($"Camera {req.CameraId} is not registered.");
+        }
 
-            // Every detection row references a camera, so data from unregistered cameras is rejected up front.
-            if (!await db.Cameras.AnyAsync(c => c.ExternalId == req.CameraId))
-            {
-                log.LogWarning("Rejected ingest from unregistered camera {Cam}.", req.CameraId);
-                return Results.NotFound($"Camera {req.CameraId} is not registered.");
-            }
+        var (changed, zone, cam, reactivated, dbDetections) = store.Apply(req);
 
-            var (changed, zone, cam, reactivated, dbDetections) = store.Apply(req);
+        var persistTask = PersistToDatabaseAsync(scopeFactory, req, dbDetections, log);
 
-            var persistTask = PersistToDatabaseAsync(scopeFactory, req, dbDetections, log);
+        foreach (var s in changed)
+            await hub.Clients.Group(ParkingHub.AreaGroup(s.AreaId)).SendAsync("SpotStatusChanged", s);
 
-            foreach (var s in changed)
-                await hub.Clients.Group(ParkingHub.AreaGroup(s.AreaId)).SendAsync("SpotStatusChanged", s);
+        if (changed.Count > 0)
+            await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("ZoneUpdated", zone);
 
-            if (changed.Count > 0)
-                await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("ZoneUpdated", zone);
+        if (reactivated)
+            await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("CameraStatusChanged", cam);
 
-            if (reactivated)
-                await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("CameraStatusChanged", cam);
+        log.LogInformation("ingest cam={Cam} type={Type} changed={N} zone {Occ}/{Cap}",
+            req.CameraId, req.Type, changed.Count, zone.Occupied, zone.Capacity);
 
-            log.LogInformation("ingest cam={Cam} type={Type} changed={N} zone {Occ}/{Cap}",
-                req.CameraId, req.Type, changed.Count, zone.Occupied, zone.Capacity);
-
-            await Task.WhenAny(persistTask, Task.CompletedTask);
-            return Results.Ok(new { changed = changed.Count });
-        });
+        await Task.WhenAny(persistTask, Task.CompletedTask);
+        return Results.Ok(new { changed = changed.Count });
     }
 
     private static async Task PersistToDatabaseAsync(

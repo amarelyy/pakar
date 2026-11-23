@@ -23,7 +23,8 @@ public sealed record ZoneSummaryDto(
     string Status,
     double? Latitude,
     double? Longitude,
-    double? DistanceMeters);
+    double? DistanceMeters,
+    bool IsOverridden = false);
 
 /// <summary>
 /// FR 4: the nearest zone with free spots. Alternative is null when no other zone has space.

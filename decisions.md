@@ -154,3 +154,19 @@ Which combinations work
 | B Vercel + API host | Works; worker calls the API host | Works only if the API host is Azure |
 | C Laptop + tunnel | Works; use `localhost`, no tunnel for the worker | Not meaningful |
 | D Other host | Works; worker calls the public address | Needs a second paid host |
+
+## 7. Where the work stands (branch `try/vercel`)
+
+Decided, 2026-11-23: no Azure, no Hugging Face, UI on Vercel as Blazor WebAssembly, the lecturer allows JavaScript.
+
+- **UI:** `Pakar.Web` is Blazor WebAssembly on Vercel (static files). Publish with `scripts/publish-vercel.ps1`.
+- **API:** one always-on process on a host that is not Azure, for now the laptop opened with a tunnel (`infra/vercel/README.md`).
+- **AI, option B (default):** the model runs in an admin's browser on `/admin/feeder` with ONNX Runtime Web. The admin can pick
+  a video from their own computer. Results go to `POST /api/feeder/detections` with the admin JWT.
+- **AI, fallback:** if a browser may not run the model, the .NET worker (`Pakar.AiInference`) runs on the same laptop as the API and posts with the ingest API key.
+- **Shared rules:** both use `Pakar.Vision` (slot mapping and debounce), tested against the OpenCV mapper.
+
+Still open: the host of the API beyond the laptop, the real parking model (only a synthetic model was tested), and the speed on the demo machine.
+
+**Live (2026-11-24):** the web app is at https://pakar-parkir.vercel.app (`pakar.vercel.app` was already taken), the API runs on the team
+laptop behind a Cloudflare tunnel with the Neon database, and the runbook is `infra/vercel/README.md`.

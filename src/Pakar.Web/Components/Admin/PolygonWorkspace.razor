@@ -1,0 +1,116 @@
+@using Pakar.Application.DTOs
+@using Pakar.Shared.Dtos
+@using Pakar.Shared.Geometry
+@using Pakar.Application.Validation
+@inject RoiApiClient Api
+
+<h1>Slot polygons</h1>
+<p>Mark each parking slot on a still image from its video. <a href="admin">Back to admin</a></p>
+@if(error is not null){<p class="alert alert-danger" role="alert">@error</p>}
+@if(message is not null){<p class="alert alert-success" role="status">@message</p>}
+@if(busy){<p role="status">Loading or saving…</p>}
+<fieldset disabled="@busy">
+    <label>Video source
+        <select aria-label="Video source" value="@cameraId" @onchange="SelectCamera" disabled="@dirty">
+            <option value="">Choose a video source</option>
+            @foreach(var camera in cameras){<option value="@camera.Id">@camera.Name · @camera.ZoneName</option>}
+        </select>
+    </label>
+    <button type="button" @onclick="Reload">@(dirty?"Discard changes and reload":"Reload saved polygons")</button>
+    @if(cameras.Count==0 && !busy){<p>No video sources found. Add one in video source management first.</p>}
+    @if(config is not null)
+    {
+        <div class="frame-upload">
+            <label>Reference image (PNG or JPEG, up to 2 MB)<InputFile OnChange="Upload" accept="image/png,image/jpeg" /></label>
+            <p>Use a screenshot from this source's video. Existing polygons stay in place when the image is replaced.</p>
+        </div>
+        @if(config.Spots.Count==0){<p>This zone has no parking spots. Add spots before drawing polygons.</p>}
+        else
+        {
+            <label>Parking spot
+                <select aria-label="Parking spot" value="@spotId" @onchange="SelectSpot">
+                    @foreach(var spot in config.Spots){<option value="@spot.Id">@spot.Name @(polygons.ContainsKey(spot.Id)?"· configured":"· no polygon")</option>}
+                </select>
+            </label>
+            @if(imageUrl is not null)
+            {
+                <SvgPolygonEditor @key="spotId" ImageUrl="@imageUrl" ImageWidth="@imageWidth" ImageHeight="@imageHeight"
+                    Points="@currentPoints" Changed="MarkDirty" OtherPolygons="@Others" />
+            }
+            else{<p>Upload a reference image to start drawing.</p>}
+            <button type="button" class="btn btn-primary" @onclick="Save" disabled="@(!dirty)">Save polygons</button>
+            <span role="status">@(dirty?" Unsaved changes":" Saved")</span>
+        }
+    }
+</fieldset>
+
+@code {
+    private List<CameraAdminDto> cameras=[];
+    private CameraRoisDto? config;
+    private Guid? cameraId,spotId;
+    private Dictionary<Guid,List<double[]>> polygons=[];
+    private List<double[]> currentPoints=[];
+    private bool busy,dirty;
+    private string? error,message,imageUrl;
+    private int imageWidth=1280,imageHeight=720;
+    private IEnumerable<double[][]> Others=>polygons.Where(p=>p.Key!=spotId).Select(p=>p.Value.ToArray());
+    protected override async Task OnInitializedAsync()=>await Run(async()=>cameras=await Api.Cameras());
+    private async Task Run(Func<Task> action)
+    {
+        busy=true;error=null;message=null;
+        try{await action();}
+        catch(Exception ex) when(ex is HttpRequestException or InvalidDataException or IOException or InvalidOperationException)
+        {error=ex.Message;}
+        finally{busy=false;}
+    }
+    private async Task SelectCamera(ChangeEventArgs e)
+    {
+        if(dirty){error="Save your polygons or reload them before switching sources.";return;}
+        cameraId=Guid.TryParse(e.Value?.ToString(),out var id)?id:null;
+        await Reload();
+    }
+    private async Task Reload()=>await Run(async()=>
+    {
+        config=null;imageUrl=null;polygons.Clear();currentPoints=[];spotId=null;dirty=false;
+        if(cameraId is not {} id)return;
+        config=await Api.Get(id);
+        polygons=config.Slots.ToDictionary(s=>s.SpotId,s=>s.Points.Select(p=>p.ToArray()).ToList());
+        spotId=config.Spots.FirstOrDefault()?.Id;
+        BindPoints();
+        try{await LoadFrame(id);}
+        catch(HttpRequestException ex) when(ex.StatusCode==System.Net.HttpStatusCode.NotFound) { }
+    });
+    private async Task LoadFrame(Guid id)
+    {
+        var frame=await Api.Frame(id);
+        var size=ImageDimensions.Read(frame.Bytes)??throw new InvalidDataException("Reference image dimensions could not be read. Upload a valid PNG or JPEG.");
+        imageWidth=size.Width;imageHeight=size.Height;
+        imageUrl=$"data:{frame.ContentType};base64,{Convert.ToBase64String(frame.Bytes)}";
+    }
+    private void BindPoints()
+    {
+        currentPoints=spotId is {} id && polygons.TryGetValue(id,out var points)?points:[];
+    }
+    private void SelectSpot(ChangeEventArgs e){spotId=Guid.Parse(e.Value!.ToString()!);BindPoints();}
+    private void MarkDirty(){if(spotId is {} id)polygons[id]=currentPoints;dirty=true;message=null;}
+    private async Task Upload(InputFileChangeEventArgs e)=>await Run(async()=>
+    {
+        if(cameraId is not {} id)return;
+        using var memory=new MemoryStream();
+        await e.File.OpenReadStream(ReferenceFrameRules.MaxBytes).CopyToAsync(memory);
+        var bytes=memory.ToArray();
+        if(ReferenceFrameRules.ContentType(bytes) is null || ImageDimensions.Read(bytes) is null)
+            throw new InvalidDataException("Choose a valid PNG or JPEG up to 2 MB.");
+        await Api.Upload(id,bytes,e.File.Name);await LoadFrame(id);message="Reference image saved.";
+    });
+    private async Task Save()=>await Run(async()=>
+    {
+        if(cameraId is not {} id || config is null)return;
+        foreach(var (slot,points) in polygons.Where(p=>p.Value.Count>0))
+            if(PolygonRules.Validate(points.ToArray()) is {} problem)
+                throw new InvalidDataException($"{config.Spots.First(s=>s.Id==slot).Name}: {problem}");
+        config=await Api.Save(id,new(polygons.Where(p=>p.Value.Count>0).Select(p=>new RoiSlotRequest(p.Key,p.Value.ToArray())).ToList()));
+        polygons=config.Slots.ToDictionary(s=>s.SpotId,s=>s.Points.Select(p=>p.ToArray()).ToList());
+        BindPoints();dirty=false;message="Polygons saved. Reload to verify; the video worker reads the same configuration.";
+    });
+}

@@ -11,6 +11,9 @@ public class ZoneDto
     /// <summary>available, almost_full or full.</summary>
     public string Status { get; set; } = "available";
 
+    /// <summary>True when an admin forced this status (FR 17) instead of it being computed from the spots.</summary>
+    public bool IsOverridden { get; set; }
+
     public List<SpotDto> Spots { get; set; } = new();
 }
 

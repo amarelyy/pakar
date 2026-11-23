@@ -14,7 +14,10 @@ public class ZoneDto
     /// <summary>True when an admin forced this status (FR 17) instead of it being computed from the spots.</summary>
     public bool IsOverridden { get; set; }
 
+    // The numeric ID identifies the same zone in ParkingHub messages.
+    public int? ExternalId { get; set; }
     public List<SpotDto> Spots { get; set; } = new();
+    public List<ZoneSourceDto> Sources { get; set; } = new();
 }
 
 public class SpotDto
@@ -24,4 +27,8 @@ public class SpotDto
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public bool IsOccupied { get; set; }
+    public int? ExternalId { get; set; }
+    public DateTime LastUpdated { get; set; }
 }
+
+public sealed record ZoneSourceDto(int ExternalId, DateTime? LastActiveTime);

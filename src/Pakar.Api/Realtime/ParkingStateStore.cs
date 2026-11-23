@@ -47,7 +47,7 @@ public sealed class ParkingStateStore
                     dbDetections.Add((u.SpotId, status, u.Confidence, u.Timestamp));
             }
 
-            var reactivated = _cameras.TryGetValue(req.CameraId, out var oldCam) && !oldCam.Active;
+            var reactivated = !_cameras.TryGetValue(req.CameraId, out var oldCam) || !oldCam.Active;
             var cam = new CameraView(req.CameraId, req.AreaId, true, DateTimeOffset.UtcNow);
             _cameras[req.CameraId] = cam;
 

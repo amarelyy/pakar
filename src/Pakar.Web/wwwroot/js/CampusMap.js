@@ -1,62 +1,144 @@
-// Leaflet rendering for the campus parking map. Called from CampusMap.razor through JS interop.
+// Leaflet renders the geography. Blazor owns selection, availability and realtime state.
 window.campusMap = (() => {
-    // Faculty of Engineering, Universitas Gadjah Mada; used until spot coordinates are available.
-    const defaultCenter = [-7.7685, 110.3760];
-    const defaultZoom = 18;
-    const colors = { available: "#2e7d32", occupied: "#c62828" };
+    const colors = { available: '#0f7a4a', almost_full: '#e39b00', full: '#c42b2b', unknown: '#9aa3ae' };
+    let map, zonesLayer, spotsLayer, reference, resizeObserver, selected;
+    let zones = [];
 
-    let map = null;
-    let spotLayer = null;
-
-    function init(elementId, zones) {
-        if (map) {
-            map.remove();
-        }
-
-        map = L.map(elementId).setView(defaultCenter, defaultZoom);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 20,
-            attribution: "&copy; OpenStreetMap contributors"
-        }).addTo(map);
-
-        spotLayer = L.layerGroup().addTo(map);
-        renderZones(zones);
-
-        const bounds = spotLayer.getLayers().map(marker => marker.getLatLng());
-        if (bounds.length > 0) {
-            map.fitBounds(bounds, { padding: [30, 30], maxZoom: defaultZoom + 1 });
-        }
+    function hasLocation(spot) {
+        return Number.isFinite(spot.latitude) && Number.isFinite(spot.longitude) &&
+            Math.abs(spot.latitude) <= 90 && Math.abs(spot.longitude) <= 180 &&
+            (spot.latitude !== 0 || spot.longitude !== 0);
     }
 
-    function renderZones(zones) {
-        if (!spotLayer) {
-            return;
+    function points(zone) {
+        return zone.spots.filter(hasLocation).map(spot => [spot.latitude, spot.longitude]);
+    }
+
+    function hull(coordinates) {
+        const sorted = [...new Map(coordinates.map(point => [point.join(','), point])).values()]
+            .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        if (sorted.length < 3) return [];
+
+        function side(ordered) {
+            const boundary = [];
+            for (const point of ordered) {
+                while (boundary.length >= 2) {
+                    const [x, y] = boundary.at(-2);
+                    const [u, v] = boundary.at(-1);
+                    const cross = (u - x) * (point[1] - y) - (v - y) * (point[0] - x);
+                    if (cross > 0) break;
+                    boundary.pop();
+                }
+                boundary.push(point);
+            }
+            return boundary.slice(0, -1);
         }
 
-        spotLayer.clearLayers();
+        return side(sorted).concat(side([...sorted].reverse()));
+    }
+
+    function init(id, dotnet) {
+        dispose();
+        if (!window.L) throw new Error('Map library unavailable');
+        reference = dotnet;
+        map = L.map(id, { zoomControl: false }).setView([-7.7685, 110.376], 17);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        zonesLayer = L.layerGroup().addTo(map);
+        spotsLayer = L.layerGroup().addTo(map);
+        resizeObserver = new ResizeObserver(() => map?.invalidateSize());
+        resizeObserver.observe(map.getContainer());
+        map.on('zoomend', drawSpots);
+    }
+
+    function zoneLabel(zone, color) {
+        const label = document.createElement('span');
+        const count = document.createElement('strong');
+        const description = document.createElement('span');
+        const name = document.createElement('small');
+        count.textContent = zone.availableSpots;
+        description.textContent = ' kosong';
+        name.textContent = zone.name + (zone.stale ? ' · data lama' : '');
+        label.append(count, description, name);
+        label.style.setProperty('--badge-color', color);
+        return label;
+    }
+
+    function renderZones(next, selectedId) {
+        if (!map) return;
+        const first = zones.length === 0;
+        zones = next;
+        selected = selectedId;
+        zonesLayer.clearLayers();
+
         for (const zone of zones) {
-            for (const spot of zone.spots) {
-                const status = spot.isOccupied ? "occupied" : "available";
+            const coordinates = points(zone);
+            if (coordinates.length === 0) continue;
+
+            const color = zone.stale ? colors.unknown : (colors[zone.status] || colors.unknown);
+            const isSelected = zone.id === selected;
+            const options = {
+                color: isSelected ? '#1f4fd8' : color,
+                weight: isSelected ? 3 : 2,
+                fillColor: color,
+                fillOpacity: zone.stale ? .1 : .2,
+                dashArray: zone.stale ? '4 4' : undefined
+            };
+            const outline = hull(coordinates);
+            const center = L.latLngBounds(coordinates).getCenter();
+            const shape = outline.length >= 3
+                ? L.polygon(outline, options)
+                : L.circleMarker(center, { ...options, radius: 16 });
+            shape.bindTooltip(zoneLabel(zone, color), {
+                permanent: true, direction: 'center', className: 'zone-badge', interactive: true, opacity: 1
+            });
+            shape.on('click', () => reference?.invokeMethodAsync('SelectFromMap', zone.id));
+            shape.addTo(zonesLayer);
+        }
+
+        drawSpots();
+        if (first) fit();
+    }
+
+    function drawSpots() {
+        if (!spotsLayer) return;
+        spotsLayer.clearLayers();
+        for (const zone of zones) {
+            if (zone.id !== selected && map.getZoom() < 19) continue;
+
+            for (const spot of zone.spots.filter(hasLocation)) {
+                const fillColor = zone.stale ? colors.unknown : colors[spot.isOccupied ? 'full' : 'available'];
+                const label = document.createElement('span');
+                label.textContent = spot.name + (spot.isOccupied ? ': Terisi' : ': Kosong');
                 L.circleMarker([spot.latitude, spot.longitude], {
-                    radius: 7,
-                    weight: 1,
-                    color: "#ffffff",
-                    fillColor: colors[status],
-                    fillOpacity: 0.9
-                })
-                    .bindTooltip(`${spot.name} (${zone.name}): ${status}`)
-                    .addTo(spotLayer);
+                    radius: 4, weight: 1, color: '#fff', fillColor, fillOpacity: 1
+                }).bindTooltip(label).addTo(spotsLayer);
             }
         }
     }
 
-    function dispose() {
-        if (map) {
-            map.remove();
-            map = null;
-            spotLayer = null;
-        }
+    function fit() {
+        const coordinates = zones.flatMap(points);
+        if (coordinates.length) map.fitBounds(coordinates, { padding: [65, 65], maxZoom: 18 });
     }
 
-    return { init, renderZones, dispose };
+    function focusZone(id) {
+        const zone = zones.find(candidate => candidate.id === id);
+        if (!zone) return;
+        const coordinates = points(zone);
+        if (coordinates.length) map.fitBounds(coordinates, { padding: [90, 90], maxZoom: 19 });
+    }
+
+    function dispose() {
+        resizeObserver?.disconnect();
+        map?.remove();
+        map = zonesLayer = spotsLayer = reference = null;
+        zones = [];
+        selected = null;
+    }
+
+    return { init, renderZones, fit, focusZone, dispose };
 })();

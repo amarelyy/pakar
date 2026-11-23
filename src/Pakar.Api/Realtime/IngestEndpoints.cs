@@ -48,16 +48,18 @@ public static class IngestEndpoints
         foreach (var s in changed)
             await hub.Clients.Group(ParkingHub.AreaGroup(s.AreaId)).SendAsync("SpotStatusChanged", s);
 
+        // Zone subscribers can now request an alternate against the updated database.
+        await persistTask;
+
         if (changed.Count > 0)
             await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("ZoneUpdated", zone);
 
-        if (reactivated)
+        if (reactivated || req.Type == "heartbeat")
             await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("CameraStatusChanged", cam);
 
         log.LogInformation("ingest cam={Cam} type={Type} changed={N} zone {Occ}/{Cap}",
             req.CameraId, req.Type, changed.Count, zone.Occupied, zone.Capacity);
 
-        await Task.WhenAny(persistTask, Task.CompletedTask);
         return Results.Ok(new { changed = changed.Count });
     }
 

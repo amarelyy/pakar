@@ -29,6 +29,8 @@ public sealed class ZoneQueryService(AppDbContext db) : IZoneQueryService
                 z.Name,
                 z.TotalCapacity,
                 z.StatusOverride,
+                z.ExternalId,
+                Sources = z.Cameras.Select(c => new ZoneSourceDto(c.ExternalId, c.LastActiveTime)).ToList(),
                 Spots = z.Spots
                     .OrderBy(s => s.Name)
                     .Select(s => new SpotDto
@@ -37,7 +39,9 @@ public sealed class ZoneQueryService(AppDbContext db) : IZoneQueryService
                         Name = s.Name,
                         Latitude = s.Latitude,
                         Longitude = s.Longitude,
-                        IsOccupied = s.IsOccupied
+                        IsOccupied = s.IsOccupied,
+                        ExternalId = s.ExternalId,
+                        LastUpdated = s.LastUpdated
                     }).ToList()
             })
             .ToListAsync(ct);
@@ -55,7 +59,9 @@ public sealed class ZoneQueryService(AppDbContext db) : IZoneQueryService
                 AvailableSpots = resolved.Available,
                 Status = resolved.Status.ToApiValue(),
                 IsOverridden = resolved.IsOverridden,
-                Spots = z.Spots
+                ExternalId = z.ExternalId,
+                Spots = z.Spots,
+                Sources = z.Sources
             };
         }).ToList();
     }

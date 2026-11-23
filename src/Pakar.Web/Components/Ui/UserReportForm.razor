@@ -1,0 +1,124 @@
+@using Pakar.Application.DTOs
+@inject UserSession Session
+@inject AuthenticatedApiClient Api
+
+<div class="report-entry">
+    @if (submitted is not null)
+    {
+        <div class="notice success" role="status">
+            <p class="mb-2">Laporan diterima dan menunggu tinjauan admin.</p>
+            <a href="reports">Lihat Laporan Saya</a>
+        </div>
+        <button type="button" class="text-button small" @onclick="OpenAsync">Laporkan slot lain</button>
+    }
+    else if (!open)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="OpenAsync">Laporkan ketidaksesuaian</button>
+    }
+    else if (signInRequired)
+    {
+        <p class="mb-2">Silakan <a href="login">masuk</a> untuk mengirim laporan.</p>
+        <button type="button" class="text-button small" @onclick="Close">Tutup</button>
+    }
+    else
+    {
+        <form @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+            <fieldset disabled="@submitting">
+                <legend class="h6">Laporkan ketidaksesuaian</legend>
+                <label for="report-slot" class="form-label">Slot parkir</label>
+                <select id="report-slot" class="form-select mb-3" @ref="slotInput" @bind="spotId" required>
+                    <option value="">Pilih slot</option>
+                    @foreach (var spot in Zone.Spots)
+                    {
+                        <option value="@spot.Id">@spot.Name (@(spot.IsOccupied ? "Terisi" : "Kosong"))</option>
+                    }
+                </select>
+                <label for="report-description" class="form-label">Kondisi yang Anda lihat</label>
+                <textarea id="report-description" class="form-control mb-3" @bind="description" rows="2"
+                          maxlength="1000" placeholder="Contoh: ada mobil, tetapi slot ditampilkan kosong." required></textarea>
+
+                @if (error is not null)
+                {
+                    <p class="notice danger" role="alert">@error</p>
+                }
+
+                <button type="submit" class="btn btn-primary btn-sm">@(submitting ? "Mengirim…" : "Kirim laporan")</button>
+                <button type="button" class="text-button small" @onclick="Close">Batal</button>
+            </fieldset>
+        </form>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ZoneDto Zone { get; set; } = null!;
+
+    private Guid? spotId;
+    private string description = "";
+    private string? error;
+    private bool open, signInRequired, submitting, focusSlot;
+    private ElementReference slotInput;
+    private ReportSubmissionDto? submitted;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusSlot)
+        {
+            focusSlot = false;
+            await slotInput.FocusAsync();
+        }
+    }
+
+    private async Task OpenAsync()
+    {
+        signInRequired = await Session.GetUserAsync() is null;
+        submitted = null;
+        spotId = null;
+        description = "";
+        open = true;
+        error = null;
+        focusSlot = !signInRequired;
+    }
+
+    private void Close() => open = false;
+
+    private async Task SubmitAsync()
+    {
+        if (submitting)
+            return;
+
+        if (spotId is not { } id || Zone.Spots.All(spot => spot.Id != id))
+        {
+            error = "Pilih slot parkir yang ingin dilaporkan.";
+            return;
+        }
+
+        var text = description.Trim();
+        if (text.Length == 0)
+        {
+            error = "Jelaskan kondisi yang Anda lihat.";
+            return;
+        }
+
+        submitting = true;
+        error = null;
+        try
+        {
+            var result = await Api.SendAsync<ReportSubmissionDto>(
+                HttpMethod.Post, "api/reports", new SubmitReportRequest(id, text));
+            if (result.Value is { } report)
+                submitted = report;
+            else
+            {
+                var failure = result.Error!;
+                error = failure.Fields.Count == 0
+                    ? failure.Message
+                    : string.Join(" ", failure.Fields.Values.SelectMany(messages => messages));
+                signInRequired = await Session.GetUserAsync() is null;
+            }
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+}

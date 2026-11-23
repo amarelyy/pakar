@@ -29,6 +29,7 @@
                             <option value="available">Tersedia</option>
                             <option value="almost_full">Hampir penuh</option>
                             <option value="full">Penuh</option>
+                            <option value="unknown">Belum diketahui</option>
                         </select>
                     </div>
                     <div>
@@ -84,6 +85,10 @@
                         <span class="zone-count"><strong class="tnum">@zone.AvailableSpots</strong><span>kosong <span class="muted">/ @zone.TotalCapacity slot</span></span><span class="zone-arrow" aria-hidden="true">↗</span></span>
                         <span class="fill-track" aria-hidden="true"><span class="@zone.Status" style="width:@Fill(zone)%"></span></span>
                         <span class="zone-meta">
+                            @if (zone.UnknownSpots > 0)
+                            {
+                                <span class="stale">@zone.UnknownSpots slot belum diketahui</span>
+                            }
                             @if (state.IsStale(zone, now))
                             {
                                 <span class="stale">Data terakhir · sumber tidak aktif</span>
@@ -131,6 +136,10 @@
                     <div class="detail-count">
                         <strong>@selected.AvailableSpots</strong><span>slot kosong dari @selected.TotalCapacity</span><StatusChip Status="@selected.Status" />
                     </div>
+                    @if (selected.UnknownSpots > 0)
+                    {
+                        <p class="stale">@selected.UnknownSpots slot belum diketahui.</p>
+                    }
                     @if (selected.IsOverridden)
                     {
                         <p class="muted">Status diatur admin.</p>
@@ -184,7 +193,7 @@
                             <ul>
                                 @foreach (var spot in selected.Spots)
                                 {
-                                    <li @key="spot.Id"><span>@spot.Name</span><span>@(spot.IsOccupied ? "Terisi" : "Kosong")</span></li>
+                                    <li @key="spot.Id"><span>@spot.Name</span><span>@ParkingMapState.SpotLabel(spot.ObservedStatus)</span></li>
                                 }
                             </ul>
                         </details>

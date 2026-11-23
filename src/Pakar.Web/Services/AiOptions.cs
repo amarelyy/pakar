@@ -17,6 +17,9 @@ public sealed class AiOptions
     /// <summary>Frames analysed per second; the .NET worker uses 2.</summary>
     public double SampleFps { get; set; } = 2;
 
+    /// <summary>Confidence required to release a previously occupied slot, in addition to the usual debounce.</summary>
+    public double AvailableConfirmationConfidence { get; set; } = 0.35;
+
     /// <summary>Seconds between heartbeats while nothing changes, so the camera is not marked inactive (FR 12).</summary>
     public double HeartbeatSeconds { get; set; } = 15;
 

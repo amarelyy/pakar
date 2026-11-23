@@ -108,7 +108,27 @@ public class OccupancyTests
         tracker.Update(Observed("occupied"), 0, 5);
         var pending = tracker.Update(Observed("available", null), 1, 5);
         Assert.Equal(0, pending.OccupiedMin); Assert.Equal(5, pending.OccupiedMax);
-        Assert.Equal(1, pending.Pending); Assert.Single(pending.Unknown);
+        Assert.Equal(1, pending.Pending);
+        Assert.Single(pending.Unknown);
+        Assert.Empty(pending.Confirmed);
+    }
+
+    [Fact]
+    public void ReleasingAnOccupiedSlotRequiresStrongerEvidenceThanTheFirstReading()
+    {
+        var tracker = new OccupancyTracker(Slots(), availableConfirmationConfidence: .35);
+        var weak = Observed("available", null);
+        weak[1] = new Observation("available", .22, null);
+
+        Assert.Equal("available", Assert.Single(tracker.Update(weak, 0).Confirmed).Status);
+        Assert.Empty(tracker.Update(Observed("occupied", null), 1).Confirmed);
+        Assert.Equal("occupied", Assert.Single(tracker.Update(Observed("occupied", null), 3).Confirmed).Status);
+        Assert.Empty(tracker.Update(weak, 4).Confirmed);
+        Assert.Empty(tracker.Update(weak, 7).Confirmed);
+
+        Assert.Equal("available", Assert.Single(tracker.Update(Observed("available", null), 8).Confirmed).Status);
+        Assert.Single(tracker.Update(weak, 9).Confirmed);
+        Assert.Empty(tracker.Update(Observed(null, null), 10).Confirmed);
     }
 
     [Fact]

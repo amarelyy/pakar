@@ -84,11 +84,14 @@ public partial class CampusMap : IAsyncDisposable
             .WithAutomaticReconnect()
             .Build();
 
-        connection.On<ParkingSpotUpdate>("SpotStatusChanged",
-            update => InvokeAsync(() => ApplyUpdate(() => state.Apply(update))));
+        connection.On<List<ParkingSpotUpdate>>("SpotObservationsUpdated", updates => InvokeAsync(async () =>
+        {
+            if (ApplyUpdate(() => state.Apply(updates, DateTimeOffset.UtcNow)))
+                await UpdateViewAsync();
+        }));
         connection.On<ParkingZoneUpdate>("ZoneUpdated", update => InvokeAsync(async () =>
         {
-            if (!ApplyUpdate(() => state.Apply(update)))
+            if (!ApplyUpdate(() => state.Apply(update, DateTimeOffset.UtcNow)))
                 return;
 
             await UpdateViewAsync(refreshAlternate: true);
@@ -166,7 +169,7 @@ public partial class CampusMap : IAsyncDisposable
         {
             using var client = HttpClients.CreateClient("api");
             var zones = await client.GetFromJsonAsync<List<ZoneDto>>("api/parking/zones", ct) ?? [];
-            state.Reset(zones);
+            state.Reset(zones, DateTimeOffset.UtcNow);
             if (joinHub)
             {
                 subscribed = false;
@@ -175,7 +178,7 @@ public partial class CampusMap : IAsyncDisposable
                     foreach (var zone in zones)
                         await hub.InvokeAsync("JoinArea", zone.ExternalId!.Value, ct);
 
-                    state.Apply(await hub.InvokeAsync<ParkingHubSnapshot>("GetSnapshot", ct));
+                    state.Apply(await hub.InvokeAsync<ParkingHubSnapshot>("GetSnapshot", ct), DateTimeOffset.UtcNow);
                     subscribed = hub.State == HubConnectionState.Connected;
                 }
             }
@@ -338,7 +341,8 @@ public partial class CampusMap : IAsyncDisposable
             return;
 
         now = DateTimeOffset.UtcNow;
-        nextMapRefresh = now.AddSeconds(15);
+        nextMapRefresh = now.AddSeconds(4);
+        var availabilityChanged = state.Refresh(now);
         if (Selected?.Status != "full")
             ClearAlternate();
 
@@ -347,13 +351,13 @@ public partial class CampusMap : IAsyncDisposable
         {
             var zones = state.Zones.Select(zone => new
             {
-                zone.Id, zone.Name, zone.Status, zone.AvailableSpots, zone.Spots,
+                zone.Id, zone.Name, zone.Status, zone.AvailableSpots, zone.UnknownSpots, zone.Spots,
                 Stale = state.IsStale(zone, now)
             }).ToArray();
             await JS.InvokeVoidAsync("campusMap.renderZones", zones, selectedId?.ToString());
         }
 
-        if (refreshAlternate)
+        if (refreshAlternate || availabilityChanged)
             await LoadAlternateAsync();
     }
 
@@ -365,7 +369,7 @@ public partial class CampusMap : IAsyncDisposable
 
     private static int Fill(ZoneDto zone) => zone.TotalCapacity <= 0
         ? 0
-        : (int)Math.Clamp((zone.TotalCapacity - zone.AvailableSpots) * 100d / zone.TotalCapacity, 0, 100);
+        : (int)Math.Clamp(zone.OccupiedSpots * 100d / zone.TotalCapacity, 0, 100);
 
     private static bool IsConnectionFailure(Exception ex) =>
         ex is HttpRequestException or OperationCanceledException or InvalidOperationException or JsonException or HubException

@@ -30,7 +30,7 @@
                     <option value="">Pilih slot</option>
                     @foreach (var spot in Zone.Spots)
                     {
-                        <option value="@spot.Id">@spot.Name (@(spot.IsOccupied ? "Terisi" : "Kosong"))</option>
+                        <option value="@spot.Id">@spot.Name (@ParkingMapState.SpotLabel(spot.ObservedStatus))</option>
                     }
                 </select>
                 <label for="report-description" class="form-label">Kondisi yang Anda lihat</label>

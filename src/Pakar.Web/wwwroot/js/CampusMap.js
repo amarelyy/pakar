@@ -61,7 +61,9 @@ window.campusMap = (() => {
         const name = document.createElement('small');
         count.textContent = zone.availableSpots;
         description.textContent = ' kosong';
-        name.textContent = zone.name + (zone.stale ? ' · data lama' : '');
+        const note = zone.unknownSpots > 0 ? ' · ' + zone.unknownSpots + ' belum diketahui'
+            : zone.stale ? ' · data lama' : '';
+        name.textContent = zone.name + note;
         label.append(count, description, name);
         label.style.setProperty('--badge-color', color);
         return label;
@@ -110,9 +112,11 @@ window.campusMap = (() => {
             if (zone.id !== selected && map.getZoom() < 19) continue;
 
             for (const spot of zone.spots.filter(hasLocation)) {
-                const fillColor = zone.stale ? colors.unknown : colors[spot.isOccupied ? 'full' : 'available'];
+                const spotColor = { occupied: colors.full, available: colors.available };
+                const fillColor = zone.stale ? colors.unknown : (spotColor[spot.observedStatus] || colors.unknown);
                 const label = document.createElement('span');
-                label.textContent = spot.name + (spot.isOccupied ? ': Terisi' : ': Kosong');
+                const labels = { occupied: 'Terisi', available: 'Kosong' };
+                label.textContent = spot.name + ': ' + (labels[spot.observedStatus] || 'Belum diketahui');
                 L.circleMarker([spot.latitude, spot.longitude], {
                     radius: 4, weight: 1, color: '#fff', fillColor, fillOpacity: 1
                 }).bindTooltip(label).addTo(spotsLayer);

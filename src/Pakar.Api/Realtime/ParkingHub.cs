@@ -5,6 +5,7 @@ namespace Pakar.Api.Realtime;
 /// <summary>
 /// Hub SignalR untuk frontend. Guest (belum login) boleh connect — sesuai FR3.
 /// Server -> client events:
+///   SpotObservationsUpdated(SpotView[]) : batch bacaan terbaru termasuk slot belum diketahui
 ///   SpotStatusChanged(SpotView)    : 1 slot berubah status
 ///   ZoneUpdated(ZoneView)          : okupansi zona berubah (juga dipakai untuk alert "penuh")
 ///   CameraStatusChanged(CameraView): kamera aktif/inactive

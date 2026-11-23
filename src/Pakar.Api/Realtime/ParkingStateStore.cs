@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Pakar.Domain.Entities;
+using Pakar.Application.DTOs;
+using Pakar.Application.Interfaces;
 using Pakar.Domain.Services;
 using Pakar.Infrastructure.Persistence;
 
@@ -11,10 +12,11 @@ namespace Pakar.Api.Realtime;
 /// dan backend bisa mendeteksi perubahan (diff) sebelum broadcast.
 /// Akses DB via IServiceScopeFactory (karena ini singleton, jangan inject DbContext langsung).
 /// </summary>
-public sealed class ParkingStateStore
+public sealed class ParkingStateStore : IParkingObservations
 {
     private readonly object _lock = new();
     private readonly Dictionary<int, SpotView> _spots = new();
+    private readonly Dictionary<int, string> _lastRecordedStatus = new();
     private readonly Dictionary<int, CameraView> _cameras = new();
     private readonly Dictionary<int, ZoneInfo> _zoneInfoCache = new();
     private readonly IServiceScopeFactory _scopeFactory;
@@ -25,33 +27,42 @@ public sealed class ParkingStateStore
     public ParkingStateStore(IServiceScopeFactory scopeFactory) { _scopeFactory = scopeFactory; }
 
     /// <summary>Terapkan update dari kamera; return hanya slot yang statusnya benar-benar berubah + data untuk persist DB.</summary>
-    public (List<SpotView> Changed, ZoneView Zone, CameraView Camera, bool CameraReactivated,
+    public (List<SpotView> Readings, List<SpotView> Changed, ZoneView Zone, CameraView Camera, bool CameraReactivated,
             List<(int SpotExtId, string Status, double Confidence, DateTimeOffset Ts)> DbDetections)
         Apply(IngestRequest req)
     {
         lock (_lock)
         {
+            var readings = new List<SpotView>();
             var changed = new List<SpotView>();
             var dbDetections = new List<(int, string, double, DateTimeOffset)>();
-            foreach (var u in req.Spots)
+            foreach (var update in req.Spots)
             {
-                var status = u.Status == "occupied" ? "occupied" : "available";
-                var next = new SpotView(u.SpotId, u.SpotNumber, req.AreaId, status, u.Confidence, u.Timestamp);
-                var firstTime = !_spots.ContainsKey(u.SpotId);
-                var changedNow = !_spots.TryGetValue(u.SpotId, out var prev) || prev.Status != status;
-                if (changedNow)
-                    changed.Add(next);
-                _spots[u.SpotId] = next;
+                _spots.TryGetValue(update.SpotId, out var previous);
+                if (previous is not null && update.Timestamp <= previous.UpdatedAt)
+                    continue;
 
-                if (changedNow || (firstTime && req.Type == "heartbeat"))
-                    dbDetections.Add((u.SpotId, status, u.Confidence, u.Timestamp));
+                var reading = new SpotView(update.SpotId, update.SpotNumber, req.AreaId,
+                    update.Status, update.Confidence, update.Timestamp);
+                _spots[update.SpotId] = reading;
+                readings.Add(reading);
+                if (previous?.Status != reading.Status)
+                    changed.Add(reading);
+
+                // An unknown reading changes availability but does not overwrite the last known history.
+                if (reading.Status != ObservedOccupancy.Unknown &&
+                    _lastRecordedStatus.GetValueOrDefault(reading.SpotId) != reading.Status)
+                {
+                    _lastRecordedStatus[reading.SpotId] = reading.Status;
+                    dbDetections.Add((reading.SpotId, reading.Status, reading.Confidence, reading.UpdatedAt));
+                }
             }
 
             var reactivated = !_cameras.TryGetValue(req.CameraId, out var oldCam) || !oldCam.Active;
             var cam = new CameraView(req.CameraId, req.AreaId, true, DateTimeOffset.UtcNow);
             _cameras[req.CameraId] = cam;
 
-            return (changed, BuildZone(req.AreaId), cam, reactivated, dbDetections);
+            return (readings, changed, BuildZone(req.AreaId), cam, reactivated, dbDetections);
         }
     }
 
@@ -75,6 +86,12 @@ public sealed class ParkingStateStore
         }
     }
 
+    public IReadOnlyDictionary<int, SpotView> Read()
+    {
+        lock (_lock)
+            return new Dictionary<int, SpotView>(_spots);
+    }
+
     public ParkingSnapshot GetSnapshot()
     {
         lock (_lock)
@@ -84,7 +101,12 @@ public sealed class ParkingStateStore
                 .Concat(_zoneInfoCache.Where(e => e.Value.Override is not null).Select(e => e.Key))
                 .Distinct();
             var zones = areas.Select(BuildZone).ToList();
-            return new ParkingSnapshot(_spots.Values.ToList(), zones, _cameras.Values.ToList());
+            var now = DateTimeOffset.UtcNow;
+            var spots = _spots.Values.Select(spot => spot with
+            {
+                Status = ObservedOccupancy.StatusAt(spot.Status, spot.UpdatedAt, now)
+            }).ToList();
+            return new ParkingSnapshot(spots, zones, _cameras.Values.ToList());
         }
     }
 
@@ -93,7 +115,10 @@ public sealed class ParkingStateStore
     private ZoneView BuildZone(int areaId)
     {
         var inArea = _spots.Values.Where(s => s.AreaId == areaId).ToList();
-        var occ = inArea.Count(s => s.Status == "occupied");
+        var now = DateTimeOffset.UtcNow;
+        var statuses = inArea.Select(spot => ObservedOccupancy.StatusAt(spot.Status, spot.UpdatedAt, now)).ToList();
+        var occ = statuses.Count(status => status == "occupied");
+        var available = statuses.Count(status => status == "available");
 
         if (!_zoneInfoCache.TryGetValue(areaId, out var info))
         {
@@ -117,8 +142,8 @@ public sealed class ParkingStateStore
 
         // Same rule as the REST zone list (OccupancyCalculator), so both always agree, including a manual status (FR 17).
         var cap = OccupancyCalculator.EffectiveCapacity(info.Capacity, inArea.Count);
-        var resolved = OccupancyCalculator.Resolve(cap, occ, info.Override);
-        return new ZoneView(areaId, cap, occ, resolved.Available, resolved.Status.ToApiValue(), resolved.IsOverridden);
+        var resolved = ObservedOccupancy.Resolve(cap, occ, available, info.Override);
+        return new ZoneView(areaId, cap, occ, resolved.Available, resolved.Status, info.Override.HasValue);
     }
 
     /// <summary>Paksa refresh kapasitas dari DB (misal setelah admin edit zona via UI).</summary>

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Pakar.Domain.Entities;
+using Pakar.Domain.Services;
 using Pakar.Infrastructure.Persistence;
 
 namespace Pakar.Api.Realtime;
@@ -31,21 +32,39 @@ public static class IngestEndpoints
         IServiceScopeFactory scopeFactory,
         ILogger<ParkingStateStore> log)
     {
-        if (req.Spots is null || req.Spots.Count > 500)
-            return Results.BadRequest("Spots must contain between 0 and 500 entries.");
-
-        // Every detection row references a camera, so data from unregistered cameras is rejected up front.
-        if (!await db.Cameras.AnyAsync(c => c.ExternalId == req.CameraId))
+        var now = DateTimeOffset.UtcNow;
+        if (req.Spots is null || req.Spots.Count > 500 ||
+            req.Spots.Any(spot => spot is null || spot.AreaId != req.AreaId || spot.CameraId != req.CameraId ||
+                spot.Status is not ("occupied" or "available" or ObservedOccupancy.Unknown) ||
+                !double.IsFinite(spot.Confidence) || spot.Confidence is < 0 or > 1 ||
+                spot.Timestamp > now.AddSeconds(5) || now - spot.Timestamp >= ObservedOccupancy.Freshness) ||
+            req.Spots.Select(spot => spot.SpotId).Distinct().Count() != req.Spots.Count)
         {
-            log.LogWarning("Rejected ingest from unregistered camera {Cam}.", req.CameraId);
-            return Results.NotFound($"Camera {req.CameraId} is not registered.");
+            return Results.BadRequest("Invalid spot readings.");
         }
 
-        var (changed, zone, cam, reactivated, dbDetections) = store.Apply(req);
+        var camera = await db.Cameras.AsNoTracking()
+            .Where(c => c.ExternalId == req.CameraId)
+            .Select(c => new { c.ZoneId, AreaId = c.Zone.ExternalId })
+            .SingleOrDefaultAsync();
+        if (camera is null)
+            return Results.NotFound($"Camera {req.CameraId} is not registered.");
+        if (camera.AreaId != req.AreaId)
+            return Results.BadRequest("The camera does not belong to this area.");
+
+        var spotIds = req.Spots.Select(spot => spot.SpotId).ToArray();
+        var registeredCount = await db.Spots.CountAsync(spot => spot.ZoneId == camera.ZoneId && spotIds.Contains(spot.ExternalId));
+        if (registeredCount != spotIds.Length)
+            return Results.BadRequest("A slot does not belong to this area.");
+
+        var (readings, changed, zone, cam, reactivated, dbDetections) = store.Apply(req);
 
         var persistTask = PersistToDatabaseAsync(scopeFactory, req, dbDetections, log);
 
-        foreach (var s in changed)
+        if (readings.Count > 0)
+            await hub.Clients.Group(ParkingHub.AllGroup).SendAsync("SpotObservationsUpdated", readings);
+
+        foreach (var s in changed.Where(spot => spot.Status != ObservedOccupancy.Unknown))
             await hub.Clients.Group(ParkingHub.AreaGroup(s.AreaId)).SendAsync("SpotStatusChanged", s);
 
         // Zone subscribers can now request an alternate against the updated database.

@@ -18,7 +18,7 @@ public sealed class ParkingMapState
     public IReadOnlyList<ZoneDto> Zones { get; private set; } = [];
     public bool CanApplyLiveUpdates { get; private set; }
 
-    public void Reset(IReadOnlyList<ZoneDto> zones)
+    public void Reset(IReadOnlyList<ZoneDto> zones, DateTimeOffset now)
     {
         Zones = zones;
         CanApplyLiveUpdates = zones.All(zone => zone.ExternalId.HasValue &&
@@ -41,33 +41,42 @@ public sealed class ParkingMapState
                 }
             }
         }
+
+        Refresh(now);
     }
 
-    public void Apply(ParkingHubSnapshot snapshot)
+    public void Apply(ParkingHubSnapshot snapshot, DateTimeOffset now)
     {
         foreach (var update in snapshot.Spots)
-            Apply(update);
+            ApplyReading(update);
         foreach (var update in snapshot.Zones)
-            Apply(update);
+            Apply(update, now);
         foreach (var update in snapshot.Cameras)
             Apply(update);
+        Refresh(now);
     }
 
-    public void Apply(ParkingSpotUpdate update)
+    public void Apply(IReadOnlyList<ParkingSpotUpdate> updates, DateTimeOffset now)
+    {
+        foreach (var update in updates)
+            ApplyReading(update);
+        Refresh(now);
+    }
+
+    private void ApplyReading(ParkingSpotUpdate update)
     {
         if (!zonesByArea.TryGetValue(update.AreaId, out var zone))
             return;
 
         var spot = zone.Spots.FirstOrDefault(spot => spot.ExternalId == update.SpotId);
-        if (spot is null || update.UpdatedAt < AsUtc(spot.LastUpdated))
+        if (spot is null || (spot.ObservedAt is { } observed && update.UpdatedAt < observed))
             return;
 
-        spot.IsOccupied = update.Status == "occupied";
-        spot.LastUpdated = update.UpdatedAt.UtcDateTime;
-        Recount(zone);
+        spot.ObservedAt = update.UpdatedAt;
+        spot.ObservedStatus = update.Status;
     }
 
-    public void Apply(ParkingZoneUpdate update)
+    public void Apply(ParkingZoneUpdate update, DateTimeOffset now)
     {
         if (!zonesByArea.TryGetValue(update.AreaId, out var zone))
             return;
@@ -76,7 +85,7 @@ public sealed class ParkingMapState
         if (update.IsOverridden)
             zone.Status = update.Status;
 
-        Recount(zone);
+        Recount(zone, now);
     }
 
     public void Apply(ParkingSourceUpdate update)
@@ -98,14 +107,40 @@ public sealed class ParkingMapState
 
     private static DateTimeOffset AsUtc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
-    private static void Recount(ZoneDto zone)
+    public bool Refresh(DateTimeOffset now)
     {
-        var occupied = zone.Spots.Count(spot => spot.IsOccupied);
+        var changed = false;
+        foreach (var zone in Zones)
+        {
+            var previous = (zone.AvailableSpots, zone.Status);
+            Recount(zone, now);
+            changed |= previous != (zone.AvailableSpots, zone.Status);
+        }
+
+        return changed;
+    }
+
+    public static string SpotLabel(string status) => status switch
+    {
+        "occupied" => "Terisi",
+        "available" => "Kosong",
+        _ => "Belum diketahui"
+    };
+
+    private static void Recount(ZoneDto zone, DateTimeOffset now)
+    {
+        foreach (var spot in zone.Spots)
+            spot.ObservedStatus = ObservedOccupancy.StatusAt(spot.ObservedStatus, spot.ObservedAt, now);
+
+        var occupied = zone.Spots.Count(spot => spot.ObservedStatus == "occupied");
+        var available = zone.Spots.Count(spot => spot.ObservedStatus == "available");
         var manualStatus = zone.IsOverridden && OccupancyCalculator.TryParseApiValue(zone.Status, out var parsed)
             ? (ZoneOccupancyStatus?)parsed
             : null;
-        var result = OccupancyCalculator.Resolve(zone.TotalCapacity, occupied, manualStatus);
+        var result = ObservedOccupancy.Resolve(zone.TotalCapacity, occupied, available, manualStatus);
+        zone.OccupiedSpots = occupied;
         zone.AvailableSpots = result.Available;
-        zone.Status = result.Status.ToApiValue();
+        zone.UnknownSpots = result.Unknown;
+        zone.Status = result.Status;
     }
 }

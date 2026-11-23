@@ -10,6 +10,7 @@ using Pakar.Api.Middlewares;
 using Pakar.Api.Realtime;
 using Pakar.Api.Security;
 using Pakar.Application.DTOs;
+using Pakar.Application.Interfaces;
 using Pakar.Infrastructure;
 using Pakar.Infrastructure.Persistence;
 
@@ -100,6 +101,8 @@ builder.Services.AddHttpClient<InferenceClient>(client =>
 });
 
 builder.Services.AddSingleton<ParkingStateStore>();
+builder.Services.AddSingleton<IParkingObservations>(
+    sp => sp.GetRequiredService<ParkingStateStore>());
 builder.Services.AddHostedService<CameraWatchdog>();
 
 builder.Services.AddCors(o => o.AddPolicy("frontend", p => p

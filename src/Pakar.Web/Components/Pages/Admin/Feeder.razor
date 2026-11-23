@@ -2,6 +2,7 @@
 @implements IAsyncDisposable
 @using System.Diagnostics
 @using Microsoft.Extensions.Options
+@using Pakar.Domain.Services
 @using Pakar.Shared.Dtos
 @using Pakar.Vision
 @inject FeederApiClient Api
@@ -178,10 +179,11 @@
     {
         var options = AiSettings.Value;
         var mapper = new SlotMapper(source.Slots);
-        var tracker = new OccupancyTracker(source.Slots);
+        var tracker = new OccupancyTracker(source.Slots,
+            availableConfirmationConfidence: options.AvailableConfirmationConfidence);
         long started = Clock.GetTimestamp();
         double lastSent = double.NegativeInfinity, lastVideoTime = -1;
-        bool sync = true;
+        string[] publishedStates = [];
         var interval = TimeSpan.FromSeconds(1 / Math.Clamp(options.SampleFps, 0.1, 30));
 
         try
@@ -193,25 +195,40 @@
                 if (frame is not null)
                 {
                     double seconds = Clock.GetElapsedTime(started, tick).TotalSeconds;
-                    if (frame.VideoTime < lastVideoTime) { tracker.ResetPending(); sync = true; } // the video looped
+                    if (frame.VideoTime < lastVideoTime)
+                        tracker.ResetPending();
                     lastVideoTime = frame.VideoTime;
 
                     var result = tracker.Update(mapper.Map(frame.Boxes), seconds, source.ZoneCapacity);
+                    var confirmed = result.Confirmed.ToDictionary(slot => slot.SpotId);
+                    slotStatus = confirmed.ToDictionary(slot => slot.Key, slot => slot.Value.Status);
                     boxes = frame.Boxes;
-                    slotStatus = result.Visible.ToDictionary(s => s.SpotId, s => s.Status);
-                    frames++; lastMilliseconds = frame.Milliseconds;
-                    occupied = result.Occupied; available = result.Available; undecided = result.Unknown.Count;
+                    frames++;
+                    lastMilliseconds = frame.Milliseconds;
+                    occupied = confirmed.Values.Count(slot => slot.Status == "occupied");
+                    available = confirmed.Values.Count(slot => slot.Status == "available");
+                    undecided = source.Slots.Count - confirmed.Count;
 
-                    if (sync || result.Changes.Count > 0 || seconds - lastSent >= options.HeartbeatSeconds)
+                    var states = source.Slots.Select(slot => confirmed.TryGetValue(slot.SpotId, out var reading)
+                        ? reading.Status
+                        : ObservedOccupancy.Unknown).ToArray();
+                    var changed = !states.SequenceEqual(publishedStates);
+                    if (changed || seconds - lastSent >= options.HeartbeatSeconds)
                     {
                         var now = Clock.GetUtcNow();
-                        string kind = result.Changes.Count > 0 ? "change" : "heartbeat";
-                        var spots = result.Visible.Select(s => new
+                        var kind = changed ? "change" : "heartbeat";
+                        // Include unknown slots so previous confirmed readings cannot count as current evidence.
+                        var spots = source.Slots.Select((slot, index) => new
                         {
-                            s.SpotId, s.SpotNumber, source.AreaId, source.CameraId, s.Status, s.Confidence, timestamp = now
+                            slot.SpotId, slot.SpotNumber, source.AreaId, source.CameraId,
+                            Status = states[index],
+                            Confidence = confirmed.GetValueOrDefault(slot.SpotId)?.Confidence ?? 0,
+                            timestamp = now
                         }).ToList();
                         await Api.PostDetectionsAsync(new { source.CameraId, source.AreaId, type = kind, timestamp = now, spots }, ct);
-                        lastSent = seconds; sync = false; sent++;
+                        publishedStates = states;
+                        lastSent = seconds;
+                        sent++;
                         this.lastSent = $"{kind} at {now.LocalDateTime:HH:mm:ss}";
                     }
                 }

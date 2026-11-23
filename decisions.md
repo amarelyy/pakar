@@ -167,3 +167,6 @@ Decided, 2026-11-23: no Azure, no Hugging Face, UI on Vercel as Blazor WebAssemb
 - **Shared rules:** both use `Pakar.Vision` (slot mapping and debounce), tested against the OpenCV mapper.
 
 Still open: the host of the API beyond the laptop, the real parking model (only a synthetic model was tested), and the speed on the demo machine.
+
+**Live (2026-11-24):** the web app is at https://pakar-parkir.vercel.app (`pakar.vercel.app` was already taken), the API runs on the team
+laptop behind a Cloudflare tunnel with the Neon database, and the runbook is `infra/vercel/README.md`.

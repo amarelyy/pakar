@@ -139,7 +139,7 @@ The seed and the cameras already in the Neon database were converted to video so
 | --- | --- | --- | --- |
 | GET | `/health/live` | Public | Process is up (Container Apps liveness probe). |
 | GET | `/health/ready` | Public | Database is reachable (readiness probe). |
-| GET | `/test-db` | Public | Returns "DB Connected!" and the zone count. Manual check. |
+| GET | `/test-db` | Public, Development only | Returns "DB Connected!" and the zone count. Not registered in other environments; use `/health/ready` there. |
 | POST | `/api/inference/trigger-update` | Dev | Simulate a detection for one spot (`spotId`, `isOccupied`) and broadcast it on `/occupancyHub`. |
 | GET | `/test-signalr` | Dev | Browser page that shows `/hubs/parking` events. |
 

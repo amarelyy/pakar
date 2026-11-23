@@ -56,6 +56,21 @@ are still those of 2026-11-15). See `docs/api-reference.md` for the endpoint lis
 | Not merged | Branch `ai-dotnet` (Nabil, commits `deaa635` and `ddeb383`): ONNX engine, video worker, polygon editor, worker-config and reference-frame endpoints, `AddCameraFrames` migration. Latest migration on `main` is `AddVideoSourceRoi` |
 | Not exercised in this check | The running API, Neon, SignalR, the Web app in a browser (so the Zones page is only known to build) |
 
+**Live deployment check (2026-11-24, branch `try/vercel`)**
+
+| Check | Result |
+| --- | --- |
+| Web app on Vercel, production: https://pakar-parkir.vercel.app | Serves the Blazor WebAssembly site; the SPA rewrite works for `/admin/feeder`; `.wasm` is served as `application/wasm` |
+| API on the laptop (Production mode, Neon, public through a tunnel) | `/health/ready` Healthy; `/api/parking/zones` returns the 3 zones |
+| CORS | The site address is allowed; other origins and the old preview addresses are not |
+| Production hardening | No Swagger, no dev endpoints, `/test-db` answers 404 (it is registered only in Development) |
+| Browser run on the real site (headless Chrome): open, log in as an admin, open `/park`, open `/admin/polygons` | All four steps pass; the map shows the zones |
+| Browser detection with a synthetic model and a sample video (local build): both a served video and a file picked on the computer | Frames analysed, results posted with the admin token, slot statuses as the model said |
+| Unit tests | 88 (API), 29 (AI), 4 (web) pass; `node tests/js/ai-feeder.test.mjs` passes |
+
+Not verified: the browser model with the real parking model (none is in the repo), its speed on the demo machine, and the migration
+`AddCameraFrames` on Neon. Runbook and limits: `infra/vercel/README.md`.
+
 **Neon database move (2026-11-15)**
 
 | Step | Result |
@@ -186,7 +201,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 
 | # | Severity | Problem |
 | --- | --- | --- |
-| 12 | Medium | `GET /test-db` and `GET /api/parking/snapshot` are public, not just in Development. `/test-db` has no purpose in production. |
+| 12 | Done | ~~`GET /test-db` public~~: now registered only in Development. `GET /api/parking/snapshot` stays public on purpose (guest map, FR 3). |
 | 13 | Low | Secrets in git history (old local SQL `sa` password, JWT key, ingest key, fake RTSP credentials) were checked on 2026-11-15: all were development values for `localhost`, nothing was deployed with them, the current files hold empty placeholders and the local and Neon secrets were regenerated. They count as burned and must never be reused; the history is not rewritten. Production gets brand new values at the first deployment (`infra/README.md`). |
 | 14 | Done | ~~Seeded cameras use `admin:admin` RTSP credentials~~: removed from the seed and from Neon. The fake credentials remain in git history only (see item 13). |
 | 15 | Low | `docker compose` could not be run here (no Docker daemon in this environment), so the compose file and `infra/.env` flow were not tested. A temporary local PostgreSQL was used first, then the new Neon project. |
@@ -195,6 +210,9 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | 15c | Low | The first start after linking needs `npm install` in the repo root (`@neon/config`) or `neon deploy` fails; the root `package.json` has no script that does this. |
 | 15d | Done | ~~The seeded admin on Neon used the local development password~~: rotated on 2026-11-15. Production still needs its own secret (`Admin--Password` in Key Vault, TODO #28); changing the password later means updating the `Users` row, since the seeder skips an existing account. |
 | 15e | High | **Hosting is not decided.** The Bicep targets Azure, but it was never deployed and Azure may not be available to the team. Vercel can host only a Blazor WebAssembly build of `Pakar.Web` (it is Blazor Server today) and never the API. Options, trade-offs and the AI location are in `decisions.md`. |
+| 15f | High | **Hosting depends on one laptop and a quick tunnel.** If either is off, or the tunnel address changes, the site cannot reach the API until the site is rebuilt and redeployed. |
+| 15g | Medium | **Neon is shared.** The API run by the laptop writes to the team database (a new admin account was created there on the first start). Use a separate Neon branch for experiments. |
+| 15h | Low | Two stale preview deployments of `pakar-web` remain in Vercel and can be deleted. |
 | 16 | Low | Swagger groups some endpoints under the tag `Pakar.Api` (ingest, snapshot) and the routes are shown as `/api/Auth/...` and `/api/Parking/...` (capital letters), while docs and README write them in lowercase. They work either way. |
 
 ### 3.4 Documentation drift and leftovers

@@ -140,11 +140,15 @@ app.MapControllers();
 app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
 
-app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
+// Manual database check for local work only; deployed hosts use /health/ready instead.
+if (app.Environment.IsDevelopment())
 {
-    Message = "DB Connected!",
-    TotalZones = await db.Zones.CountAsync()
-}).WithTags("System");
+    app.MapGet("/test-db", async (AppDbContext db) => new HealthCheckDto
+    {
+        Message = "DB Connected!",
+        TotalZones = await db.Zones.CountAsync()
+    }).WithTags("System");
+}
 
 app.MapAdminEndpoints();
 app.MapRoiEndpoints();

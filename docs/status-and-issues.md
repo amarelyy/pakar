@@ -179,7 +179,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 
 | # | Severity | Problem |
 | --- | --- | --- |
-| 1 | High | **FR 17 manual override** has no endpoint. |
+| 1 | Done | ~~FR 17 manual override~~: `PUT` and `DELETE /api/zones/{id}/status-override` and `GET /api/zones/status-overrides`; stored on the zone, applied by every zone endpoint and the realtime hub, pushed as `ZoneUpdated`. The admin web control is still to be built (#19). |
 | 2 | Done | ~~FR 13, 14 edit~~: `PUT /api/zones/{id}` and `PUT /api/cameras/{id}` added (issue #10 reopened). |
 | 3 | Done | ~~No admin list endpoints~~: `GET /api/zones` and `GET /api/cameras` (with `zoneId` filter) added. |
 | 4 | Medium | **FR 12 camera status is not persisted**: the watchdog is in memory, so it is lost on restart. `Camera.IsActive` now exists (migration `AddVideoSourceRoi`) and the admin lists show it, but nothing writes it: it stays `false`. |
@@ -234,7 +234,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 - Admin pages for Users, Cameras and Reports, and the FR 17 override endpoint.
 - Add teammates to the new Neon organization and decide their access (admin role or a scoped database role).
 - API integration tests (current 50 tests are unit tests: report review, admin safeguard, geo distance, occupancy, paging).
-- Prediction and history (product goal, not in FR 1-17).
+- Prediction (product goal, not in FR 1-17). The data side exists: `GET /api/history/zones/{id}` (hourly or daily occupancy, public) and `GET /api/history/detections` (raw records, admin); a chart or model on top of them is not built.
 
 ## 4. Suggested order
 

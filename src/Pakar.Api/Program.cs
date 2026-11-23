@@ -110,6 +110,7 @@ builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
 var app = builder.Build();
 
 await DbSeeder.SeedAsync(app);
+app.Services.GetRequiredService<ParkingStateStore>().PreloadOverrides();
 
 if (app.Environment.IsDevelopment())
 {
@@ -153,6 +154,8 @@ if (app.Environment.IsDevelopment())
 app.MapAdminEndpoints();
 app.MapRoiEndpoints();
 app.MapFeederEndpoints();
+app.MapZoneOverrideEndpoints();
+app.MapHistoryEndpoints();
 app.MapReferenceFrameEndpoints();
 app.MapReportEndpoints();
 app.MapUserEndpoints();

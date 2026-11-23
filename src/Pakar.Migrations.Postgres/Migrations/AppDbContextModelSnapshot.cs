@@ -243,6 +243,21 @@ namespace Pakar.Migrations.Postgres.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("StatusOverride")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StatusOverrideNote")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("StatusOverrideSetAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StatusOverrideSetBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<int>("TotalCapacity")
                         .HasColumnType("integer");
 

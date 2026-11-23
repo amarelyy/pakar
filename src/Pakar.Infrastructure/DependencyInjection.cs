@@ -16,6 +16,8 @@ public static class DependencyInjection
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IFacilityAdminService, FacilityAdminService>();
         services.AddScoped<IRoiService, RoiService>();
+        services.AddScoped<IZoneOverrideService, ZoneOverrideService>();
+        services.AddScoped<IDetectionHistoryService, DetectionHistoryService>();
         return services;
     }
 }

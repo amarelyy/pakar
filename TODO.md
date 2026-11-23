@@ -288,7 +288,7 @@ Tasks marked **(new issue)** have no issue yet.
 | 2b | Backend API | Config for the worker: `GET /api/internal/video-sources` (which video, which polygons) | Nabil | nabilabrianap06 | #13 | 2a |
 | 2c | Backend API | One picture to draw on: the admin uploads a screenshot (`PUT` and `GET /api/cameras/{id}/reference-frame`). **Needs a migration.** | Nabil | nabilabrianap06 | #15 | decision 1 in section 0.6 |
 | 2d | Backend API | Mark a video source inactive after 2 minutes without data and save `Camera.IsActive` (FR 12) | Deva | Devzka | #13 | P1 (done) |
-| 2e | Backend API | Zone status override by an admin, pushed through `ParkingHub` (FR 17). **Needs a migration.** | Deva | Devzka | #19 | P1 (done) |
+| 2e | Backend API | Zone status override by an admin, pushed through `ParkingHub` (FR 17). **Needs a migration.** **Done on branch `try/vercel` (2026-11-24): migration `AddZoneStatusOverride`, endpoints under `/api/zones/{id}/status-override`; the admin control is still P4.** | Deva | Devzka | #19 | P1 (done) |
 | 3 | AI (.NET) | Export `best.pt` to ONNX; `OnnxInferenceEngine` and parity test | Nabil | nabilabrianap06 | #14 (reopen) | - |
 | 4 | Frontend admin | Admin pages: Zones, "Video sources", Users, Reports, override control | Deva, Nabil | Devzka, nabilabrianap06 | #19 | #10 (done) for Zones and Cameras; 2e for the override button; Users and Reports can start now |
 | 5 | AI (.NET) | `RoiMapper`, occupancy rules, `VideoSourceWorker` | Nabil | nabilabrianap06 | #13, #15 | 2a, 2b, P3 |

@@ -168,7 +168,12 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
     // ---- helpers ----
 
     private static readonly System.Linq.Expressions.Expression<Func<ParkingZone, ZoneAdminDto>> ZoneToDtoExpression =
-        z => new ZoneAdminDto(z.Id, z.Name, z.Description, z.TotalCapacity, z.ExternalId, z.Spots.Count, z.Cameras.Count);
+        z => new ZoneAdminDto(z.Id, z.Name, z.Description, z.TotalCapacity, z.ExternalId, z.Spots.Count, z.Cameras.Count,
+            z.StatusOverride == null ? null
+                : z.StatusOverride == ZoneOccupancyStatus.Full ? "full"
+                : z.StatusOverride == ZoneOccupancyStatus.AlmostFull ? "almost_full" : "available",
+            z.StatusOverrideNote,
+            z.StatusOverrideSetAt);
 
     private IQueryable<Camera> CameraQuery() => db.Cameras.AsNoTracking();
 
@@ -183,7 +188,8 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
             c.ReferenceFrame != null);
 
     private static ZoneAdminDto ToDto(ParkingZone zone, int spotCount, int cameraCount) => new(
-        zone.Id, zone.Name, zone.Description, zone.TotalCapacity, zone.ExternalId, spotCount, cameraCount);
+        zone.Id, zone.Name, zone.Description, zone.TotalCapacity, zone.ExternalId, spotCount, cameraCount,
+        zone.StatusOverride?.ToApiValue(), zone.StatusOverrideNote, zone.StatusOverrideSetAt);
 
     private async Task<bool> TrySaveAsync(CancellationToken ct)
     {

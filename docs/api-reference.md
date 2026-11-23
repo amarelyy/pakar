@@ -69,9 +69,11 @@ until map consumers migrate. See [runtime setup](ai/runtime-validation.md).
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/parking/zones` | Public | List every zone with capacity, available spots, status (`available`, `almost_full`, `full`) and its spots (coordinates, occupied flag). Feeds the campus map. |
+| GET | `/api/parking/zones` | Public | List every zone with capacity, available spots, status (`available`, `almost_full`, `full`), `isOverridden` and its spots (coordinates, occupied flag). Feeds the campus map. When an admin forced the status (FR 17), `status` is that value and a `full` zone shows 0 available spots. |
 | GET | `/api/parking/zones/search` | Public | Search zones. Optional query: `q` (name or description), `status`, `minAvailable`, `lat` + `lng` (sort by distance), `limit`. |
 | GET | `/api/parking/zones/{id}/alternate` | Public | Nearest other zone that still has free spots, used when a zone is full. Optional `lat` + `lng`; without them the distance starts from the zone's own spots. |
+| GET | `/api/history/zones/{id}` | Public | Occupancy of one zone over time, for charts and prediction. Optional query: `from`, `to` (ISO 8601, default the last 24 hours), `bucket` (`hour` default, or `day`). Ranges: at most 7 days per hour bucket and 92 days per day bucket. Each point has `time` (UTC), `observations`, `occupiedObservations`, `occupancyRate` (0 to 1) and `spotsObserved`; empty buckets are left out. 400 for a bad bucket or range, 404 for an unknown zone. |
+| GET | `/api/history/detections` | Admin | Raw detection records, newest first, paged. Optional query: `zoneId`, `cameraId`, `spotId` (the AI spot id), `status` (`occupied` or `available`), `from`, `to` (default the last 24 hours, at most 31 days), `page`, `pageSize` (max 100). Records of removed zones and cameras are included. |
 | GET | `/api/parking/snapshot` | Public | Current in-memory state of all spots, zones and cameras. Used by a client to sync after connecting or reconnecting. |
 
 ## 3. Reports (FR 5, 6, 16)
@@ -93,11 +95,14 @@ Validation errors return 400 with field errors (RFC 7807 `errors`); unknown ids 
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/zones` | Admin | List zones with `totalCapacity`, `spotCount`, `cameraCount` and the AI `externalId` (the area id the worker sends). |
+| GET | `/api/zones` | Admin | List zones with `totalCapacity`, `spotCount`, `cameraCount`, the AI `externalId` (the area id the worker sends) and the manual status (`overrideStatus`, `overrideNote`, `overrideSetAt`, all null when none is set). |
 | GET | `/api/zones/{id}` | Admin | Read one zone. |
 | POST | `/api/zones` | Admin | Add a zone: `name` (required, max 100), `description` (max 500), `totalCapacity` (1 to 500). The `externalId` is assigned automatically and returned. Returns 201. |
 | PUT | `/api/zones/{id}` | Admin | Edit name, description and capacity. Capacity cannot be lower than the spots already in the zone. The realtime capacity cache is refreshed. |
 | DELETE | `/api/zones/{id}` | Admin | Soft-delete a zone and its cameras so detection history is kept. Returns 204. |
+| GET | `/api/zones/status-overrides` | Admin | Zones that currently have a manual status (FR 17): `zoneId`, `zoneName`, `zoneExternalId`, `status`, `note`, `setAt`, `setBy`. |
+| PUT | `/api/zones/{id}/status-override` | Admin | Force a zone's displayed status during camera downtime (FR 17). Body `{ "status": "full", "note": "Camera 2 is offline" }`; status is `available`, `almost_full` or `full`, note is optional (max 200). Stored in the database, so it survives a restart, and pushed to open maps as a `ZoneUpdated` event. A zone forced to `full` is skipped by search and alternate-zone suggestions. A new call replaces the previous override. |
+| DELETE | `/api/zones/{id}/status-override` | Admin | Remove the manual status; the zone shows its computed status again and the change is pushed. Returns 204, also when none was set. |
 | GET | `/api/cameras` | Admin | List video sources. Optional `zoneId` filter. Each item has `zoneName`, `zoneExternalId`, `externalId` (the camera id the worker sends), `connectionType`, `videoFile`, `isActive` and `lastActiveTime`. `isActive` is false for a source that has never sent data and is kept up to date by the watchdog (planned). |
 | GET | `/api/cameras/{id}` | Admin | Read one video source. |
 | POST | `/api/cameras` | Admin | Add a video source: `name` (required), `zoneId` (must exist), `videoFile` (optional). Returns 201 with `connectionType` `Video`. |

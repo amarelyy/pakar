@@ -164,3 +164,28 @@ Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 { "cameraId": 1, "areaId": 1, "type": "heartbeat", "timestamp": "2026-11-23T10:00:00Z", "spots": [] }
+
+### FR 17: force a zone's status while its camera is down (Admin); status is available, almost_full or full
+PUT {{host}}/api/zones/{{zoneId}}/status-override
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "status": "full", "note": "Camera 1 is offline" }
+
+### FR 17: zones that currently have a manual status
+GET {{host}}/api/zones/status-overrides
+Authorization: Bearer {{adminToken}}
+
+### FR 17: remove the manual status
+DELETE {{host}}/api/zones/{{zoneId}}/status-override
+Authorization: Bearer {{adminToken}}
+
+### History: occupancy of a zone per hour for the last day (guest)
+GET {{host}}/api/history/zones/{{zoneId}}?bucket=hour
+
+### History: per day for the last 30 days (guest)
+GET {{host}}/api/history/zones/{{zoneId}}?bucket=day
+
+### History: raw detection records (Admin), filtered and paged
+GET {{host}}/api/history/detections?zoneId={{zoneId}}&status=occupied&page=1&pageSize=20
+Authorization: Bearer {{adminToken}}

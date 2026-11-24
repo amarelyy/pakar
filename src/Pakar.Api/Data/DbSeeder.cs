@@ -7,6 +7,31 @@ namespace Pakar.Api.Data;
 
 public static class DbSeeder
 {
+    /// <summary>
+    /// The four parking areas of the Faculty of Engineering, UGM. <c>Latitude</c> and <c>Longitude</c> are the
+    /// department building pins from Google Maps; the spots are laid out in one east-west row just south of the
+    /// pin. These positions are approximate until the real slot coordinates are surveyed.
+    /// </summary>
+    private sealed record SeedZone(
+        int ExternalId, string Name, string Description, string SpotPrefix, string CameraName,
+        double Latitude, double Longitude);
+
+    private static readonly SeedZone[] SeedZones =
+    [
+        new(1, "Teknik Kimia Parking", "Parking area of the Department of Chemical Engineering",
+            "TK", "Teknik Kimia Camera", -7.765307, 110.371418),
+        new(2, "Teknik Mesin dan Industri Parking", "Parking area of the Department of Mechanical and Industrial Engineering",
+            "TMI", "Teknik Mesin dan Industri Camera", -7.7658044, 110.3711988),
+        new(3, "Teknik Elektro dan Teknologi Informasi Parking", "Parking area of the Department of Electrical and Information Engineering",
+            "TETI", "Teknik Elektro dan Teknologi Informasi Camera", -7.7657811, 110.3717409),
+        new(4, "Teknik Nuklir dan Teknik Fisika Parking", "Parking area of the Department of Nuclear and Physics Engineering",
+            "TNTF", "Teknik Nuklir dan Teknik Fisika Camera", -7.7662333, 110.3728),
+    ];
+
+    private const int SpotsPerZone = 10;
+    private const double RowOffsetLatitude = -0.00008; // about 9 m south of the building pin
+    private const double SpotSpacingLongitude = 0.00004; // about 4.4 m between neighbouring spots
+
     public static async Task SeedAsync(WebApplication app)
     {
         using var scope = app.Services.CreateScope();
@@ -21,119 +46,54 @@ public static class DbSeeder
 
         if (!await context.Zones.AnyAsync())
         {
-            // Building H (Civil Engineering)
-            var zoneH = new ParkingZone 
-            { 
-                Id = Guid.NewGuid(), 
-                Name = "Building H Parking (Civil Engineering)", 
-                Description = "Front area of the Department of Civil and Environmental Engineering",
-                TotalCapacity = 10,
-                ExternalId = 1
-            };
-            
-            // Building I (SGLC)
-            var zoneI = new ParkingZone 
-            { 
-                Id = Guid.NewGuid(), 
-                Name = "Building I Parking (Faculty Office)", 
-                Description = "Main lobby area of the Faculty central office",
-                TotalCapacity = 10,
-                ExternalId = 2
-            };
+            var zones = new List<ParkingZone>();
+            var spots = new List<ParkingSpot>();
+            var cameras = new List<Camera>();
 
-            // West of Building E (Geological Engineering)
-            var zoneE = new ParkingZone 
-            { 
-                Id = Guid.NewGuid(), 
-                Name = "Building E West Parking (Geological Engineering)", 
-                Description = "Area 100 m west of the Department of Geological Engineering",
-                TotalCapacity = 10,
-                ExternalId = 3
-            };
+            foreach (var seed in SeedZones)
+            {
+                var zone = new ParkingZone
+                {
+                    Id = Guid.NewGuid(),
+                    Name = seed.Name,
+                    Description = seed.Description,
+                    TotalCapacity = SpotsPerZone,
+                    ExternalId = seed.ExternalId
+                };
+                zones.Add(zone);
 
-            await context.Zones.AddRangeAsync(zoneH, zoneI, zoneE);
+                // Spot ids are unique across zones: zone 1 uses 1-10, zone 2 uses 101-110, and so on.
+                for (var i = 1; i <= SpotsPerZone; i++)
+                {
+                    spots.Add(new ParkingSpot
+                    {
+                        ZoneId = zone.Id,
+                        Name = $"{seed.SpotPrefix}-{i:D2}",
+                        Latitude = seed.Latitude + RowOffsetLatitude,
+                        Longitude = seed.Longitude + (i - 1) * SpotSpacingLongitude,
+                        IsOccupied = false,
+                        ExternalId = (seed.ExternalId - 1) * 100 + i
+                    });
+                }
+
+                // One video source per zone; ExternalId matches the AI worker configuration. The video file name is
+                // empty until a video is available; an admin sets it (PUT /api/cameras/{id}). No real camera is used.
+                cameras.Add(new Camera
+                {
+                    Name = seed.CameraName,
+                    StreamUrl = string.Empty,
+                    ConnectionType = "Video",
+                    ApiKeyHash = "temp-hash",
+                    ZoneId = zone.Id,
+                    ExternalId = seed.ExternalId
+                });
+            }
+
+            await context.Zones.AddRangeAsync(zones);
             await context.SaveChangesAsync();
 
-            var spots = new List<ParkingSpot>();
-
-            // Building H: 10 spots
-            for (int i = 1; i <= 10; i++)
-            {
-                spots.Add(new ParkingSpot
-                {
-                    ZoneId = zoneH.Id,
-                    Name = $"H-{i:D2}",
-                    Latitude = -7.7685 + (i * 0.00005),
-                    Longitude = 110.3765,
-                    IsOccupied = false,
-                    ExternalId = i
-                });
-            }
-
-            // Building I: 10 spots
-            for (int i = 1; i <= 10; i++)
-            {
-                spots.Add(new ParkingSpot
-                {
-                    ZoneId = zoneI.Id,
-                    Name = $"I-{i:D2}",
-                    Latitude = -7.7690,
-                    Longitude = 110.3770 + (i * 0.00005),
-                    IsOccupied = false,
-                    ExternalId = 100 + i
-                });
-            }
-
-            // Building E West: 10 spots
-            for (int i = 1; i <= 10; i++)
-            {
-                spots.Add(new ParkingSpot
-                {
-                    ZoneId = zoneE.Id,
-                    Name = $"E-W-{i:D2}",
-                    Latitude = -7.7680,
-                    Longitude = 110.3750 - (i * 0.00005),
-                    IsOccupied = false,
-                    ExternalId = 200 + i
-                });
-            }
-
             await context.Spots.AddRangeAsync(spots);
-
-            // One video source per zone; ExternalId matches the AI worker configuration. The video file name is
-            // empty until a video is available; an admin sets it (PUT /api/cameras/{id}). No real camera is used.
-            var cameras = new List<Camera>
-            {
-                new Camera
-                {
-                    Name = "Building H Camera",
-                    StreamUrl = string.Empty,
-                    ConnectionType = "Video",
-                    ApiKeyHash = "temp-hash",
-                    ZoneId = zoneH.Id,
-                    ExternalId = 1
-                },
-                new Camera
-                {
-                    Name = "Building I Camera",
-                    StreamUrl = string.Empty,
-                    ConnectionType = "Video",
-                    ApiKeyHash = "temp-hash",
-                    ZoneId = zoneI.Id,
-                    ExternalId = 2
-                },
-                new Camera
-                {
-                    Name = "Building E West Camera",
-                    StreamUrl = string.Empty,
-                    ConnectionType = "Video",
-                    ApiKeyHash = "temp-hash",
-                    ZoneId = zoneE.Id,
-                    ExternalId = 3
-                }
-            };
             await context.Cameras.AddRangeAsync(cameras);
-
             await context.SaveChangesAsync();
         }
 

@@ -19,9 +19,9 @@
 
 .legend-dot {
     display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
     margin-left: 0.75rem;
 }
 
@@ -29,8 +29,33 @@
     background: #2e7d32;
 }
 
-.legend-dot.occupied {
+.legend-dot.almost-full {
+    background: #f9a825;
+}
+
+.legend-dot.full {
     background: #c62828;
+}
+
+.legend-note {
+    margin-left: 0.75rem;
+    color: #616161;
+}
+
+/* "free / capacity" text inside each zone box on the map */
+.leaflet-tooltip.zone-box-label {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: #1b1b1b;
+    font-size: 15px;
+    font-weight: 700;
+    text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+    pointer-events: none;
+}
+
+.leaflet-tooltip.zone-box-label::before {
+    display: none;
 }
 
 .zone-summary {

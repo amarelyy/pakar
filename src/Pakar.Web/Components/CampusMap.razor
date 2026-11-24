@@ -79,19 +79,27 @@
                 }
                 @foreach (var zone in visible)
                 {
+                    var waitingForSource = state.IsWaitingForSource(zone);
                     <button type="button" @key="zone.Id" class="zone-card @(zone.Id == selectedId ? "selected" : null)"
                             @onclick="() => SelectAsync(zone.Id)" aria-pressed="@(zone.Id == selectedId)">
-                        <span class="zone-card-top"><span class="zone-name">@zone.Name</span><StatusChip Status="@zone.Status" /></span>
-                        <span class="zone-count"><strong class="tnum">@zone.AvailableSpots</strong><span>kosong <span class="muted">/ @zone.TotalCapacity slot</span></span><span class="zone-arrow" aria-hidden="true">↗</span></span>
-                        <span class="fill-track" aria-hidden="true"><span class="@zone.Status" style="width:@Fill(zone)%"></span></span>
+                        <span class="zone-card-top"><span class="zone-name">@zone.Name</span><StatusChip Status="@(waitingForSource && !zone.IsOverridden ? "unknown" : zone.Status)" /></span>
+                        <span class="zone-count"><strong class="tnum">@(waitingForSource ? "—" : zone.AvailableSpots.ToString())</strong><span>kosong <span class="muted">/ @zone.TotalCapacity slot</span></span><span class="zone-arrow" aria-hidden="true">↗</span></span>
+                        @if (!waitingForSource)
+                        {
+                            <span class="fill-track" aria-hidden="true"><span class="@zone.Status" style="width:@Fill(zone)%"></span></span>
+                        }
                         <span class="zone-meta">
-                            @if (zone.UnknownSpots > 0)
+                            @if (waitingForSource)
                             {
-                                <span class="stale">@zone.UnknownSpots slot belum diketahui</span>
+                                <span class="stale">Menunggu data pertama</span>
                             }
-                            @if (state.IsStale(zone, now))
+                            else if (state.IsStale(zone, now))
                             {
                                 <span class="stale">Data terakhir · sumber tidak aktif</span>
+                            }
+                            @if (!waitingForSource && zone.UnknownSpots > 0)
+                            {
+                                <span class="stale">@zone.UnknownSpots slot belum diketahui</span>
                             }
                             @if (zone.IsOverridden)
                             {
@@ -112,7 +120,7 @@
             </div>
             <div class="map-legend">
                 <span><i class="available"></i> Tersedia</span><span><i class="almost_full"></i> Hampir penuh</span>
-                <span><i class="full"></i> Penuh</span><span><i class="unknown"></i> Data lama</span>
+                <span><i class="full"></i> Penuh</span><span><i class="unknown"></i> Data belum ada atau lama</span>
             </div>
             @if (mapError is not null)
             {
@@ -127,6 +135,7 @@
             }
             @if (Selected is { } selected)
             {
+                var waitingForSource = state.IsWaitingForSource(selected);
                 <section class="zone-detail card" aria-label="Detail zona">
                     <div class="zone-card-top">
                         <p class="eyebrow">ZONA PILIHAN</p>
@@ -134,9 +143,9 @@
                     </div>
                     <h2 @ref="detailHeading" tabindex="-1">@selected.Name</h2>
                     <div class="detail-count">
-                        <strong>@selected.AvailableSpots</strong><span>slot kosong dari @selected.TotalCapacity</span><StatusChip Status="@selected.Status" />
+                        <strong>@(waitingForSource ? "—" : selected.AvailableSpots.ToString())</strong><span>slot kosong dari @selected.TotalCapacity</span><StatusChip Status="@(waitingForSource && !selected.IsOverridden ? "unknown" : selected.Status)" />
                     </div>
-                    @if (selected.UnknownSpots > 0)
+                    @if (!waitingForSource && selected.UnknownSpots > 0)
                     {
                         <p class="stale">@selected.UnknownSpots slot belum diketahui.</p>
                     }
@@ -144,7 +153,11 @@
                     {
                         <p class="muted">Status diatur admin.</p>
                     }
-                    @if (state.IsStale(selected, now))
+                    @if (waitingForSource)
+                    {
+                        <p class="stale">Menunggu data pertama dari sumber.</p>
+                    }
+                    else if (state.IsStale(selected, now))
                     {
                         <p class="stale">Sumber tidak aktif atau data berusia lebih dari 2 menit.</p>
                     }
@@ -193,7 +206,7 @@
                             <ul>
                                 @foreach (var spot in selected.Spots)
                                 {
-                                    <li @key="spot.Id"><span>@spot.Name</span><span>@ParkingMapState.SpotLabel(spot.ObservedStatus)</span></li>
+                                    <li @key="spot.Id"><span>@spot.Name</span><span>@ParkingMapState.SpotLabel(waitingForSource ? "unknown" : spot.ObservedStatus)</span></li>
                                 }
                             </ul>
                         </details>

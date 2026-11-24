@@ -352,6 +352,7 @@ public partial class CampusMap : IAsyncDisposable
             var zones = state.Zones.Select(zone => new
             {
                 zone.Id, zone.Name, zone.Status, zone.AvailableSpots, zone.UnknownSpots, zone.Spots,
+                WaitingForSource = state.IsWaitingForSource(zone),
                 Stale = state.IsStale(zone, now)
             }).ToArray();
             await JS.InvokeVoidAsync("campusMap.renderZones", zones, selectedId?.ToString());

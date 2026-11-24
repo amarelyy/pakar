@@ -104,6 +104,21 @@ public class ParkingMapStateTests
     }
 
     [Fact]
+    public void ZoneWaitsForItsFirstSourceReading()
+    {
+        var zone = MakeZone();
+        zone.Sources.Add(new ZoneSourceDto(7, null));
+        var state = new ParkingMapState();
+        state.Reset([zone], Now);
+
+        Assert.True(state.IsWaitingForSource(zone));
+
+        state.Apply(new ParkingSourceUpdate(7, 10, true, Now));
+        Assert.False(state.IsWaitingForSource(zone));
+        Assert.True(state.IsStale(zone, Now.AddMinutes(3)));
+    }
+
+    [Fact]
     public void MissingExternalIdsRequireTheRestFallback()
     {
         var zone = MakeZone();

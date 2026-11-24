@@ -59,9 +59,10 @@ window.campusMap = (() => {
         const count = document.createElement('strong');
         const description = document.createElement('span');
         const name = document.createElement('small');
-        count.textContent = zone.availableSpots;
-        description.textContent = ' kosong';
-        name.textContent = zone.name + (zone.stale ? ' · data lama' : '');
+        count.textContent = zone.waitingForSource ? '—' : zone.availableSpots;
+        description.textContent = zone.waitingForSource ? '' : ' kosong';
+        const note = zone.waitingForSource ? ' · menunggu data pertama' : zone.stale ? ' · data lama' : '';
+        name.textContent = zone.name + note;
         label.append(count, description, name);
         label.style.setProperty('--badge-color', color);
         return label;
@@ -112,7 +113,8 @@ window.campusMap = (() => {
             for (const spot of zone.spots.filter(hasLocation)) {
                 const fillColor = zone.stale ? colors.unknown : colors[spot.isOccupied ? 'full' : 'available'];
                 const label = document.createElement('span');
-                label.textContent = spot.name + (spot.isOccupied ? ': Terisi' : ': Kosong');
+                const status = zone.waitingForSource ? 'Belum diketahui' : spot.isOccupied ? 'Terisi' : 'Kosong';
+                label.textContent = spot.name + ': ' + status;
                 L.circleMarker([spot.latitude, spot.longitude], {
                     radius: 4, weight: 1, color: '#fff', fillColor, fillOpacity: 1
                 }).bindTooltip(label).addTo(spotsLayer);

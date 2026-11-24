@@ -85,6 +85,9 @@ public sealed class ParkingMapState
             sources[update.CameraId] = update;
     }
 
+    public bool IsWaitingForSource(ZoneDto zone) =>
+        zone.ExternalId is int areaId && !sources.Values.Any(source => source.AreaId == areaId);
+
     public bool IsStale(ZoneDto zone, DateTimeOffset now)
     {
         if (zone.ExternalId is not int areaId)

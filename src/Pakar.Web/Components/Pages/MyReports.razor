@@ -4,38 +4,38 @@
 @inject UserSession Session
 @inject AuthenticatedApiClient Api
 
-<PageTitle>Laporan Saya · PAKAR</PageTitle>
+<PageTitle>My Reports · PAKAR</PageTitle>
 
 <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
-    <h1 class="mb-0">Laporan Saya</h1>
-    <a class="btn btn-outline-secondary btn-sm" href="">Kembali ke peta</a>
+    <h1 class="mb-0">My Reports</h1>
+    <a class="btn btn-outline-secondary btn-sm" href="">Back to the map</a>
 </div>
 
 @if (loading)
 {
-    <p role="status">Memuat laporan…</p>
+    <p role="status">Loading reports…</p>
 }
 else if (!signedIn)
 {
-    <p class="notice">Silakan <a href="login">masuk</a> untuk melihat laporan Anda.</p>
+    <p class="notice"><a href="login">Log in</a> to view your reports.</p>
 }
 else if (error is not null)
 {
     <div class="notice danger" role="alert">
-        @error <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Coba lagi</button>
+        @error <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Try again</button>
     </div>
 }
 else if (reports.Count == 0)
 {
     <div class="card p-3">
-        <h2 class="h5">Belum ada laporan</h2>
-        <p class="mb-0">Pilih zona di peta untuk melaporkan ketidaksesuaian status slot parkir.</p>
+        <h2 class="h5">No reports yet</h2>
+        <p class="mb-0">Select a zone on the map to report an incorrect parking space status.</p>
     </div>
 }
 else
 {
     <div class="mb-3">
-        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Muat ulang laporan</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Refresh reports</button>
     </div>
     <div class="row row-cols-1 row-cols-lg-2 g-3">
         @foreach (var report in reports)
@@ -53,7 +53,7 @@ else
                     @if (!string.IsNullOrWhiteSpace(report.AdminNote))
                     {
                         <div class="notice mb-0">
-                            <strong>Catatan admin</strong>
+                            <strong>Admin note</strong>
                             <p class="report-text mb-0">@report.AdminNote</p>
                         </div>
                     }

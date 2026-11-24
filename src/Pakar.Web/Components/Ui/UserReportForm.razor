@@ -6,44 +6,44 @@
     @if (submitted is not null)
     {
         <div class="notice success" role="status">
-            <p class="mb-2">Laporan diterima dan menunggu tinjauan admin.</p>
-            <a href="reports">Lihat Laporan Saya</a>
+            <p class="mb-2">Report submitted for admin review.</p>
+            <a href="reports">View My Reports</a>
         </div>
-        <button type="button" class="text-button small" @onclick="OpenAsync">Laporkan slot lain</button>
+        <button type="button" class="text-button small" @onclick="OpenAsync">Report another space</button>
     }
     else if (!open)
     {
-        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="OpenAsync">Laporkan ketidaksesuaian</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="OpenAsync">Report incorrect status</button>
     }
     else if (signInRequired)
     {
-        <p class="mb-2">Silakan <a href="login">masuk</a> untuk mengirim laporan.</p>
-        <button type="button" class="text-button small" @onclick="Close">Tutup</button>
+        <p class="mb-2"><a href="login">Log in</a> to submit a report.</p>
+        <button type="button" class="text-button small" @onclick="Close">Close</button>
     }
     else
     {
         <form @onsubmit="SubmitAsync" @onsubmit:preventDefault>
             <fieldset disabled="@submitting">
-                <legend class="h6">Laporkan ketidaksesuaian</legend>
-                <label for="report-slot" class="form-label">Slot parkir</label>
+                <legend class="h6">Report incorrect status</legend>
+                <label for="report-slot" class="form-label">Parking space</label>
                 <select id="report-slot" class="form-select mb-3" @ref="slotInput" @bind="spotId" required>
-                    <option value="">Pilih slot</option>
+                    <option value="">Select a space</option>
                     @foreach (var spot in Zone.Spots)
                     {
-                        <option value="@spot.Id">@spot.Name (@(spot.IsOccupied ? "Terisi" : "Kosong"))</option>
+                        <option value="@spot.Id">@spot.Name (@(spot.IsOccupied ? "Occupied" : "Free"))</option>
                     }
                 </select>
-                <label for="report-description" class="form-label">Kondisi yang Anda lihat</label>
+                <label for="report-description" class="form-label">What did you see?</label>
                 <textarea id="report-description" class="form-control mb-3" @bind="description" rows="2"
-                          maxlength="1000" placeholder="Contoh: ada mobil, tetapi slot ditampilkan kosong." required></textarea>
+                          maxlength="1000" placeholder="Example: A car is parked here, but the map shows the space as free." required></textarea>
 
                 @if (error is not null)
                 {
                     <p class="notice danger" role="alert">@error</p>
                 }
 
-                <button type="submit" class="btn btn-primary btn-sm">@(submitting ? "Mengirim…" : "Kirim laporan")</button>
-                <button type="button" class="text-button small" @onclick="Close">Batal</button>
+                <button type="submit" class="btn btn-primary btn-sm">@(submitting ? "Submitting…" : "Submit report")</button>
+                <button type="button" class="text-button small" @onclick="Close">Cancel</button>
             </fieldset>
         </form>
     }
@@ -88,14 +88,14 @@
 
         if (spotId is not { } id || Zone.Spots.All(spot => spot.Id != id))
         {
-            error = "Pilih slot parkir yang ingin dilaporkan.";
+            error = "Select the parking space you want to report.";
             return;
         }
 
         var text = description.Trim();
         if (text.Length == 0)
         {
-            error = "Jelaskan kondisi yang Anda lihat.";
+            error = "Describe what you saw.";
             return;
         }
 

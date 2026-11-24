@@ -41,13 +41,13 @@
     </div>
 
     <div class="feeder-local">
-        <label for="local-video" class="form-label">Video dari komputer ini (dibaca browser, tidak diunggah ke mana pun)</label>
+        <label for="local-video" class="form-label">Video from this computer (processed locally in your browser)</label>
         <input id="local-video" type="file" accept="video/*" class="form-control" @ref="localInput"
                @onchange="OnLocalVideoAsync" disabled="@(running || starting)" />
         @if (localName is not null)
         {
-            <p class="feeder-note">Memakai <strong>@localName</strong> (@FormatSize(localSize)).
-                <button type="button" class="btn btn-link" @onclick="ClearLocalVideoAsync" disabled="@(running || starting)">Pakai video situs</button></p>
+            <p class="feeder-note">Using <strong>@localName</strong> (@FormatSize(localSize)).
+                <button type="button" class="btn btn-link" @onclick="ClearLocalVideoAsync" disabled="@(running || starting)">Use the site video</button></p>
         }
     </div>
 

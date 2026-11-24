@@ -73,8 +73,8 @@
     @if (overrideListError is not null)
     {
         <div class="notice warning" role="alert">
-            Status manual belum dapat dimuat.
-            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadOverridesAsync">Coba lagi</button>
+            Could not load status overrides.
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadOverridesAsync">Try again</button>
         </div>
     }
     @if (overrideError is not null)
@@ -91,18 +91,18 @@
     {
         <form class="card p-3 mb-3" @onsubmit="SaveOverrideAsync" @onsubmit:preventDefault>
             <fieldset disabled="@savingOverride">
-                <legend class="h5">Atur status @zone.Name</legend>
-                <label for="manual-status" class="form-label">Status zona</label>
+                <legend class="h5">Set status for @zone.Name</legend>
+                <label for="manual-status" class="form-label">Zone status</label>
                 <select id="manual-status" class="form-select mb-3" @ref="overrideStatusInput" @bind="overrideStatus">
-                    <option value="available">Tersedia</option>
-                    <option value="almost_full">Hampir penuh</option>
-                    <option value="full">Penuh</option>
+                    <option value="available">Available</option>
+                    <option value="almost_full">Almost full</option>
+                    <option value="full">Full</option>
                 </select>
-                <label for="manual-note" class="form-label">Catatan (opsional)</label>
+                <label for="manual-note" class="form-label">Note (optional)</label>
                 <textarea id="manual-note" class="form-control mb-3" @bind="overrideNote"
                           maxlength="@ZoneOverrideRules.MaxNoteLength" rows="2"></textarea>
-                <button type="submit" class="btn btn-primary">Simpan status</button>
-                <button type="button" class="btn btn-light" @onclick="CloseOverride">Batal</button>
+                <button type="submit" class="btn btn-primary">Save status</button>
+                <button type="button" class="btn btn-light" @onclick="CloseOverride">Cancel</button>
             </fieldset>
         </form>
     }
@@ -120,7 +120,7 @@
     }
     else
     {
-        <div class="table-responsive" aria-label="Daftar zona">
+        <div class="table-responsive" aria-label="Zone list">
         <table class="table align-middle">
             <thead>
                 <tr>
@@ -130,7 +130,7 @@
                     <th>Spots</th>
                     <th>Cameras</th>
                     <th>External id</th>
-                    <th>Status manual</th>
+                    <th>Status override</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -156,7 +156,7 @@
                             }
                             else
                             {
-                                <span class="muted">@(overrideListError is null ? "Otomatis" : "Belum diketahui")</span>
+                                <span class="muted">@(overrideListError is null ? "Automatic" : "Unknown")</span>
                             }
                         </td>
                         <td>
@@ -172,11 +172,11 @@
                                 <button type="button" @onclick="() => confirmDeleteId = row.Id">Remove</button>
                                 <button type="button" class="btn btn-outline-primary btn-sm"
                                         disabled="@(savingOverride || overrideListError is not null)"
-                                        @onclick="() => EditOverride(row, manual)">Atur status</button>
+                                        @onclick="() => EditOverride(row, manual)">Set status</button>
                                 @if (manual is not null && overrideListError is null)
                                 {
                                     <button type="button" class="btn btn-outline-secondary btn-sm"
-                                            disabled="@savingOverride" @onclick="() => ClearOverrideAsync(row)">Kembalikan otomatis</button>
+                                            disabled="@savingOverride" @onclick="() => ClearOverrideAsync(row)">Reset to automatic</button>
                                 }
                             }
                         </td>
@@ -292,8 +292,8 @@
             if (overrideZone?.Id == row.Id)
                 CloseOverride();
             info = method == HttpMethod.Delete
-                ? $"Status {row.Name} kembali otomatis."
-                : $"Status {row.Name} berhasil diatur.";
+                ? $"{row.Name} is back to automatic status."
+                : $"The status override for {row.Name} was saved.";
             await LoadOverridesAsync();
         }
         finally

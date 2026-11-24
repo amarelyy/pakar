@@ -60,10 +60,10 @@ window.campusMap = (() => {
         const description = document.createElement('span');
         const name = document.createElement('small');
         count.textContent = zone.waitingForSource ? '—' : zone.availableSpots;
-        description.textContent = zone.waitingForSource ? '' : ' kosong';
-        const note = zone.waitingForSource ? ' · menunggu data pertama'
-            : zone.stale ? ' · data lama'
-            : zone.unknownSpots > 0 ? ' · ' + zone.unknownSpots + ' belum diketahui' : '';
+        description.textContent = zone.waitingForSource ? '' : ' free';
+        const note = zone.waitingForSource ? ' · waiting for first update'
+            : zone.stale ? ' · stale data'
+            : zone.unknownSpots > 0 ? ' · ' + zone.unknownSpots + ' with unknown status' : '';
         name.textContent = zone.name + note;
         label.append(count, description, name);
         label.style.setProperty('--badge-color', color);
@@ -116,8 +116,8 @@ window.campusMap = (() => {
                 const spotColor = { occupied: colors.full, available: colors.available };
                 const fillColor = zone.stale ? colors.unknown : (spotColor[spot.observedStatus] || colors.unknown);
                 const label = document.createElement('span');
-                const labels = { occupied: 'Terisi', available: 'Kosong' };
-                const status = zone.waitingForSource ? 'Belum diketahui' : (labels[spot.observedStatus] || 'Belum diketahui');
+                const labels = { occupied: 'Occupied', available: 'Free' };
+                const status = zone.waitingForSource ? 'Unknown' : (labels[spot.observedStatus] || 'Unknown');
                 label.textContent = spot.name + ': ' + status;
                 L.circleMarker([spot.latitude, spot.longitude], {
                     radius: 4, weight: 1, color: '#fff', fillColor, fillOpacity: 1

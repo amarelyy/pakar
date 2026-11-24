@@ -125,9 +125,9 @@ public sealed class ParkingMapState
 
     public static string SpotLabel(string status) => status switch
     {
-        "occupied" => "Terisi",
-        "available" => "Kosong",
-        _ => "Belum diketahui"
+        "occupied" => "Occupied",
+        "available" => "Free",
+        _ => "Unknown"
     };
 
     private static void Recount(ZoneDto zone, DateTimeOffset now)

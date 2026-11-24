@@ -59,7 +59,7 @@ public partial class CampusMap : IAsyncDisposable
             }
             catch (JSException)
             {
-                mapError = "Peta belum dapat dimuat. Daftar zona tetap dapat digunakan.";
+                mapError = "Could not load the map. You can still use the zone list.";
             }
 
             await ConnectAsync();
@@ -188,8 +188,8 @@ public partial class CampusMap : IAsyncDisposable
         {
             Logger.LogDebug(ex, "Parking data could not be synchronized.");
             error = state.Zones.Count == 0
-                ? "Data zona belum dapat dimuat."
-                : "Pembaruan gagal. Menampilkan data terakhir.";
+                ? "Could not load parking zone data."
+                : "Could not refresh. Showing the last available data.";
         }
         finally
         {
@@ -246,7 +246,7 @@ public partial class CampusMap : IAsyncDisposable
         {
             if (version == searchVersion && !disposed)
             {
-                searchError = "Pencarian belum berhasil. Coba lagi.";
+                searchError = "Could not complete the search. Try again.";
                 textMatches = [];
             }
         }

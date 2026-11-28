@@ -230,7 +230,7 @@ changes the real database. The database remembers which migrations ran (table `_
 | You changed | Migration? |
 | --- | --- |
 | An endpoint, a validation rule, a service, a Razor page, a test | No |
-| Seed data in `DbSeeder` (only runs on an empty database) | No (existing rows must be fixed by hand or through the API, like the cameras on 2026-11-15) |
+| Demo seed data | New databases get the four-zone seed. An existing original demo layout can opt in to replacement at startup (see section 5). |
 | A property on an entity class, a new entity, a column length, an index, a foreign key (files in `Domain/Entities` or `Infrastructure/Persistence/Configurations`) | **Yes** |
 
 Which tasks in section 1 need one: **2e** (zone override columns) and **2c** (`CameraFrames` table). **2a, 2b, 2d, P5 to P14 do not**,
@@ -639,8 +639,19 @@ a "CCTV-like" view that you slide through to switch between locations, looping e
 The video wall is not part of Ursula's frontend work; its owner is still to be decided.
 
 **What it changes for the backend and database (Ursula).**
-- [ ] Seed data: replace the 3 sample zones (Building H, Building I, Building E West) with the 4 real ones. For each zone the real name, capacity, and the latitude and longitude of every spot are needed (the map uses them); ask the team for this data. The seed only runs on an empty database, so the existing Neon data is changed through the admin API or SQL.
-- [ ] One video source per zone: the 3 seeded cameras become 4.
+- [x] Seed four demo zones with 40 map slots and one video source per zone. See [the seed definitions](src/Pakar.Api/Data/ParkingSeed.cs).
+- [ ] Confirm the final per-zone capacity and coordinate of each actual slot with the team. The [FT UGM parking locations](https://ft.ugm.ac.id/sesak-lahan-parkir-begini-langkah-ft-ugm-dalam-menata-mobilitas-mahasiswa/) identify the areas. The current demo uses approximate coordinates from the four-zone prototype.
+
+| Demo zone | Slot labels | Demo capacity |
+| --- | --- | ---: |
+| DTETI | DTETI-01 to DTETI-10 | 10 |
+| TNTF | TNTF-01 to TNTF-10 | 10 |
+| DTMI | DTMI-01 to DTMI-10 | 10 |
+| DTK | DTK-01 to DTK-10 | 10 |
+
+A fresh database gets the four demo zones automatically. To replace the original three active zones in an existing demo database, set the API environment variable `ParkingSeed__ReplaceLegacyDemo=true` for one startup. The API checks the original zone IDs, names, capacities, and source IDs before it archives the demo zones and their sources and creates the four replacements in one transaction. Subsequent startups skip the replacement. Existing custom layouts remain in place. Use the new source and spot IDs when configuring the video files and slot polygons.
+
+- [ ] Set the video file on each of the four seeded sources.
 - [ ] Slot polygons: one set per video, drawn by hand in the polygon editor (`/admin/polygons`). This is the biggest manual task; plan time for it.
 - [ ] Check that the zone list, search and map still feel right with 4 zones and their spots (the limits in the code are far above this: 500 spots per ingest request).
 

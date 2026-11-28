@@ -12,6 +12,13 @@
 		reverse_proxy api:8080
 	}
 
+	# A missing model or video must be a 404, not the app page.
+	@assets path /models/* /videos/*
+	handle @assets {
+		root * /srv
+		file_server
+	}
+
 	handle {
 		root * /srv
 		# Browsers revalidate (ETag) so a redeploy or rollback never mixes old and new app files.

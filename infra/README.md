@@ -43,7 +43,7 @@ They are never in git, in the template, or in an environment file in the reposit
 | `DATABASE-URL` | `DATABASE_URL` | Api | Neon pooled URL (`neon env pull`) |
 | `DATABASE-URL-UNPOOLED` | (none) | the migration step of CI | Neon direct URL (`neon env pull`) |
 
-`Inference--ApiKey` is no longer needed: the API stops calling the inference service (see TODO.md section 0).
+`Inference--ApiKey` is no longer needed: the API stops calling the inference service (see docs/current-progress/TODO.md section 0).
 Use a **new** value for each secret in production; never reuse a value that was ever in git or on a developer machine.
 
 ## Deploy
@@ -83,7 +83,7 @@ Contributor alone cannot do).
    dotnet ef migrations bundle --project src/Pakar.Migrations.Postgres --startup-project src/Pakar.Api -o efbundle --self-contained
    ./efbundle --connection "<connection string>"
    ```
-   (Or run `dotnet ef database update` with `DATABASE_URL_UNPOOLED` set, as described in TODO.md section 0.7.)
+   (Or run `dotnet ef database update` with `DATABASE_URL_UNPOOLED` set, as described in docs/current-progress/TODO.md section 0.7.)
 5. Smoke test:
    ```bash
    curl https://<apiUrl>/health/ready      # Healthy
@@ -127,7 +127,7 @@ and posts changes plus a heartbeat every 15 seconds. While it runs, the video so
 Nothing is shown to users until the worker has been started by someone on the team; the website itself works without it and shows the last known status.
 
 **Container (optional, later):** the same program can run as a container in Azure. `src/Pakar.AiInference/Dockerfile` is in the `ai-dotnet` branch and needs
-`libdrm2 libatomic1` added to its `apt-get install` line (see TODO.md, branch review). The `.onnx` and the videos are not in the image (`.dockerignore` excludes
+`libdrm2 libatomic1` added to its `apt-get install` line (see docs/current-progress/TODO.md, branch review). The `.onnx` and the videos are not in the image (`.dockerignore` excludes
 them), so they must be mounted, which needs Azure Files storage that the Bicep no longer contains.
 
 ## Choices worth knowing
@@ -135,7 +135,7 @@ them), so they must be mounted, which needs Azure Files storage that the Bicep n
 - **One shared identity instead of one per app.** A system-assigned identity only exists after its app is created, but the app needs
   Key Vault access to be created (secret references). One user-assigned identity with the "Key Vault Secrets User" role avoids that loop.
 - **Region `eastus2`.** The Neon project is in AWS `us-east-2`; keeping the API in a nearby Azure region keeps each database query fast.
-  Students in Yogyakarta will see more latency to the web app instead. Team decision 11 in TODO.md.
+  Students in Yogyakarta will see more latency to the web app instead. Team decision 11 in docs/current-progress/TODO.md.
 - **API has a public address** (`apiExternalIngress=true`). The worker on the laptop and the smoke test both reach it from outside Azure,
   so do not set it to `false`. The ingest route is protected by the shared `Ingest--ApiKey`; keep that key out of git and chat.
 - **Cost.** Container Apps bills by use and has a monthly free grant, but the API runs all day with one replica, which can be more than

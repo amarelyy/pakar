@@ -31,7 +31,7 @@ Browser --HTTPS--> Virtual machine (Ubuntu, Docker Compose)
 | Images | Built and published by GitHub Actions | `ghcr.io` |
 
 Deployment guide: [infra/vm/README.md](infra/vm/README.md). Endpoints: [docs/api-reference.md](docs/api-reference.md).
-Status: [docs/status-and-issues.md](docs/status-and-issues.md). Open work: [TODO.md](TODO.md).
+Current progress, status and open work: [docs/current-progress](docs/current-progress/README.md).
 
 ## Run it locally
 

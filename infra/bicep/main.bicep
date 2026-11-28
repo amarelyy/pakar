@@ -2,7 +2,7 @@
 //   az deployment sub create --location eastus2 --template-file infra/bicep/main.bicep \
 //     --parameters @infra/main.parameters.example.json --parameters jwtKey=... (see infra/README.md)
 // The database is Neon (external), so there is no SQL resource here.
-// The AI video worker is NOT deployed to Azure: it runs on a demo laptop and posts its results to the API (see TODO.md).
+// The AI video worker is NOT deployed to Azure: it runs on a demo laptop and posts its results to the API (see docs/current-progress/TODO.md).
 targetScope = 'subscription'
 
 @description('Azure region. The Neon project runs in AWS us-east-2, so eastus2 keeps database round trips short.')

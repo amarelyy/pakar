@@ -53,7 +53,7 @@ not. The web does not use SignalR; these tasks use normal API calls.
 ### Deployment and closing
 
 - [ ] Set `IMAGE_TAG` in `infra/vm/.env.production` to the latest published commit
-- [ ] Deploy from one day before the presentation (`infra/vm/README.md`)
+- [ ] Deploy from one day before the presentation ([deployment guide](../../infra/vm/README.md))
 - [ ] Verify on the machine: HTTPS, closed test routes, FR 1 to FR 17, timing, resources
 - [ ] Measure how long the laptop fallback takes to start
 - [ ] Have a teammate follow the runbook
@@ -80,7 +80,7 @@ not. The web does not use SignalR; these tasks use normal API calls.
 Implemented and locally verified on this branch: ONNX export/inference (#14),
 C# ROI/occupancy rules, ROI/config/reference-frame APIs (2a–2c), video-loop worker
 (#13 AI scope), and admin SVG polygon editor (#15). See
-[implementation evidence and limits](docs/ai/dotnet-pipeline-progress.md).
+[implementation evidence and limits](../ai/dotnet-pipeline-progress.md).
 These changes still need branch review/merge; this is not a claim of production
 deployment or completion of Deva's persisted watchdog, override or map integration.
 The task details below remain the acceptance specification; descriptions of
@@ -94,8 +94,8 @@ Setup and configuration docs are in `README.md`.
 
 **Before starting any task:** read section 0 (the no-camera refactoring), take your task from section 1 in priority order,
 then read the detail in
-[`docs/status-and-issues.md`](https://github.com/amarelyy/pakar/blob/main/docs/status-and-issues.md) (done, problems, mismatches)
-and [`docs/api-reference.md`](https://github.com/amarelyy/pakar/blob/main/docs/api-reference.md) (every endpoint and what it does).
+[`status-and-issues.md`](status-and-issues.md) (done, problems, mismatches)
+and [`api-reference.md`](../api-reference.md) (every endpoint and what it does).
 **When a task is finished:** tick its checklist in the GitHub issue, then update this file and the docs if something changed.
 Deployment decisions were taken on 2026-11-24 (section 0.6, rows 12 to 14); the live site and how to run it are in `infra/vercel/README.md`.
 
@@ -246,7 +246,7 @@ the video and the model never leave the laptop.
 | Item | Change |
 | --- | --- |
 | Tests | Unit tests for `RoiMapper` and the occupancy rules; a parity test comparing the ONNX results with the validated Python numbers (170 of 174 sparse labels matched) on the same clip; API integration tests against PostgreSQL. |
-| Docs | Update `docs/api-reference.md` (new endpoints, removed `FrameHub`) and `docs/status-and-issues.md` after each step. |
+| Docs | Update `docs/api-reference.md` (new endpoints, removed `FrameHub`) and `docs/current-progress/status-and-issues.md` after each step. |
 
 ### 0.4 Issue impact
 
@@ -666,7 +666,7 @@ Optional. Start only when section 1 is stable.
 - [x] Schema hardening, soft delete for zones and cameras, auto-assigned external ids, seed data (3 zones, 30 spots, 3 cameras, first admin).
 - [x] Tested on a local PostgreSQL 18. The `docker compose` file itself was not run (no Docker daemon).
 - [x] Moved to the new Neon project `muddy-star-17263468` (`neon init`, `neon deploy`); migration and seed verified through the API; the old project was deleted.
-- [x] Documentation added: `docs/api-reference.md` and `docs/status-and-issues.md`.
+- [x] Documentation added: `docs/api-reference.md` and `docs/current-progress/status-and-issues.md`.
 
 ### Guest parking and reports (#11, #12) - Ursula (rere)
 - [x] Zone list with status, search with filters and distance, nearest alternate zone, public snapshot (FR 1 to 4).

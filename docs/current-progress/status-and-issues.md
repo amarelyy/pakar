@@ -2,7 +2,7 @@
 
 ## Current state, 2026-11-28 (branch `azure`)
 
-The sections below this one are history; where they disagree, this section and [TODO.md](../TODO.md) apply.
+The sections below this one are history; where they disagree, this section and [TODO.md](TODO.md) apply.
 
 | Area | State |
 | --- | --- |
@@ -42,8 +42,8 @@ superseded on this implementation branch; they are retained as historical contex
   matched the database, zone count 5 occupied / 1 available.
 - Linux-x64 publish passed; Docker execution and map UI latency remain unverified.
 
-See [full evidence, test counts and ownership](ai/dotnet-pipeline-progress.md) and
-[reproduction](ai/runtime-validation.md). Persisted watchdog/IsActive and override
+See [full evidence, test counts and ownership](../ai/dotnet-pipeline-progress.md) and
+[reproduction](../ai/runtime-validation.md). Persisted watchdog/IsActive and override
 remain Deva's work. Model/video binaries remain local with hashes; public/team
 distribution URL is still pending.
 

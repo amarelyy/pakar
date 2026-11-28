@@ -1,0 +1,163 @@
+@page "/admin/users"
+@using Pakar.Application.Common
+@using Pakar.Application.DTOs
+@inject AuthenticatedApiClient Api
+@inject UserSession Session
+
+<PageTitle>Users · PAKAR</PageTitle>
+
+<AdminOnly>
+    <h1>Users</h1>
+    <p><a href="admin">Back to admin</a></p>
+    @if (notice is not null) { <p class="alert alert-success" role="status">@notice</p> }
+    @if (error is not null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @error.Message
+            @foreach (var message in error.Fields.Values.SelectMany(messages => messages))
+            {
+                <div>@message</div>
+            }
+        </div>
+    }
+    <form class="d-flex align-items-end flex-wrap gap-2 mb-3" @onsubmit="SearchAsync" @onsubmit:preventDefault>
+        <label>
+            Name or email
+            <input class="form-control" @bind="search" maxlength="200" />
+        </label>
+        <label class="form-check mb-2"><input type="checkbox" class="form-check-input" @bind="includeInactive" /> Include inactive accounts</label>
+        <button type="submit" class="btn btn-primary" disabled="@busy">Search</button>
+    </form>
+    @if (editing is { } editor)
+    {
+        <form class="card card-body mb-3" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <fieldset disabled="@busy">
+                <h2 class="h4">Edit @editor.Email</h2>
+                <label class="form-label d-block">Name<input class="form-control" @bind="name" required maxlength="100" /></label>
+                <label class="form-label d-block">
+                    Role
+                    <select class="form-select" @bind="role">
+                        <option value="User">User</option><option value="Admin">Admin</option>
+                    </select>
+                </label>
+                <button type="submit" class="btn btn-primary">Save user</button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="() => editing = null">Cancel</button>
+            </fieldset>
+        </form>
+    }
+    @if (pending is { } account)
+    {
+        <div class="alert alert-warning" role="region" aria-label="Confirm account status">
+            <p>@(account.IsActive ? "Deactivate" : "Reactivate") @account.Email?</p>
+            <button class="btn btn-warning" @onclick="ChangeActiveAsync" disabled="@busy">Confirm</button>
+            <button class="btn btn-outline-secondary" @onclick="() => pending = null" disabled="@busy">Cancel</button>
+        </div>
+    }
+    @if (busy) { <p role="status">Loading or saving…</p> }
+    @if (data.Items.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <caption>Registered users</caption>
+                <thead><tr><th scope="col">Account</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var user in data.Items)
+                    {
+                        <tr @key="user.Id">
+                            <td><strong>@user.Name</strong><div class="text-break">@user.Email</div></td>
+                            <td>@user.Role</td>
+                            <td>@(user.IsActive ? "Active" : "Inactive")</td>
+                            <td class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => Edit(user)" disabled="@busy">Edit</button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => pending = user" disabled="@busy">@(user.IsActive ? "Deactivate" : "Reactivate")</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (!busy && error is null) { <p>No users match your search.</p> }
+    @if (data.TotalPages > 1)
+    {
+        <nav aria-label="User list pages" class="d-flex flex-wrap align-items-center gap-2">
+            <button class="btn btn-outline-secondary" @onclick="() => RunAsync(() => LoadAsync(data.Page - 1))" disabled="@(busy || data.Page == 1)">Previous</button>
+            <span>Page @data.Page of @data.TotalPages</span>
+            <button class="btn btn-outline-secondary" @onclick="() => RunAsync(() => LoadAsync(data.Page + 1))" disabled="@(busy || data.Page >= data.TotalPages)">Next</button>
+        </nav>
+    }
+</AdminOnly>
+
+@code {
+    private PagedResult<UserDto> data = new([], 1, 20, 0);
+    private UserDto? editing, pending;
+    private string search = "", appliedSearch = "", name = "", role = "User";
+    private string? notice;
+    private ApiError? error;
+    private bool includeInactive = true, appliedIncludeInactive = true, busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if ((await Session.GetUserAsync())?.IsAdmin is true)
+            await SearchAsync();
+    }
+
+    private Task SearchAsync() => RunAsync(async () =>
+    {
+        appliedSearch = search.Trim();
+        appliedIncludeInactive = includeInactive;
+        await LoadAsync(1);
+    });
+
+    private async Task LoadAsync(int page)
+    {
+        var query = Uri.EscapeDataString(appliedSearch);
+        var flag = appliedIncludeInactive ? "true" : "false";
+        var path = $"api/users?search={query}&includeInactive={flag}&page={page}&pageSize=20";
+        var result = await Api.GetAsync<PagedResult<UserDto>>(path);
+        error = result.Error;
+        if (!result.Ok) return;
+        data = result.Value!;
+        if (data.Items.Count == 0 && data.TotalPages < page && page > 1)
+            await LoadAsync(Math.Max(1, data.TotalPages));
+    }
+
+    private void Edit(UserDto user)
+    {
+        (editing, name, role) = (user, user.Name, user.Role);
+        error = null;
+        pending = null;
+    }
+
+    private Task SaveAsync() => RunAsync(async () =>
+    {
+        if (editing is not { } user) return;
+        var result = await Api.SendAsync(HttpMethod.Put, $"api/users/{user.Id}", new UpdateUserRequest(name.Trim(), role));
+        error = result.Error;
+        if (!result.Ok) return;
+        editing = null;
+        notice = "User saved.";
+        await LoadAsync(data.Page);
+    });
+
+    private Task ChangeActiveAsync() => RunAsync(async () =>
+    {
+        if (pending is not { } user) return;
+        var operation = user.IsActive ? "deactivate" : "reactivate";
+        var result = await Api.SendAsync(HttpMethod.Post, $"api/users/{user.Id}/{operation}");
+        error = result.Error;
+        if (!result.Ok) return;
+        pending = null;
+        notice = "Account status updated.";
+        await LoadAsync(data.Page);
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        busy = true;
+        error = null;
+        notice = null;
+        try { await action(); }
+        finally { busy = false; }
+    }
+}

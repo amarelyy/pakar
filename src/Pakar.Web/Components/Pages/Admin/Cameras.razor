@@ -1,0 +1,176 @@
+@page "/admin/cameras"
+@using Pakar.Application.DTOs
+@using Pakar.Domain.Services
+@inject AuthenticatedApiClient Api
+@inject UserSession Session
+
+<PageTitle>Video sources · PAKAR</PageTitle>
+
+<AdminOnly>
+    <h1>Video sources</h1>
+    <p><a href="admin">Back to admin</a> · <a href="admin/video-monitor">Video monitor</a></p>
+    @if (notice is not null) { <p class="alert alert-success" role="status">@notice</p> }
+    @if (error is not null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @error.Message
+            @foreach (var message in error.Fields.Values.SelectMany(messages => messages))
+            {
+                <div>@message</div>
+            }
+        </div>
+    }
+
+    <button class="btn btn-primary mb-3" @onclick="Add" disabled="@(busy || zones.Count == 0)">Add source</button>
+    @if (!busy && zones.Count == 0 && error is null)
+    {
+        <p>Add a parking zone before adding a video source.</p>
+    }
+    @if (editing)
+    {
+        <form class="card card-body mb-3" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <fieldset disabled="@busy">
+                <h2 class="h4">@(editingId is null ? "Add video source" : "Edit video source")</h2>
+                <label class="form-label d-block">
+                    Name
+                    <input class="form-control" @bind="name" required maxlength="@FacilityRules.MaxCameraNameLength" />
+                </label>
+                <label class="form-label d-block">
+                    Parking zone
+                    <select class="form-select" @bind="zoneId" required>
+                        @foreach (var zone in zones)
+                        {
+                            <option value="@zone.Id">@zone.Name</option>
+                        }
+                    </select>
+                </label>
+                <label class="form-label d-block">
+                    Video file name
+                    <input class="form-control" @bind="videoFile" maxlength="@FacilityRules.MaxVideoFileLength"
+                           placeholder="parking.mp4" aria-describedby="video-file-help" />
+                    <span id="video-file-help" class="form-text">Use a file name from the server's video folder. You can set it later.</span>
+                </label>
+                <button type="submit" class="btn btn-primary">Save source</button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="() => editing = false">Cancel</button>
+            </fieldset>
+        </form>
+    }
+    @if (pendingRemoval is { } pending)
+    {
+        <div class="alert alert-warning" role="region" aria-label="Confirm source removal">
+            <p>Remove @pending.Name? Its detection history will be kept.</p>
+            <button class="btn btn-danger" @onclick="RemoveAsync" disabled="@busy">Remove source</button>
+            <button class="btn btn-outline-secondary" @onclick="() => pendingRemoval = null" disabled="@busy">Cancel</button>
+        </div>
+    }
+    @if (busy) { <p role="status">Loading or saving…</p> }
+    @if (cameras.Count > 0)
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <caption>Configured video sources</caption>
+                <thead><tr><th scope="col">Source</th><th scope="col">Zone</th><th scope="col">Detection feed</th><th scope="col">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var camera in cameras)
+                    {
+                        <tr @key="camera.Id">
+                            <td><strong>@camera.Name</strong><div class="text-break">@(camera.VideoFile.Length == 0 ? "No file configured" : camera.VideoFile)</div></td>
+                            <td>@camera.ZoneName</td>
+                            <td>@(camera.IsActive ? "Active" : "Inactive")</td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => Edit(camera)" disabled="@busy">Edit</button>
+                                    <a class="btn btn-sm btn-outline-secondary" href="@($"admin/polygons?cameraId={camera.Id}")">Polygons</a>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => pendingRemoval = camera" disabled="@busy">Remove</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (!busy && error is null) { <p>No video sources configured.</p> }
+</AdminOnly>
+
+@code {
+    private List<CameraAdminDto> cameras = [];
+    private List<ZoneAdminDto> zones = [];
+    private CameraAdminDto? pendingRemoval;
+    private ApiError? error;
+    private string? notice;
+    private string name = "", videoFile = "";
+    private Guid zoneId;
+    private Guid? editingId;
+    private bool busy, editing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if ((await Session.GetUserAsync())?.IsAdmin is true)
+            await RunAsync(LoadAsync);
+    }
+
+    private async Task LoadAsync()
+    {
+        var zonesResult = await Api.GetAsync<List<ZoneAdminDto>>("api/zones");
+        var camerasResult = await Api.GetAsync<List<CameraAdminDto>>("api/cameras");
+        error = zonesResult.Error ?? camerasResult.Error;
+        if (zonesResult.Ok) zones = zonesResult.Value!;
+        if (camerasResult.Ok) cameras = camerasResult.Value!;
+    }
+
+    private void Add()
+    {
+        editingId = null;
+        name = videoFile = "";
+        zoneId = zones[0].Id;
+        editing = true;
+        pendingRemoval = null;
+        error = null;
+    }
+
+    private void Edit(CameraAdminDto camera)
+    {
+        editingId = camera.Id;
+        name = camera.Name;
+        videoFile = camera.VideoFile;
+        zoneId = camera.ZoneId;
+        editing = true;
+        pendingRemoval = null;
+        error = null;
+    }
+
+    private Task SaveAsync() => RunAsync(async () =>
+    {
+        var request = new CameraRequest(name, zoneId, videoFile);
+        var result = editingId is { } id
+            ? await Api.SendAsync(HttpMethod.Put, $"api/cameras/{id}", request)
+            : await Api.SendAsync(HttpMethod.Post, "api/cameras", request);
+        error = result.Error;
+        if (!result.Ok) return;
+        editing = false;
+        notice = "Video source saved.";
+        await LoadAsync();
+    });
+
+    private Task RemoveAsync() => RunAsync(async () =>
+    {
+        if (pendingRemoval is not { } pending) return;
+        var result = await Api.SendAsync(HttpMethod.Delete, $"api/cameras/{pending.Id}");
+        error = result.Error;
+        if (!result.Ok) return;
+        pendingRemoval = null;
+        if (editingId == pending.Id) editing = false;
+        notice = "Video source removed.";
+        await LoadAsync();
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        busy = true;
+        error = null;
+        notice = null;
+        try { await action(); }
+        finally { busy = false; }
+    }
+}

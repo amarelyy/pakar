@@ -632,11 +632,11 @@ Optional. Start only when section 1 is stable.
 
 ---
 
-## 5. Planned later: the 4 final parking zones and an admin video wall (saved, to expand when needed)
+## 5. Four parking zones and the admin video monitor
 
 **Plan as it stands (2026-11-15).** The final system has **4 parking zones: DTETI, TNTF, DTMI and DTK**, one video per zone. Only the **admin dashboard** shows video:
 a "CCTV-like" view that you slide through to switch between locations, looping each video. Normal users **cannot see the video**; they only see the map and the zone status.
-The video wall is not part of Ursula's frontend work; its owner is still to be decided.
+Open `/admin/video-monitor` to play a recording and switch between configured sources. The monitor loops independently from the worker.
 
 **What it changes for the backend and database (Ursula).**
 - [x] Seed four demo zones with 40 map slots and one video source per zone. See [the seed definitions](src/Pakar.Api/Data/ParkingSeed.cs).
@@ -651,17 +651,12 @@ The video wall is not part of Ursula's frontend work; its owner is still to be d
 
 A fresh database gets the four demo zones automatically. To replace the original three active zones in an existing demo database, set the API environment variable `ParkingSeed__ReplaceLegacyDemo=true` for one startup. The API checks the original zone IDs, names, capacities, and source IDs before it archives the demo zones and their sources and creates the four replacements in one transaction. Subsequent startups skip the replacement. Existing custom layouts remain in place. Use the new source and spot IDs when configuring the video files and slot polygons.
 
-- [ ] Set the video file on each of the four seeded sources.
-- [ ] Slot polygons: one set per video, drawn by hand in the polygon editor (`/admin/polygons`). This is the biggest manual task; plan time for it.
-- [ ] Check that the zone list, search and map still feel right with 4 zones and their spots (the limits in the code are far above this: 500 spots per ingest request).
+- [x] Configure four demo recordings and their reference frames locally using the [four-zone setup](infra/vercel/README.md#local-four-zone-demo).
+- [x] Reuse 17 calibrated demo polygons across the four recordings. The final recordings still need slot calibration in `/admin/polygons`.
+- [x] Verify the four marker labels fit at startup. Check panning, pinch zoom, marker selection, and search in the Pixel 7 and iPhone 13 browser presets.
 
 **Design points to keep in mind.**
 - **Detection must run for all 4 videos in the background**, not only for the video currently shown in the carousel. Otherwise a zone that is not on screen stops sending data and is flagged inactive after 2 minutes (FR 12).
-- The carousel only **shows** a video with the slot polygons coloured from the status events; it does not run detection itself.
+- The monitor plays an independent copy of the recording. Use the worker for simultaneous detection and the polygon editor to inspect the saved geometry.
 - Load: 4 videos at about 2 frames per second each is about 8 inferences per second on one machine. Not measured yet; measure on the real machine before promising it, and lower the rate per video if needed.
 - Viewers do not need the video files, so nothing about the videos has to be public.
-
-**Open items for the owner of the video wall (to be decided).**
-- [ ] Who builds it (not Ursula).
-- [ ] Where the admin's browser gets the video files from (the same folder as the worker, or served by the API to admins only).
-- [ ] Whether the admin can start and stop the loop from the dashboard (the worker would read a start/stop flag from the API).

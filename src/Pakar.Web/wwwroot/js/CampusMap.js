@@ -1,13 +1,14 @@
 // Leaflet renders the geography. Blazor owns selection, availability and realtime state.
 window.campusMap = (() => {
     const colors = { available: '#0f7a4a', almost_full: '#e39b00', full: '#c42b2b', unknown: '#9aa3ae' };
+    const campusLimits = [[-7.7705, 110.3694], [-7.7641, 110.3784]];
+    let campusBounds;
     let map, zonesLayer, spotsLayer, reference, resizeObserver, selected;
     let zones = [];
 
     function hasLocation(spot) {
         return Number.isFinite(spot.latitude) && Number.isFinite(spot.longitude) &&
-            Math.abs(spot.latitude) <= 90 && Math.abs(spot.longitude) <= 180 &&
-            (spot.latitude !== 0 || spot.longitude !== 0);
+            campusBounds.contains([spot.latitude, spot.longitude]);
     }
 
     function points(zone) {
@@ -41,7 +42,16 @@ window.campusMap = (() => {
         dispose();
         if (!window.L) throw new Error('Map library unavailable');
         reference = dotnet;
-        map = L.map(id, { zoomControl: false }).setView([-7.7685, 110.376], 17);
+        campusBounds = L.latLngBounds(campusLimits);
+        map = L.map(id, {
+            zoomControl: false,
+            minZoom: 16,
+            maxZoom: 19,
+            maxBounds: campusBounds,
+            maxBoundsViscosity: 1,
+            bounceAtZoomLimits: false,
+            zoomSnap: .25
+        }).setView(campusBounds.getCenter(), 17);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -49,7 +59,12 @@ window.campusMap = (() => {
         }).addTo(map);
         zonesLayer = L.layerGroup().addTo(map);
         spotsLayer = L.layerGroup().addTo(map);
-        resizeObserver = new ResizeObserver(() => map?.invalidateSize());
+        resizeObserver = new ResizeObserver(() => {
+            if (!map) return;
+            map.invalidateSize({ pan: false });
+            if (selected) focusZone(selected);
+            else fit();
+        });
         resizeObserver.observe(map.getContainer());
         map.on('zoomend', drawSpots);
     }
@@ -98,7 +113,9 @@ window.campusMap = (() => {
             shape.bindTooltip(zoneLabel(zone, color), {
                 permanent: true, direction: 'center', className: 'zone-badge', interactive: true, opacity: 1
             });
-            shape.on('click', () => reference?.invokeMethodAsync('SelectFromMap', zone.id));
+            const select = () => reference?.invokeMethodAsync('SelectFromMap', zone.id);
+            shape.on('click', select);
+            shape.getTooltip().on('click', select);
             shape.addTo(zonesLayer);
         }
 
@@ -128,14 +145,16 @@ window.campusMap = (() => {
 
     function fit() {
         const coordinates = zones.flatMap(points);
-        if (coordinates.length) map.fitBounds(coordinates, { padding: [65, 65], maxZoom: 18 });
+        if (!map || !coordinates.length) return;
+        const padding = map.getSize().x < 600 ? [45, 28] : [65, 45];
+        map.fitBounds(coordinates, { padding, maxZoom: 18, animate: false });
     }
 
     function focusZone(id) {
         const zone = zones.find(candidate => candidate.id === id);
         if (!zone) return;
         const coordinates = points(zone);
-        if (coordinates.length) map.fitBounds(coordinates, { padding: [90, 90], maxZoom: 19 });
+        if (coordinates.length) map.fitBounds(coordinates, { padding: [40, 40], maxZoom: 19, animate: false });
     }
 
     function dispose() {

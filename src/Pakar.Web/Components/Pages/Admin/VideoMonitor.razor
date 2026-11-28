@@ -1,0 +1,137 @@
+@page "/admin/video-monitor"
+@implements IAsyncDisposable
+@using Pakar.Application.DTOs
+@inject AuthenticatedApiClient Api
+@inject UserSession Session
+@inject IHttpClientFactory Clients
+@inject IJSRuntime Js
+
+<PageTitle>Video monitor · PAKAR</PageTitle>
+
+<AdminOnly>
+    <h1>Video monitor</h1>
+    <p><a href="admin">Back to admin</a> · <a href="admin/cameras">Manage video sources</a></p>
+    @if (error is not null) { <p class="alert alert-danger" role="alert">@error</p> }
+    @if (sources.Count == 0 && !loading && error is null)
+    {
+        <p>No video sources configured.</p>
+    }
+    else if (sources.Count > 0)
+    {
+        <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+            <button class="btn btn-outline-secondary" aria-label="Previous video source"
+                    disabled="@(sources.Count < 2 || loading || selectedIndex < 0)"
+                    @onclick="() => SelectAsync((selectedIndex + sources.Count - 1) % sources.Count)">Previous</button>
+            <label class="form-label mb-0">
+                Parking zone and source
+                <select class="form-select" value="@selectedIndex" @onchange="SelectFromListAsync" disabled="@loading">
+                    <option value="-1" disabled>Choose a video source</option>
+                    @for (var index = 0; index < sources.Count; index++)
+                    {
+                        var source = sources[index];
+                        <option value="@index">@source.ZoneName · @source.Name</option>
+                    }
+                </select>
+            </label>
+            <button class="btn btn-outline-secondary" aria-label="Next video source"
+                    disabled="@(sources.Count < 2 || loading || selectedIndex < 0)"
+                    @onclick="() => SelectAsync((selectedIndex + 1) % sources.Count)">Next</button>
+        </div>
+    }
+    @if (loading) { <p role="status">Loading video monitor…</p> }
+    @if (selectedIndex >= 0 && selectedIndex < sources.Count)
+    {
+        <p>Detection feed is @(sources[selectedIndex].IsActive ? "active" : "inactive"). This recording loops independently of the AI worker.</p>
+    }
+    <video @ref="video" controls muted loop playsinline preload="metadata"
+           class="w-100 bg-dark rounded" style="max-height:70vh"
+           hidden="@(!ready)" @onerror="VideoError"></video>
+</AdminOnly>
+
+@code {
+    private List<CameraAdminDto> sources = [];
+    private readonly string playerKey = Guid.NewGuid().ToString("N");
+    private ElementReference video;
+    private IJSObjectReference? module;
+    private int selectedIndex = -1, requestVersion;
+    private bool loading = true, ready, disposed;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if ((await Session.GetUserAsync())?.IsAdmin is true)
+        {
+            var result = await Api.GetAsync<List<CameraAdminDto>>("api/cameras");
+            error = result.Error?.Message;
+            if (result.Ok) sources = result.Value!.OrderBy(source => source.ZoneName).ThenBy(source => source.Name).ToList();
+        }
+        loading = false;
+    }
+
+    private Task SelectFromListAsync(ChangeEventArgs change) =>
+        int.TryParse(change.Value?.ToString(), out var index) ? SelectAsync(index) : Task.CompletedTask;
+
+    private async Task SelectAsync(int index)
+    {
+        if (index < 0 || index >= sources.Count) return;
+        var version = ++requestVersion;
+        selectedIndex = index;
+        ready = false;
+        loading = true;
+        error = null;
+        try
+        {
+            module ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/admin-video.js");
+            if (disposed || version != requestVersion) return;
+            await module.InvokeVoidAsync("release", playerKey);
+
+            var source = sources[index];
+            if (string.IsNullOrEmpty(source.VideoFile))
+            {
+                error = "This source has no video file configured.";
+                return;
+            }
+
+            var token = await Session.GetTokenAsync();
+            if (disposed || version != requestVersion) return;
+            if (token is null)
+            {
+                error = "Your session expired. Please sign in again.";
+                return;
+            }
+            using var client = Clients.CreateClient("api");
+            var url = new Uri(client.BaseAddress!, $"api/cameras/{source.Id}/video");
+            var response = await module.InvokeAsync<int>("load", playerKey, video, url.AbsoluteUri, token);
+            if (disposed || version != requestVersion) return;
+            ready = response == 200;
+            if (!ready)
+                error = response switch
+                {
+                    401 or 403 => "Sign in again with an administrator account.",
+                    404 => "The configured video file was not found. Check the server's video folder.",
+                    _ => "The video could not be loaded. Try selecting the source again."
+                };
+        }
+        catch (JSException)
+        {
+            if (version == requestVersion) error = "The video could not be loaded. Try selecting the source again.";
+        }
+        finally
+        {
+            if (version == requestVersion) loading = false;
+        }
+    }
+
+    private void VideoError()
+    {
+        if (ready) error = "This browser could not play the recording. Use an MP4 with H.264 video or a supported WebM file.";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        if (module is null) return;
+        await module.InvokeVoidAsync("release", playerKey);
+        await module.DisposeAsync();
+    }
+}

@@ -7,4 +7,8 @@
 @inject UserSession Session
 
 <PageTitle>Slot polygons · PAKAR</PageTitle>
-<AdminOnly><PolygonWorkspace /></AdminOnly>
+<AdminOnly><PolygonWorkspace InitialCameraId="@CameraId" /></AdminOnly>
+
+@code {
+    [SupplyParameterFromQuery(Name = "cameraId")] public Guid? CameraId { get; set; }
+}

@@ -18,6 +18,7 @@ public class ZoneDto
 
     // The numeric ID identifies the same zone in ParkingHub messages.
     public int? ExternalId { get; set; }
+    public ZoneMapAreaDto? MapArea { get; set; }
     public List<SpotDto> Spots { get; set; } = new();
     public List<ZoneSourceDto> Sources { get; set; } = new();
 }

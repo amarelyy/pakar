@@ -1,0 +1,24 @@
+.zone-map-editor {
+    max-width: 52rem;
+    margin: 1rem 0;
+}
+
+.zone-map-canvas {
+    height: clamp(17rem, 50vh, 29rem);
+    border: 1px solid #9da9b6;
+    border-radius: .375rem;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.zone-map-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin: .75rem 0;
+}
+
+.zone-map-editor input {
+    max-width: 16rem;
+}

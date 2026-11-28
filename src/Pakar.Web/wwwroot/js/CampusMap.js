@@ -2,7 +2,6 @@
 window.campusMap = (() => {
     const colors = { available: '#0f7a4a', almost_full: '#e39b00', full: '#c42b2b', unknown: '#9aa3ae' };
     const departmentCodes = { TK: 'DTK', TMI: 'DTMI', TETI: 'DTETI', TNTF: 'TNTF' };
-    const campusLimits = [[-7.7705, 110.3694], [-7.7641, 110.3784]];
     let campusBounds;
     let map, zonesLayer, spotsLayer, reference, resizeObserver, selected;
     let zones = [];
@@ -16,6 +15,15 @@ window.campusMap = (() => {
         return zone.spots.filter(hasLocation).map(spot => [spot.latitude, spot.longitude]);
     }
 
+    function areaCoordinates(zone) {
+        return zone.mapArea?.points.map(point => [point.latitude, point.longitude]) ?? [];
+    }
+
+    function zoneCoordinates(zone) {
+        const area = areaCoordinates(zone);
+        return area.length >= 3 ? area : points(zone);
+    }
+
     function zoneBounds(coordinates) {
         const bounds = L.latLngBounds(coordinates);
         const southWest = bounds.getSouthWest();
@@ -26,25 +34,32 @@ window.campusMap = (() => {
         ];
     }
 
-    function init(id, dotnet) {
-        dispose();
+    function createMap(element, bounds, options = {}) {
         if (!window.L) throw new Error('Map library unavailable');
-        reference = dotnet;
-        campusBounds = L.latLngBounds(campusLimits);
-        map = L.map(id, {
+        const campus = L.latLngBounds(bounds);
+        const instance = L.map(element, {
             zoomControl: false,
             minZoom: 16,
             maxZoom: 19,
-            maxBounds: campusBounds,
+            maxBounds: campus,
             maxBoundsViscosity: 1,
             bounceAtZoomLimits: false,
-            zoomSnap: .25
-        }).setView(campusBounds.getCenter(), 17);
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+            zoomSnap: .25,
+            ...options
+        }).setView(campus.getCenter(), 17);
+        L.control.zoom({ position: 'bottomright' }).addTo(instance);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
+        }).addTo(instance);
+        return instance;
+    }
+
+    function init(id, dotnet, bounds) {
+        dispose();
+        reference = dotnet;
+        map = createMap(id, bounds);
+        campusBounds = map.options.maxBounds;
         zonesLayer = L.layerGroup().addTo(map);
         spotsLayer = L.layerGroup().addTo(map);
         resizeObserver = new ResizeObserver(() => {
@@ -70,7 +85,7 @@ window.campusMap = (() => {
             : zone.unknownSpots > 0 ? ' · ' + zone.unknownSpots + ' with unknown status' : '';
         const prefix = zone.spots[0]?.name.split('-')[0];
         const shortName = zone.name.startsWith('Teknik ') ? departmentCodes[prefix] : undefined;
-        name.textContent = shortName ?? zone.name;
+        name.textContent = zone.mapArea?.label ?? shortName ?? zone.name;
         label.title = zone.name + note;
         label.append(count, description, name);
         label.style.setProperty('--badge-color', color);
@@ -85,7 +100,7 @@ window.campusMap = (() => {
         zonesLayer.clearLayers();
 
         for (const zone of zones) {
-            const coordinates = points(zone);
+            const coordinates = zoneCoordinates(zone);
             if (coordinates.length === 0) continue;
 
             const color = zone.stale ? colors.unknown : (colors[zone.status] || colors.unknown);
@@ -97,7 +112,9 @@ window.campusMap = (() => {
                 fillOpacity: zone.stale ? .1 : .2,
                 dashArray: zone.stale ? '4 4' : undefined
             };
-            const shape = L.rectangle(zoneBounds(coordinates), options);
+            const shape = zone.mapArea?.points.length >= 3
+                ? L.polygon(coordinates, options)
+                : L.rectangle(zoneBounds(coordinates), options);
             shape.bindTooltip(zoneLabel(zone, color), {
                 permanent: true, direction: 'center', className: 'zone-badge', interactive: true, opacity: 1
             });
@@ -168,7 +185,7 @@ window.campusMap = (() => {
     }
 
     function fit() {
-        const coordinates = zones.flatMap(points);
+        const coordinates = zones.flatMap(zoneCoordinates);
         if (!map || !coordinates.length) return;
         const padding = map.getSize().x < 600 ? [45, 28] : [65, 45];
         map.fitBounds(coordinates, { padding, maxZoom: 18, animate: false });
@@ -177,7 +194,7 @@ window.campusMap = (() => {
     function focusZone(id) {
         const zone = zones.find(candidate => candidate.id === id);
         if (!zone) return;
-        const coordinates = points(zone);
+        const coordinates = zoneCoordinates(zone);
         if (coordinates.length) map.fitBounds(coordinates, { padding: [40, 40], maxZoom: 19, animate: false });
     }
 
@@ -189,5 +206,5 @@ window.campusMap = (() => {
         selected = null;
     }
 
-    return { init, renderZones, fit, focusZone, dispose };
+    return { createMap, init, renderZones, fit, focusZone, dispose };
 })();

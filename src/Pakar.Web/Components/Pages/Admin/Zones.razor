@@ -1,4 +1,5 @@
 @page "/admin/zones"
+@using Microsoft.JSInterop
 @using Pakar.Application.DTOs
 @using Pakar.Application.Validation
 @using Pakar.Web.Components.Admin
@@ -88,9 +89,25 @@
                     }
                 </div>
             </fieldset>
+
+            @if (showMapEditor)
+            {
+                <div class="zone-map-field" inert="@(saving ? string.Empty : null)">
+                    <ZoneMapEditor @key="(editingId ?? Guid.Empty)" ExistingArea="existingMapArea" @ref="mapEditor" />
+                    @foreach (var message in FieldMessages("mapArea"))
+                    {
+                        <div class="admin-field-error" role="alert">@message</div>
+                    }
+                </div>
+            }
         </div>
 
         <div class="admin-inline admin-form-footer">
+            @if (!showMapEditor)
+            {
+                <button type="button" class="btn btn-ui" disabled="@saving"
+                        @onclick="() => showMapEditor = true">Set map area</button>
+            }
             <div class="admin-inline admin-form-actions">
                 @if (editingId is not null)
                 {
@@ -209,6 +226,8 @@
                                         <button type="button" class="btn btn-ui btn-sm"
                                                 disabled="@(savingOverride || overrideListError is not null)"
                                                 @onclick="() => EditOverride(row, manual)">Set status</button>
+                                        <button type="button" class="btn btn-ui btn-sm" disabled="@saving"
+                                                @onclick="() => EditMapArea(row)">Set map area</button>
                                         <button type="button" class="btn btn-ui btn-ui-danger btn-sm" disabled="@saving"
                                                 @onclick="() => confirmDeleteId = row.Id">Remove</button>
                                         @if (manual is not null && overrideListError is null)
@@ -228,7 +247,7 @@
 </AdminOnly>
 
 @code {
-    private static readonly string[] KnownFields = ["name", "description", "totalCapacity"];
+    private static readonly string[] KnownFields = ["name", "description", "totalCapacity", "mapArea"];
 
     private List<ZoneRow> rows = new();
     private ZoneForm form = new();
@@ -249,7 +268,9 @@
     private bool focusOverride;
     private ElementReference overrideStatusInput;
     private ElementReference zoneNameInput;
-    private bool focusZoneForm;
+    private bool showMapEditor, focusZoneForm;
+    private ZoneMapEditor? mapEditor;
+    private ZoneMapAreaDto? existingMapArea;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -358,7 +379,18 @@
         info = null;
 
         var wasEdit = editingId is not null;
-        var body = new ZoneRequest(form.Name.Trim(), form.Description?.Trim() ?? "", form.TotalCapacity);
+        ZoneMapAreaDto? area;
+        try
+        {
+            area = showMapEditor && mapEditor is not null ? await mapEditor.ReadAsync() : null;
+        }
+        catch (JSException)
+        {
+            error = new ApiError("Could not read the map boundary. Try saving again.", new Dictionary<string, string[]>());
+            saving = false;
+            return;
+        }
+        var body = new ZoneRequest(form.Name.Trim(), form.Description?.Trim() ?? "", form.TotalCapacity, area);
 
         var result = editingId is { } id
             ? await Api.SendAsync(HttpMethod.Put, $"api/zones/{id}", body)
@@ -399,7 +431,15 @@
         error = null;
         info = null;
         form = new ZoneForm { Name = row.Name, Description = row.Description ?? "", TotalCapacity = row.TotalCapacity };
+        existingMapArea = row.MapArea;
+        showMapEditor = false;
         focusZoneForm = true;
+    }
+
+    private void EditMapArea(ZoneRow row)
+    {
+        StartEdit(row);
+        showMapEditor = true;
     }
 
     private void CancelEdit()
@@ -412,6 +452,8 @@
     {
         editingId = null;
         form = new ZoneForm();
+        showMapEditor = false;
+        existingMapArea = null;
     }
 
     private string[] FieldMessages(string field) =>
@@ -434,6 +476,7 @@
         public int SpotCount { get; set; }
         public int CameraCount { get; set; }
         public int ExternalId { get; set; }
+        public ZoneMapAreaDto? MapArea { get; set; }
     }
 
     private sealed class ZoneForm

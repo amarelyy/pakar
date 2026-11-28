@@ -8,6 +8,7 @@ public class ParkingZone
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int TotalCapacity { get; set; }
+    public string? MapAreaJson { get; set; }
 
     /// <summary>Area ID used by the AI pipeline configuration; assigned by the system, never reused.</summary>
     public int ExternalId { get; set; }

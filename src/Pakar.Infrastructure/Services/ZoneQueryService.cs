@@ -27,6 +27,7 @@ public sealed class ZoneQueryService(AppDbContext db, IParkingObservations obser
                 z.Id,
                 z.Name,
                 z.TotalCapacity,
+                z.MapAreaJson,
                 z.StatusOverride,
                 z.ExternalId,
                 Sources = z.Cameras.Select(c => new ZoneSourceDto(c.ExternalId, c.LastActiveTime)).ToList(),
@@ -74,6 +75,7 @@ public sealed class ZoneQueryService(AppDbContext db, IParkingObservations obser
                 Status = resolved.Status,
                 IsOverridden = z.StatusOverride.HasValue,
                 ExternalId = z.ExternalId,
+                MapArea = ZoneMapAreaStorage.Deserialize(z.MapAreaJson),
                 Spots = z.Spots,
                 Sources = z.Sources
             };

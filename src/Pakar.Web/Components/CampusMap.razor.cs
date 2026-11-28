@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Pakar.Application.DTOs;
+using Pakar.Application.Validation;
 using Pakar.Web.Services;
 
 namespace Pakar.Web.Components;
@@ -48,7 +49,7 @@ public partial class CampusMap : IAsyncDisposable
             reference = DotNetObjectReference.Create(this);
             try
             {
-                await JS.InvokeVoidAsync("campusMap.init", "campus-map", reference);
+                await JS.InvokeVoidAsync("campusMap.init", "campus-map", reference, ZoneMapAreaRules.CampusBounds);
                 mapReady = true;
             }
             catch (JSException)
@@ -244,7 +245,7 @@ public partial class CampusMap : IAsyncDisposable
         {
             var zones = state.Zones.Select(zone => new
             {
-                zone.Id, zone.Name, zone.Status, zone.AvailableSpots, zone.UnknownSpots, zone.Spots,
+                zone.Id, zone.Name, zone.Status, zone.AvailableSpots, zone.UnknownSpots, zone.Spots, zone.MapArea,
                 WaitingForSource = state.IsWaitingForSource(zone),
                 Stale = state.IsStale(zone, now)
             }).ToArray();

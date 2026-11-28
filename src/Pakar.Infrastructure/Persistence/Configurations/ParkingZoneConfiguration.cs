@@ -11,6 +11,7 @@ public sealed class ParkingZoneConfiguration : IEntityTypeConfiguration<ParkingZ
         zone.ToTable("Zones");
         zone.Property(z => z.Name).HasMaxLength(100);
         zone.Property(z => z.Description).HasMaxLength(500);
+        zone.Property(z => z.MapAreaJson).HasColumnType("jsonb");
 
         // FR 17: stored as text ("Full") so the column stays readable in the database.
         zone.Property(z => z.StatusOverride).HasConversion<string>().HasMaxLength(20);

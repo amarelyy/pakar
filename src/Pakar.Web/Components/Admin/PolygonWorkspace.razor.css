@@ -1,5 +1,7 @@
-fieldset { border:0; padding:0; min-width:0; }
-label { display:inline-flex; flex-direction:column; gap:.35rem; margin:0 1rem 1rem 0; }
-select { max-width:100%; padding:.45rem; }
-.frame-upload { margin:1rem 0; padding:1rem; background:#f1f5f9; border-radius:.5rem; }
-button { margin-right:.5rem; }
+.polygon-select {
+    flex: 1 1 19rem;
+}
+
+.polygon-spot {
+    max-width: 28rem;
+}

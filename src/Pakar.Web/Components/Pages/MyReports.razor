@@ -6,9 +6,9 @@
 
 <PageTitle>Laporan Saya · PAKAR</PageTitle>
 
-<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
     <h1 class="mb-0">Laporan Saya</h1>
-    <a class="btn btn-outline-secondary btn-sm" href="">Kembali ke peta</a>
+    <a class="btn btn-ui" href="">Kembali ke peta</a>
 </div>
 
 @if (loading)
@@ -22,7 +22,7 @@ else if (!signedIn)
 else if (error is not null)
 {
     <div class="notice danger" role="alert">
-        @error <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Coba lagi</button>
+        @error <button type="button" class="btn btn-ui btn-sm" @onclick="LoadAsync">Coba lagi</button>
     </div>
 }
 else if (reports.Count == 0)
@@ -35,7 +35,7 @@ else if (reports.Count == 0)
 else
 {
     <div class="mb-3">
-        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Muat ulang laporan</button>
+        <button type="button" class="btn btn-ui btn-sm" @onclick="LoadAsync">Muat ulang laporan</button>
     </div>
     <div class="row row-cols-1 row-cols-lg-2 g-3">
         @foreach (var report in reports)

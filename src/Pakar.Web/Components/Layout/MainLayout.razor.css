@@ -1,7 +1,7 @@
 .app-header {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: clamp(.75rem, 3vw, 2rem);
     min-height: 72px;
     padding: 0 2rem;
     background: white;
@@ -51,25 +51,27 @@
 .header-nav, .account {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: .375rem;
     font-size: .875rem;
-}
-
-.header-nav ::deep a {
-    padding: .5rem 0;
-    color: var(--muted);
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.header-nav ::deep a.active {
-    color: var(--accent);
-    border-bottom: 2px solid var(--accent);
 }
 
 .account {
     justify-content: flex-end;
+    min-width: 0;
     margin-left: auto;
+}
+
+.account ::deep .account-name {
+    max-width: 30ch;
+    margin-inline-end: .25rem;
+    overflow: hidden;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account ::deep .account-name strong {
+    color: var(--ink);
 }
 
 .skip-link {
@@ -85,7 +87,7 @@
     top: 5px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 850px) {
     .app-header {
         flex-wrap: wrap;
         gap: .5rem 1rem;
@@ -98,22 +100,18 @@
     }
 
     .account {
-        gap: .5rem;
+        flex: 1 1 auto;
     }
 }
 
-.account ::deep .account-name {
-    max-width: 38ch;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+@media (max-width: 600px) {
+    .account:not(:empty) {
+        flex-basis: 100%;
+        padding-top: .375rem;
+        border-top: 1px solid var(--hairline);
+    }
 
-.account ::deep a {
-    white-space: nowrap;
-}
-
-@media (max-width: 700px) {
-    .account { flex-wrap: wrap; }
-    .account ::deep .account-name { max-width: 16ch; }
+    .account ::deep .account-name {
+        margin-inline-end: auto;
+    }
 }

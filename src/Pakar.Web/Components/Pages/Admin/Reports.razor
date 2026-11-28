@@ -1,6 +1,7 @@
 @page "/admin/reports"
 @using Pakar.Application.Common
 @using Pakar.Application.DTOs
+@using Pakar.Web.Components.Admin
 @using Pakar.Web.Components.Ui
 @inject AuthenticatedApiClient Api
 @inject UserSession Session
@@ -8,14 +9,11 @@
 <PageTitle>Tinjau Laporan · PAKAR</PageTitle>
 
 <AdminOnly>
-    <a href="admin">Kembali ke admin</a>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
-        <div>
-            <h1 class="mt-2 mb-1">Tinjau laporan parkir</h1>
-            <p class="muted mb-0">Periksa ketidaksesuaian status slot yang dilaporkan pengguna.</p>
-        </div>
-        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@busy" @onclick="ReloadAsync">Muat ulang daftar</button>
-    </div>
+    <AdminPageHeader Title="Tinjau laporan parkir">
+        <Actions>
+            <button type="button" class="btn btn-ui" disabled="@busy" @onclick="ReloadAsync">Muat ulang daftar</button>
+        </Actions>
+    </AdminPageHeader>
 
     @if (success)
     {
@@ -28,20 +26,21 @@
 
     <div class="row g-3">
         <section class="@(selected is null ? "col-12" : "col-12 col-lg-7")" aria-label="Daftar laporan">
-            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
-                <div>
-                    <label for="report-filter" class="form-label">Status laporan</label>
-                    <select id="report-filter" class="form-select" @bind="filter" @bind:after="FilterAsync" disabled="@busy">
+            <div class="admin-panel admin-toolbar">
+                <label for="report-filter" class="admin-label">Status laporan</label>
+                <div class="admin-inline gap-3">
+                    <select id="report-filter" class="form-select admin-input admin-report-filter"
+                            @bind="filter" @bind:after="FilterAsync" disabled="@busy">
                         <option value="">Semua status</option>
                         <option value="PendingReview">Menunggu tinjauan</option>
                         <option value="Resolved">Diselesaikan</option>
                         <option value="Dismissed">Ditolak</option>
                     </select>
+                    @if (queue is not null)
+                    {
+                        <span class="admin-report-count" role="status">@queue.TotalCount laporan</span>
+                    }
                 </div>
-                @if (queue is not null)
-                {
-                    <span class="muted">@queue.TotalCount laporan</span>
-                }
             </div>
             @if (busy && queue is null)
             {
@@ -51,37 +50,42 @@
             {
                 @if (data.Items.Count == 0)
                 {
-                    <p class="card p-3">Belum ada laporan untuk status ini.</p>
+                    <p class="notice">Belum ada laporan untuk status ini.</p>
                 }
                 else
                 {
-                    <div class="table-responsive">
-                        <table class="table align-middle">
+                    <AdminTableRegion Label="Tabel laporan">
+                        <table class="table admin-table">
                             <thead>
-                                <tr><th scope="col">Slot dan zona</th><th scope="col">Pelapor</th><th scope="col">Status</th><th scope="col">Tindakan</th></tr>
+                                <tr>
+                                    <th scope="col">Slot dan zona</th>
+                                    <th scope="col" class="admin-cell-detail">Pelapor</th>
+                                    <th scope="col" class="admin-cell-compact">Status</th>
+                                    <th scope="col" class="admin-action-cell">Tindakan</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 @foreach (var report in data.Items)
                                 {
                                     <tr @key="report.Id">
-                                        <td><strong>@report.SpotName</strong><span class="cell-sub">@report.ZoneName</span></td>
-                                        <td>@report.SubmittedByName</td>
-                                        <td><StatusChip Status="@report.Status" /></td>
-                                        <td><button type="button" class="btn btn-outline-primary btn-sm" disabled="@busy"
+                                        <th scope="row" class="admin-cell-name">@report.SpotName<span class="cell-sub">@report.ZoneName</span></th>
+                                        <td class="admin-cell-wrap">@report.SubmittedByName</td>
+                                        <td class="admin-cell-compact"><StatusChip Status="@report.Status" /></td>
+                                        <td class="admin-action-cell"><button type="button" class="btn btn-ui btn-sm" disabled="@busy"
                                                     @onclick="() => OpenReport(report)">Lihat detail</button></td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
-                    </div>
+                    </AdminTableRegion>
                 }
                 @if (data.TotalPages > 1)
                 {
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@(busy || data.Page <= 1)"
+                    <div class="admin-inline">
+                        <button type="button" class="btn btn-ui btn-sm" disabled="@(busy || data.Page <= 1)"
                                 @onclick="() => LoadAsync(data.Page - 1)">Sebelumnya</button>
-                        <span>Halaman @data.Page dari @data.TotalPages</span>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@(busy || data.Page >= data.TotalPages)"
+                        <span class="muted">Halaman @data.Page dari @data.TotalPages</span>
+                        <button type="button" class="btn btn-ui btn-sm" disabled="@(busy || data.Page >= data.TotalPages)"
                                 @onclick="() => LoadAsync(data.Page + 1)">Berikutnya</button>
                     </div>
                 }
@@ -91,10 +95,10 @@
         @if (selected is { } current)
         {
             <div class="col-12 col-lg-5">
-                <section class="card p-3" aria-label="Detail laporan">
-                    <div class="d-flex justify-content-between align-items-start gap-2">
-                        <h2 class="h5" tabindex="-1" @ref="detailsHeading">@current.SpotName · @current.ZoneName</h2>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@busy"
+                <section class="admin-panel p-3" aria-label="Detail laporan">
+                    <div class="admin-inline justify-content-between mb-2">
+                        <h2 class="h5 mb-0" tabindex="-1" @ref="detailsHeading">@current.SpotName · @current.ZoneName</h2>
+                        <button type="button" class="btn btn-ui btn-sm" disabled="@busy"
                                 @onclick="CloseReport">Tutup</button>
                     </div>
                     <p><StatusChip Status="@current.Status" /></p>
@@ -104,25 +108,25 @@
                     <p class="report-text">@current.Description</p>
                     @if (Uri.TryCreate(current.EvidenceImageUrl, UriKind.Absolute, out var evidence) && evidence.Scheme is "https" or "http")
                     {
-                        <p><a href="@evidence.AbsoluteUri" target="_blank" rel="noopener noreferrer">Buka bukti lampiran</a></p>
+                        <p><a class="btn btn-ui btn-sm" href="@evidence.AbsoluteUri" target="_blank" rel="noopener noreferrer">Buka bukti lampiran</a></p>
                     }
                     @if (current.Status == "PendingReview")
                     {
                         <form @onsubmit="ReviewAsync" @onsubmit:preventDefault>
                             <fieldset disabled="@busy">
-                                <label for="review-decision" class="form-label">Keputusan</label>
-                                <select id="review-decision" class="form-select mb-3" @bind="decision" required>
+                                <label for="review-decision" class="admin-label">Keputusan</label>
+                                <select id="review-decision" class="form-select admin-input mb-3" @bind="decision" required>
                                     <option value="">Pilih keputusan</option>
                                     <option value="Resolved">Selesaikan laporan</option>
                                     <option value="Dismissed">Tolak laporan</option>
                                 </select>
-                                <label for="review-note" class="form-label">Catatan untuk pelapor (opsional)</label>
-                                <textarea id="review-note" class="form-control mb-3" @bind="note" maxlength="500" rows="3"></textarea>
+                                <label for="review-note" class="admin-label">Catatan untuk pelapor <span>(opsional)</span></label>
+                                <textarea id="review-note" class="form-control admin-input mb-3" @bind="note" maxlength="500" rows="3"></textarea>
                                 @if (reviewError is not null)
                                 {
                                     <p class="notice danger" role="alert">@reviewError</p>
                                 }
-                                <button type="submit" class="btn btn-primary">Simpan keputusan</button>
+                                <button type="submit" class="btn btn-ui btn-ui-primary">Simpan keputusan</button>
                             </fieldset>
                         </form>
                     }

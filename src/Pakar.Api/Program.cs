@@ -152,6 +152,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapAdminEndpoints();
+app.MapCameraVideoEndpoints();
 app.MapRoiEndpoints();
 app.MapFeederEndpoints();
 app.MapZoneOverrideEndpoints();

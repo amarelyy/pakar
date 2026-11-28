@@ -1,16 +1,16 @@
 @using System.Globalization
 @using Pakar.Shared.Geometry
 
-<div class="editor-tools">
-    <label>Display width
-        <select aria-label="Display width" @bind="displayWidth" disabled="@Disabled">
+<div class="admin-inline editor-tools">
+    <label class="admin-inline">Display width
+        <select class="form-select form-select-sm w-auto" aria-label="Display width" @bind="displayWidth" disabled="@Disabled">
             <option value="320">320 px</option><option value="640">640 px</option><option value="960">960 px</option>
         </select>
     </label>
-    <label><input type="checkbox" @bind="editVertices" disabled="@Disabled" /> Move vertices</label>
-    <button type="button" @onclick="Undo" disabled="@(Disabled || Points.Count==0)">Undo last point</button>
-    <button type="button" @onclick="DeleteSelected" disabled="@(Disabled || selected<0)">Delete selected point</button>
-    <button type="button" @onclick="Clear" disabled="@(Disabled || Points.Count==0)">Clear selected polygon</button>
+    <label class="admin-inline"><input class="form-check-input mt-0" type="checkbox" @bind="editVertices" disabled="@Disabled" /> Move vertices</label>
+    <button type="button" class="btn btn-ui btn-sm" @onclick="Undo" disabled="@(Disabled || Points.Count==0)">Undo last point</button>
+    <button type="button" class="btn btn-ui btn-ui-danger btn-sm" @onclick="DeleteSelected" disabled="@(Disabled || selected<0)">Delete selected point</button>
+    <button type="button" class="btn btn-ui btn-ui-danger btn-sm" @onclick="Clear" disabled="@(Disabled || Points.Count==0)">Clear selected polygon</button>
 </div>
 <p id="polygon-help">Choose a spot, then click its corners. Enable Move vertices to drag a corner. Changes are saved with Save polygons.</p>
 <div class="svg-scroll">

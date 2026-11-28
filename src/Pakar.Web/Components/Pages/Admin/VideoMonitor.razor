@@ -1,0 +1,89 @@
+@page "/admin/video-monitor"
+@using Pakar.Application.DTOs
+@using Pakar.Web.Components.Admin
+@inject AuthenticatedApiClient Api
+@inject UserSession Session
+
+<PageTitle>Video monitor · PAKAR</PageTitle>
+
+<AdminOnly>
+    <AdminPageHeader Title="Video monitor">
+        <Actions><a class="btn btn-ui" href="admin/cameras">Manage video sources</a></Actions>
+    </AdminPageHeader>
+    @if (error is not null)
+    {
+        <p class="alert alert-danger" role="alert">@error</p>
+    }
+    else if (loading)
+    {
+        <p role="status">Loading video sources…</p>
+    }
+    else if (sources.Count == 0)
+    {
+        <p>No video sources configured.</p>
+    }
+    else
+    {
+        <div class="admin-panel admin-toolbar">
+            <label for="monitor-source" class="admin-label">Parking zone and source</label>
+            <div class="admin-inline">
+                <select id="monitor-source" class="form-select admin-input monitor-select" @bind="selectedIndex">
+                    <option value="-1" disabled>Choose a video source</option>
+                    <option value="@AllSources">Display all</option>
+                    @for (var index = 0; index < sources.Count; index++)
+                    {
+                        var source = sources[index];
+                        <option value="@index">@source.ZoneName · @source.Name</option>
+                    }
+                </select>
+                <div class="admin-inline monitor-pagination">
+                    <button type="button" class="btn btn-ui" aria-label="Previous video source"
+                            disabled="@(sources.Count < 2 || selectedIndex < 0)"
+                            @onclick="() => Select((selectedIndex + sources.Count - 1) % sources.Count)">Previous</button>
+                    <button type="button" class="btn btn-ui" aria-label="Next video source"
+                            disabled="@(sources.Count < 2 || selectedIndex < 0)"
+                            @onclick="() => Select((selectedIndex + 1) % sources.Count)">Next</button>
+                </div>
+            </div>
+        </div>
+
+        @if (selectedIndex != -1)
+        {
+            <p>Recordings loop independently of the AI worker.</p>
+            <div class="@(ShowAll ? "monitor-layout monitor-grid" : "monitor-layout")"
+                 role="region" aria-label="@(ShowAll ? "All video sources" : "Selected video source")">
+                @foreach (var source in VisibleSources)
+                {
+                    <VideoMonitorPlayer @key="source.Id" Source="source" />
+                }
+            </div>
+        }
+    }
+</AdminOnly>
+
+@code {
+    private const int AllSources = -2;
+    private List<CameraAdminDto> sources = [];
+    private int selectedIndex = -1;
+    private bool loading = true;
+    private string? error;
+
+    private bool ShowAll => selectedIndex == AllSources;
+    private IEnumerable<CameraAdminDto> VisibleSources =>
+        ShowAll ? sources : [sources[selectedIndex]];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if ((await Session.GetUserAsync())?.IsAdmin is true)
+        {
+            var result = await Api.GetAsync<List<CameraAdminDto>>("api/cameras");
+            error = result.Error?.Message;
+            if (result.Ok)
+                sources = result.Value!.OrderBy(source => source.ZoneName).ThenBy(source => source.Name).ToList();
+        }
+
+        loading = false;
+    }
+
+    private void Select(int index) => selectedIndex = index;
+}

@@ -1,0 +1,9 @@
+<p class="admin-table-hint">Geser untuk melihat kolom lain <span aria-hidden="true">→</span></p>
+<div class="table-responsive admin-panel admin-table-region" role="region" aria-label="@Label" tabindex="0">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
+}

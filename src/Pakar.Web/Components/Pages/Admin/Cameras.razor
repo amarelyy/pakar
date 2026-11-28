@@ -1,0 +1,335 @@
+@page "/admin/cameras"
+@using Pakar.Web.Components.Admin
+@inject AuthenticatedApiClient Api
+@inject UserSession Session
+
+<PageTitle>Cameras</PageTitle>
+
+<AdminOnly>
+    <AdminPageHeader Title="Cameras">
+        <Actions><a class="btn btn-ui" href="admin/video-monitor">Video monitor</a></Actions>
+    </AdminPageHeader>
+
+    @if (info is not null)
+    {
+        <p class="notice success" role="status">@info</p>
+    }
+
+    <form class="admin-panel admin-form" aria-labelledby="camera-form-title"
+          @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <div class="admin-form-body">
+            <h2 id="camera-form-title" class="admin-section-title">@(editingId is null ? "Add a camera" : "Edit camera")</h2>
+
+            @if (error is not null)
+            {
+                <div class="notice danger" role="alert">
+                    <div>@(error.Fields.Count == 0 ? error.Message : "Please fix the problems below.")</div>
+                    @foreach (var message in OtherMessages)
+                    {
+                        <div>@message</div>
+                    }
+                </div>
+            }
+
+            <fieldset class="admin-form-fields" disabled="@saving">
+                <div>
+                    <label for="camera-name" class="admin-label">Camera name</label>
+                    <input id="camera-name" class="form-control admin-input" @ref="cameraNameInput" @bind="form.Name"
+                           maxlength="100" placeholder="e.g. DTSL Camera" />
+                    @foreach (var message in FieldMessages("name"))
+                    {
+                        <div class="admin-field-error" role="alert">@message</div>
+                    }
+                </div>
+                <div>
+                    <label for="camera-zone" class="admin-label">Parking zone</label>
+                    <select id="camera-zone" class="form-select admin-input" @bind="form.ZoneId">
+                        <option value="@Guid.Empty">Choose a zone</option>
+                        @foreach (var zone in zones)
+                        {
+                            <option value="@zone.Id">@zone.Name</option>
+                        }
+                    </select>
+                    @foreach (var message in FieldMessages("zoneId"))
+                    {
+                        <div class="admin-field-error" role="alert">@message</div>
+                    }
+                </div>
+                <div class="admin-form-wide">
+                    <label for="camera-video" class="admin-label">Video file <span>(optional)</span></label>
+                    <input id="camera-video" class="form-control admin-input" @bind="form.VideoFile"
+                           maxlength="255" placeholder="lot-a.mp4" aria-describedby="camera-video-hint" />
+                    <div id="camera-video-hint" class="form-text">Enter the name of a file in the worker’s video folder.</div>
+                    @foreach (var message in FieldMessages("videoFile"))
+                    {
+                        <div class="admin-field-error" role="alert">@message</div>
+                    }
+                </div>
+            </fieldset>
+        </div>
+        <div class="admin-inline admin-form-footer">
+            @if (!loading && zones.Count == 0)
+            {
+                <a class="btn btn-ui" href="admin/zones">Add a parking zone first</a>
+            }
+            <div class="admin-inline admin-form-actions">
+                @if (editingId is not null)
+                {
+                    <button type="button" class="btn btn-ui" disabled="@saving" @onclick="CancelEdit">Cancel</button>
+                }
+                <button type="submit" class="btn btn-ui btn-ui-primary" disabled="@(saving || zones.Count == 0)">
+                    @(saving ? "Saving..." : editingId is null ? "Add camera" : "Save changes")
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <h2 class="admin-section-title">All cameras</h2>
+    @if (loading)
+    {
+        <p role="status">Loading cameras...</p>
+    }
+    else if (loadError is not null)
+    {
+        <div class="notice danger admin-inline" role="alert">
+            @loadError
+            <button type="button" class="btn btn-ui btn-sm" @onclick="LoadAsync">Try again</button>
+        </div>
+    }
+    else if (rows.Count == 0)
+    {
+        <p class="notice">No cameras yet.</p>
+    }
+    else
+    {
+        <AdminTableRegion Label="All cameras">
+            <table class="table admin-table admin-table-cameras">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col" class="admin-cell-detail">Zone</th>
+                        <th scope="col" class="camera-file">Video file</th>
+                        <th scope="col" class="admin-cell-compact">Status</th>
+                        <th scope="col" class="admin-cell-compact">Last active</th>
+                        <th scope="col">Reference frame</th>
+                        <th scope="col" class="admin-cell-number">External ID</th>
+                        <th scope="col" class="admin-action-cell">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr @key="row.Id">
+                            <th scope="row" class="admin-cell-name">@row.Name</th>
+                            <td class="admin-cell-wrap">@row.ZoneName</td>
+                            <td class="admin-cell-wrap">@(string.IsNullOrEmpty(row.VideoFile) ? "Not set" : row.VideoFile)</td>
+                            <td class="admin-cell-compact">
+                                <span class="status-chip @(row.IsActive ? "available" : null)">@(row.IsActive ? "Active" : "Inactive")</span>
+                            </td>
+                            <td class="admin-cell-compact tnum">
+                                @if (row.LastActiveTime is { } seen)
+                                {
+                                    <time datetime="@seen.ToString("O")">
+                                        @seen.ToString("yyyy-MM-dd")
+                                        <span class="cell-sub">@seen.ToString("HH:mm") UTC</span>
+                                    </time>
+                                }
+                                else
+                                {
+                                    <span class="muted">Never</span>
+                                }
+                            </td>
+                            <td>@(row.HasReferenceFrame ? "Yes" : "No")</td>
+                            <td class="admin-cell-number">@row.ExternalId</td>
+                            <td class="admin-action-cell">
+                                <div class="admin-row-actions">
+                                    @if (confirmDeleteId == row.Id)
+                                    {
+                                        <span class="admin-confirmation">Remove this camera?</span>
+                                        <button type="button" class="btn btn-ui btn-ui-danger btn-sm" @onclick="() => DeleteAsync(row)">Yes, remove</button>
+                                        <button type="button" class="btn btn-ui btn-sm" @onclick="() => confirmDeleteId = null">Cancel</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-ui btn-sm" disabled="@saving" @onclick="() => StartEdit(row)">Edit</button>
+                                        <a class="btn btn-ui btn-sm" href="@($"admin/polygons?cameraId={row.Id}")">Slot polygons</a>
+                                        <button type="button" class="btn btn-ui btn-ui-danger btn-sm" disabled="@saving"
+                                                @onclick="() => confirmDeleteId = row.Id">Remove</button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </AdminTableRegion>
+    }
+</AdminOnly>
+
+@code {
+    private static readonly string[] KnownFields = ["name", "zoneId", "videoFile"];
+
+    private List<CameraRow> rows = new();
+    private List<ZoneOption> zones = new();
+    private CameraForm form = new();
+    private Guid? editingId;
+    private Guid? confirmDeleteId;
+    private bool loading = true;
+    private bool saving;
+    private string? loadError;
+    private string? info;
+    private ApiError? error;
+    private ElementReference cameraNameInput;
+    private bool focusEditor;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusEditor)
+        {
+            focusEditor = false;
+            await cameraNameInput.FocusAsync();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load only for admins; AdminOnly shows the login / access message to everyone else.
+        var user = await Session.GetUserAsync();
+        if (user?.IsAdmin == true) await LoadAsync();
+        else loading = false;
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        loadError = null;
+
+        var zoneResult = await Api.GetAsync<List<ZoneOption>>("api/zones");
+        var cameraResult = await Api.GetAsync<List<CameraRow>>("api/cameras");
+
+        if (zoneResult.Ok) zones = zoneResult.Value ?? new();
+        if (cameraResult.Ok) rows = cameraResult.Value ?? new();
+
+        if (!zoneResult.Ok) loadError = zoneResult.Error!.Message;
+        else if (!cameraResult.Ok) loadError = cameraResult.Error!.Message;
+
+        loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (saving || zones.Count == 0)
+            return;
+
+        error = null;
+        info = null;
+
+        if (form.ZoneId == Guid.Empty)
+        {
+            error = new ApiError("Please fix the problems below.",
+                new Dictionary<string, string[]> { ["zoneId"] = ["Choose a zone."] });
+            return;
+        }
+
+        saving = true;
+        var wasEdit = editingId is not null;
+        var body = new
+        {
+            name = form.Name.Trim(),
+            zoneId = form.ZoneId,
+            videoFile = string.IsNullOrWhiteSpace(form.VideoFile) ? null : form.VideoFile.Trim()
+        };
+
+        var result = editingId is { } id
+            ? await Api.SendAsync(HttpMethod.Put, $"api/cameras/{id}", body)
+            : await Api.SendAsync(HttpMethod.Post, "api/cameras", body);
+        saving = false;
+
+        if (!result.Ok)
+        {
+            error = result.Error;
+            return;
+        }
+
+        info = wasEdit ? "Camera updated." : "Camera added.";
+        ResetForm();
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(CameraRow row)
+    {
+        error = null;
+        info = null;
+        var result = await Api.SendAsync(HttpMethod.Delete, $"api/cameras/{row.Id}");
+        confirmDeleteId = null;
+
+        if (!result.Ok)
+        {
+            error = result.Error;
+            return;
+        }
+
+        info = $"Camera \"{row.Name}\" removed.";
+        if (editingId == row.Id) ResetForm();
+        await LoadAsync();
+    }
+
+    private void StartEdit(CameraRow row)
+    {
+        editingId = row.Id;
+        error = null;
+        info = null;
+        form = new CameraForm { Name = row.Name, ZoneId = row.ZoneId, VideoFile = row.VideoFile };
+        focusEditor = true;
+    }
+
+    private void CancelEdit()
+    {
+        error = null;
+        ResetForm();
+    }
+
+    private void ResetForm()
+    {
+        editingId = null;
+        form = new CameraForm();
+    }
+
+    private IEnumerable<string> FieldMessages(string field) =>
+        error is not null && error.Fields.TryGetValue(field, out var messages)
+            ? messages
+            : Enumerable.Empty<string>();
+
+    // Errors whose field name is not one of the three inputs are shown at the top instead.
+    private IEnumerable<string> OtherMessages =>
+        error is null
+            ? Enumerable.Empty<string>()
+            : error.Fields.Where(f => !KnownFields.Contains(f.Key, StringComparer.OrdinalIgnoreCase))
+                          .SelectMany(f => f.Value);
+
+    private sealed class CameraRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public Guid ZoneId { get; set; }
+        public string ZoneName { get; set; } = "";
+        public int ExternalId { get; set; }
+        public string VideoFile { get; set; } = "";
+        public bool IsActive { get; set; }
+        public DateTime? LastActiveTime { get; set; }
+        public bool HasReferenceFrame { get; set; }
+    }
+
+    private sealed class ZoneOption
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+    }
+
+    private sealed class CameraForm
+    {
+        public string Name { get; set; } = "";
+        public Guid ZoneId { get; set; }
+        public string? VideoFile { get; set; }
+    }
+}

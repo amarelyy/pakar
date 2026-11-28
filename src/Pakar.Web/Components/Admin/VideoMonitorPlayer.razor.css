@@ -1,0 +1,140 @@
+.monitor-tile {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #2a3643;
+    border-radius: .75rem;
+    background: #090d12;
+    color: #f3f6fb;
+}
+
+.monitor-tile-heading {
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+    align-items: start;
+    gap: .625rem .75rem;
+    padding: .75rem;
+    background: #1b2632;
+}
+
+.monitor-tile-details {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.monitor-tile-heading h2 {
+    margin: 0 0 .25rem;
+    font-size: .95rem;
+    font-weight: 650;
+}
+
+.monitor-tile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .125rem .75rem;
+    color: #bac8d7;
+    font-size: .8125rem;
+}
+
+.monitor-feed {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+}
+
+.monitor-feed::before {
+    width: .375rem;
+    height: .375rem;
+    flex: none;
+    border-radius: 50%;
+    background: #9ba9b7;
+    content: "";
+}
+
+.monitor-feed.active::before {
+    background: #65d69e;
+}
+
+.monitor-fullscreen {
+    --bs-btn-color: #f3f6fb;
+    --bs-btn-bg: #263646;
+    --bs-btn-border-color: #46596d;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #344b63;
+    --bs-btn-hover-border-color: #8195ab;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #344b63;
+    --bs-btn-active-border-color: #8195ab;
+    --bs-btn-disabled-color: #f3f6fb;
+    --bs-btn-disabled-border-color: #46596d;
+
+    flex: none;
+    min-height: 2.25rem;
+    padding-inline: .625rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.monitor-fullscreen:focus-visible {
+    outline: 2px solid #c1d7ff;
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.monitor-collapse,
+.monitor-tile:fullscreen .monitor-expand {
+    display: none;
+}
+
+.monitor-tile:fullscreen .monitor-collapse {
+    display: inline;
+}
+
+.monitor-fullscreen-message {
+    margin: 0;
+    padding: .5rem .75rem;
+    color: #ffe1ad;
+}
+
+.monitor-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+}
+
+.monitor-stage video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.monitor-stage p {
+    margin: .75rem;
+    text-align: center;
+    color: #cfdae6;
+}
+
+.monitor-tile:fullscreen {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+}
+
+.monitor-tile:fullscreen .monitor-tile-heading {
+    flex: none;
+    padding: .75rem clamp(.75rem, 2vw, 1.5rem);
+}
+
+.monitor-tile:fullscreen .monitor-stage {
+    flex: 1;
+    min-height: 0;
+    aspect-ratio: auto;
+}

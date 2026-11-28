@@ -1,0 +1,345 @@
+@page "/admin/users"
+@using Pakar.Web.Components.Admin
+@inject AuthenticatedApiClient Api
+@inject UserSession Session
+
+<PageTitle>Users</PageTitle>
+
+<AdminOnly>
+    <AdminPageHeader Title="Users" />
+
+    @if (info is not null)
+    {
+        <p class="notice success" role="status">@info</p>
+    }
+
+    @if (error is not null)
+    {
+        <div class="notice danger" role="alert">
+            <div>@(error.Fields.Count == 0 ? error.Message : "Please fix the problems below.")</div>
+            @foreach (var message in OtherMessages)
+            {
+                <div>@message</div>
+            }
+        </div>
+    }
+
+    @if (editingId is not null)
+    {
+        <form class="admin-panel admin-form" aria-labelledby="edit-user-title"
+              @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <div class="admin-form-body">
+                <h2 id="edit-user-title" class="admin-section-title">Edit user</h2>
+                <fieldset class="admin-form-fields" disabled="@saving">
+                    <div>
+                        <label for="user-name" class="admin-label">Name</label>
+                        <input id="user-name" class="form-control admin-input" @ref="userNameInput"
+                               @bind="form.Name" maxlength="100" />
+                        @foreach (var message in FieldMessages("name"))
+                        {
+                            <div class="admin-field-error" role="alert">@message</div>
+                        }
+                    </div>
+                    <div>
+                        <label for="user-role" class="admin-label">Role</label>
+                        <select id="user-role" class="form-select admin-input" @bind="form.Role">
+                            <option value="User">User</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                        @foreach (var message in FieldMessages("role"))
+                        {
+                            <div class="admin-field-error" role="alert">@message</div>
+                        }
+                    </div>
+                </fieldset>
+            </div>
+            <div class="admin-inline admin-form-footer">
+                <div class="admin-inline admin-form-actions">
+                    <button type="button" class="btn btn-ui" disabled="@saving" @onclick="CancelEdit">Cancel</button>
+                    <button type="submit" class="btn btn-ui btn-ui-primary" disabled="@saving">
+                        @(saving ? "Saving..." : "Save changes")
+                    </button>
+                </div>
+            </div>
+        </form>
+    }
+
+    <h2 class="admin-section-title">All users</h2>
+    <form class="admin-panel admin-toolbar" role="search" @onsubmit="SearchAsync" @onsubmit:preventDefault>
+        <label for="user-search" class="admin-label">Search by name or email</label>
+        <div class="admin-inline gap-3">
+            <div class="admin-inline admin-user-search">
+                <input id="user-search" class="form-control admin-input" type="search" @bind="search" maxlength="100" />
+                <button type="submit" class="btn btn-ui btn-ui-primary" disabled="@loading">Search</button>
+            </div>
+            <div class="form-check mb-0">
+                <input id="include-inactive" class="form-check-input" type="checkbox" @bind="includeInactive" @bind:after="SearchAsync" />
+                <label class="form-check-label" for="include-inactive">Include deactivated accounts</label>
+            </div>
+        </div>
+    </form>
+
+    @if (loading)
+    {
+        <p role="status">Loading users...</p>
+    }
+    else if (loadError is not null)
+    {
+        <div class="notice danger admin-inline" role="alert">
+            @loadError
+            <button type="button" class="btn btn-ui btn-sm" @onclick="LoadAsync">Try again</button>
+        </div>
+    }
+    else if (rows.Count == 0)
+    {
+        <p class="notice">No users found.</p>
+    }
+    else
+    {
+        <AdminTableRegion Label="All users">
+            <table class="table admin-table admin-table-users">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col" class="admin-user-email">Email</th>
+                        <th scope="col" class="admin-cell-compact">Role</th>
+                        <th scope="col" class="admin-cell-compact">Status</th>
+                        <th scope="col" class="admin-cell-compact">Joined</th>
+                        <th scope="col" class="admin-action-cell">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        var isSelf = row.Id == currentUserId;
+                        <tr @key="row.Id">
+                            <th scope="row" class="admin-cell-name">@row.Name@(isSelf ? " (you)" : "")</th>
+                            <td class="admin-cell-wrap">@row.Email</td>
+                            <td class="admin-cell-compact">@row.Role</td>
+                            <td class="admin-cell-compact">
+                                <span class="status-chip @(row.IsActive ? "available" : null)">@(row.IsActive ? "Active" : "Deactivated")</span>
+                            </td>
+                            <td class="admin-cell-compact tnum">@row.CreatedAt.ToString("yyyy-MM-dd") UTC</td>
+                            <td class="admin-action-cell">
+                                <div class="admin-row-actions">
+                                    @if (confirmToggleId == row.Id)
+                                    {
+                                        <span class="admin-confirmation">@(row.IsActive ? "Deactivate this account?" : "Reactivate this account?")</span>
+                                        <button type="button" class="btn btn-ui @(row.IsActive ? "btn-ui-danger" : null) btn-sm"
+                                                @onclick="() => ToggleActiveAsync(row)">@(row.IsActive ? "Yes, deactivate" : "Yes, reactivate")</button>
+                                        <button type="button" class="btn btn-ui btn-sm" @onclick="() => confirmToggleId = null">Cancel</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-ui btn-sm" disabled="@saving" @onclick="() => StartEdit(row)">Edit</button>
+                                        @if (!isSelf)
+                                        {
+                                            <button type="button" class="btn btn-ui @(row.IsActive ? "btn-ui-danger" : null) btn-sm"
+                                                    @onclick="() => confirmToggleId = row.Id">
+                                                @(row.IsActive ? "Deactivate" : "Reactivate")
+                                            </button>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </AdminTableRegion>
+
+        @if (totalPages > 1)
+        {
+            <div class="admin-inline">
+                <button type="button" class="btn btn-ui btn-sm" disabled="@(loading || page <= 1)" @onclick="() => GoToPageAsync(page - 1)">Previous</button>
+                <span class="muted">Page @(page) of @totalPages (@totalCount users)</span>
+                <button type="button" class="btn btn-ui btn-sm" disabled="@(loading || page >= totalPages)" @onclick="() => GoToPageAsync(page + 1)">Next</button>
+            </div>
+        }
+        else
+        {
+            <p class="muted mb-0">@totalCount @(totalCount == 1 ? "user" : "users")</p>
+        }
+    }
+</AdminOnly>
+
+@code {
+    private const int PageSize = 20;
+    private static readonly string[] KnownFields = ["name", "role"];
+
+    private List<UserRow> rows = new();
+    private UserForm form = new();
+    private Guid? editingId;
+    private Guid? confirmToggleId;
+    private Guid? currentUserId;
+    private string search = "";
+    private bool includeInactive = true;
+    private int page = 1;
+    private int totalPages;
+    private int totalCount;
+    private bool loading = true;
+    private bool saving;
+    private string? loadError;
+    private string? info;
+    private ApiError? error;
+    private ElementReference userNameInput;
+    private bool focusEditor;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusEditor)
+        {
+            focusEditor = false;
+            await userNameInput.FocusAsync();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load only for admins; AdminOnly shows the login / access message to everyone else.
+        var user = await Session.GetUserAsync();
+        currentUserId = user?.Id;
+        if (user?.IsAdmin == true) await LoadAsync();
+        else loading = false;
+    }
+
+    private Task SearchAsync()
+    {
+        page = 1;
+        return LoadAsync();
+    }
+
+    private Task GoToPageAsync(int target)
+    {
+        page = target;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        loadError = null;
+
+        var url = $"api/users?page={page}&pageSize={PageSize}&includeInactive={includeInactive.ToString().ToLowerInvariant()}";
+        if (!string.IsNullOrWhiteSpace(search))
+            url += $"&search={Uri.EscapeDataString(search.Trim())}";
+
+        var result = await Api.GetAsync<UserPage>(url);
+        if (result.Ok && result.Value is { } data)
+        {
+            rows = data.Items;
+            totalCount = data.TotalCount;
+            totalPages = data.TotalPages;
+            // The list may have shrunk (for example after a deactivation); step back to the last real page.
+            if (rows.Count == 0 && page > 1 && totalPages > 0)
+            {
+                page = totalPages;
+                await LoadAsync();
+                return;
+            }
+        }
+        else
+        {
+            loadError = result.Error?.Message ?? "The server response could not be read.";
+        }
+
+        loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (saving || editingId is not { } id) return;
+
+        saving = true;
+        error = null;
+        info = null;
+
+        var result = await Api.SendAsync(HttpMethod.Put, $"api/users/{id}",
+            new { name = form.Name.Trim(), role = form.Role });
+        saving = false;
+
+        if (!result.Ok)
+        {
+            error = result.Error;
+            return;
+        }
+
+        info = "User updated.";
+        ResetForm();
+        await LoadAsync();
+    }
+
+    private async Task ToggleActiveAsync(UserRow row)
+    {
+        error = null;
+        info = null;
+        var action = row.IsActive ? "deactivate" : "reactivate";
+        var result = await Api.SendAsync(HttpMethod.Post, $"api/users/{row.Id}/{action}");
+        confirmToggleId = null;
+
+        if (!result.Ok)
+        {
+            error = result.Error;
+            return;
+        }
+
+        info = row.IsActive ? $"\"{row.Name}\" was deactivated." : $"\"{row.Name}\" was reactivated.";
+        await LoadAsync();
+    }
+
+    private void StartEdit(UserRow row)
+    {
+        editingId = row.Id;
+        error = null;
+        info = null;
+        form = new UserForm { Name = row.Name, Role = row.Role };
+        focusEditor = true;
+    }
+
+    private void CancelEdit()
+    {
+        error = null;
+        ResetForm();
+    }
+
+    private void ResetForm()
+    {
+        editingId = null;
+        form = new UserForm();
+    }
+
+    private IEnumerable<string> FieldMessages(string field) =>
+        error is not null && error.Fields.TryGetValue(field, out var messages)
+            ? messages
+            : Enumerable.Empty<string>();
+
+    // Errors whose field name is not one of the two inputs are shown at the top instead.
+    private IEnumerable<string> OtherMessages =>
+        error is null
+            ? Enumerable.Empty<string>()
+            : error.Fields.Where(f => !KnownFields.Contains(f.Key, StringComparer.OrdinalIgnoreCase))
+                          .SelectMany(f => f.Value);
+
+    private sealed class UserPage
+    {
+        public List<UserRow> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    private sealed class UserRow
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Role { get; set; } = "User";
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    private sealed class UserForm
+    {
+        public string Name { get; set; } = "";
+        public string Role { get; set; } = "User";
+    }
+}

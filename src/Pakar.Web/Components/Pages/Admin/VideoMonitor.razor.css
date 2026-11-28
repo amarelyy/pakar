@@ -1,0 +1,36 @@
+.monitor-select {
+    flex: 1 1 19rem;
+}
+
+.monitor-pagination {
+    flex-wrap: nowrap;
+}
+
+.monitor-layout {
+    display: grid;
+    gap: .75rem;
+}
+
+.monitor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.monitor-layout:not(.monitor-grid) ::deep .monitor-tile:not(:fullscreen) .monitor-stage {
+    max-height: 70vh;
+}
+
+@media (max-width: 700px) {
+    .monitor-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 575px) {
+    .monitor-pagination {
+        flex-basis: 100%;
+    }
+
+    .monitor-pagination .btn {
+        flex: 1;
+    }
+}

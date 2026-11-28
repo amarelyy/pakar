@@ -16,7 +16,10 @@ Replace every `<...>`. Commands run on your computer (PowerShell, repository roo
   - `IMAGE_PREFIX=ghcr.io/<owner in lower case>/pakar`, `IMAGE_TAG=<full 40-character commit hash>`
   - new `Jwt__Key` and `Ingest__ApiKey`, the production `DATABASE_URL`, an admin password of 12 characters or more
 - `artifacts/vm-assets/models/best.onnx` and the videos in `artifacts/vm-assets/videos/`. The video file names must
-  match the names set on the admin Cameras page.
+  match the names set on the admin Cameras page. The API and worker read the same video directory. Admins can
+  open `/admin/video-monitor` to switch between the recordings.
+- For a local rehearsal, [the four-zone demo setup](../vercel/README.md#local-four-zone-demo) accepts the Azure seed
+  names and configures the matching reference frames and polygons. Use the team's final recordings for deployment.
 
 ## 1. Start the machine
 

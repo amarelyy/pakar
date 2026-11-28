@@ -9,7 +9,7 @@ The slot model also runs in the browser (ONNX Runtime Web), on the admin's `/adm
 
 ```
 Visitor / admin browser
- |-- static site (Vercel)          Blazor WebAssembly, css, js, models/best.onnx, videos/*.mp4
+ |-- static site (Vercel)          Blazor WebAssembly, CSS, JS, and the optional browser-feeder model
  |-- HTTPS + JWT  ------------->   API host (any host that keeps ONE process running)  --> Neon PostgreSQL
  `-- /admin/feeder: video -> ONNX Runtime Web (in the browser) -> slot rules in C# -> POST /api/feeder/detections
 ```
@@ -40,16 +40,16 @@ Settings (environment variables):
 
 ## 2. Build the site
 
-Needs the .NET 10 SDK. The model and videos are **not in git**, so build locally (or in CI that has them) and deploy the folder:
+Needs the .NET 10 SDK. The model is stored outside Git. If you use the browser feeder, build locally or in CI with access to the model, then deploy the folder:
 
 ```powershell
-./scripts/publish-vercel.ps1 -ApiUrl https://your-api-host -ModelPath C:\path\best.onnx -VideoDir C:\path\videos
+./scripts/publish-vercel.ps1 -ApiUrl https://your-api-host -ModelPath C:\path\best.onnx
 vercel deploy artifacts/vercel --prod
 ```
 
 The script publishes, copies `infra/vercel/vercel.json` (single-page-app rewrite), and writes the API address into `appsettings.json`.
 The model must be the slot detector (`[1,3,640,640]` in, `[1,6,8400]` out, labels `0=empty`, `1=occupied`).
-Check Vercel's size limits for static files before adding long videos.
+Keep admin recordings on the API and worker host. The browser feeder also accepts a local file without publishing it.
 
 ## 3. Use it
 
@@ -74,6 +74,15 @@ For a fixed address, use a named tunnel with your own domain. The laptop and the
 On `/admin/feeder` the admin can pick a video file from their computer. The browser plays and analyses it locally;
 nothing is uploaded. The slot polygons still come from the selected source, so use a video with the same camera view.
 This is the "upload then process" flow: choose the file, press Start.
+
+## Local four-zone demo
+
+The seed provides DTETI, TNTF, DTMI and DTK with ten map slots each. The calibrated demo has four clips and 17 polygons (6, 5, 3 and 3). Those clips show fewer spaces than the map seed and reuse footage from the same recording. Slot coordinates and capacities are provisional.
+
+1. Start the API with an isolated demo database. Set `Video__Root` on the API and worker to the folder containing the clips listed in [the demo manifest](../../docs/ai/four-zone-demo.json).
+2. With Python 3.11+ and OpenCV available, set `PAKAR_DEMO_ADMIN_EMAIL` and `PAKAR_DEMO_ADMIN_PASSWORD` for the local admin. Run `py scripts/configure-four-zone-demo.py --videos C:\path\to\videos` from the repository root. The script verifies the media checksums and saves the reference image and polygons for each source.
+3. Open `/admin/video-monitor` to switch recordings using the source list or Previous and Next. The API serves recordings only to administrators at `GET /api/cameras/{id}/video`. Keep recordings under `Video__Root` for the monitor and worker.
+4. Start the [.NET video worker](../README.md) with the ONNX model to run all configured sources together. Open `/park` to see the updates. Uncalibrated slots are shown as unknown. A new recording requires a matching reference image and polygons.
 
 ## Live deployment (done on 2026-11-24)
 

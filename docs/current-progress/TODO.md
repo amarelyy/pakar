@@ -27,26 +27,22 @@ The web app, the API and the AI all run on the Azure virtual machine; the databa
 - [ ] Update within 5 seconds (FR 1): today about 8 to 10 seconds (0.5 frames per second plus the 4 second map refresh).
       Check whether the video reader's seek for every sample is the main cost
 
-### Web features to restore (FR 2, 4, 5, 6)
+### Web verification on the Azure VM
 
-The map page was replaced by the boxed version on 2026-11-28. The API still provides these functions; the web page does
-not. The web does not use SignalR; these tasks use normal API calls.
+Search, alternatives, report submission and report status are restored in the responsive map. The zone boxes remain, and the browser polls every four seconds.
 
-| Done | FR | Task | What exists | Done when |
-| --- | --- | --- | --- | --- |
-| [ ] | 2 | Search and filter zones on the map page (building proximity and availability) | `GET /api/parking/zones/search` | A search shows filtered results within 2 seconds |
-| [ ] | 4 | Suggest the nearest available zone when the selected zone is full | `GET /api/parking/zones/{id}/alternate` | Selecting a full zone shows a suggestion within 3 seconds |
-| [ ] | 5 | Report wrong occupancy from the map | `UserReportForm.razor` (unused), `POST /api/reports` | A signed-in user submits a report in 3 interactions or fewer; a guest is asked to log in |
-| [ ] | 6 | Show the submission status right after sending | The API returns status and message; `My Reports` page | The message appears immediately and the report is listed in My Reports |
+- [ ] Time the search and alternate-zone response with the actual Azure VM and Neon database.
+- [ ] Verify the report submission, status, and admin decision on the VM.
+- [ ] Verify mobile map gestures and admin video playback over HTTPS.
 
 ### Other fixes
 
-- [ ] Zone table under the map: show a dash instead of a red 0 when there is no reading
-- [ ] Admin home page: remove the "built in issue #19" text
-- [ ] Remove or reuse `NavMenu.razor`, `UserReportForm.razor`, `ParkingMapState.cs`
+- [x] Map labels and the zone list show a dash until the first source update.
+- [x] Link the user, video source, report, polygon, feeder and video monitor pages from the admin home.
+- [x] Reuse `UserReportForm.razor` and `ParkingMapState.cs` in the responsive map.
 - [ ] Save the inactive state of a camera (FR 12)
 - [ ] Video worker: with a missing or wrong model, stay up and report the error instead of exiting
-- [ ] Seeder: save zones, spots and cameras in one step; do not fail when all zones were removed
+- [x] Seed zones, spots and cameras in one transaction and respect archived zones.
 - [ ] Limit repeated login and registration attempts
 - [ ] Decide whether the videos and the model stay downloadable from the web server
 
@@ -68,6 +64,6 @@ not. The web does not use SignalR; these tasks use normal API calls.
 - [ ] Full-capacity alerts
 - [ ] Saved zones
 - [ ] Zone code search
-- [ ] Admin video wall for all zones
+- [ ] Simultaneous view of all video sources. The admin monitor already switches between recordings.
 - [ ] Video upload to the server
 - [ ] GitHub Pages workflow

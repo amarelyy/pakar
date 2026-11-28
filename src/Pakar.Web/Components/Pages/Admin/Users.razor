@@ -85,49 +85,51 @@
     }
     else
     {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Joined</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var row in rows)
-                {
-                    var isSelf = row.Id == currentUserId;
-                    <tr @key="row.Id">
-                        <td>@row.Name@(isSelf ? " (you)" : "")</td>
-                        <td>@row.Email</td>
-                        <td>@row.Role</td>
-                        <td>@(row.IsActive ? "Active" : "Deactivated")</td>
-                        <td>@row.CreatedAt.ToString("yyyy-MM-dd") UTC</td>
-                        <td>
-                            @if (confirmToggleId == row.Id)
-                            {
-                                <span>@(row.IsActive ? "Deactivate this account?" : "Reactivate this account?")</span>
-                                <button type="button" @onclick="() => ToggleActiveAsync(row)">Yes</button>
-                                <button type="button" @onclick="() => confirmToggleId = null">Cancel</button>
-                            }
-                            else
-                            {
-                                <button type="button" @onclick="() => StartEdit(row)">Edit</button>
-                                @if (!isSelf)
-                                {
-                                    <button type="button" @onclick="() => confirmToggleId = row.Id">
-                                        @(row.IsActive ? "Deactivate" : "Reactivate")
-                                    </button>
-                                }
-                            }
-                        </td>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        var isSelf = row.Id == currentUserId;
+                        <tr @key="row.Id">
+                            <td>@row.Name@(isSelf ? " (you)" : "")</td>
+                            <td>@row.Email</td>
+                            <td>@row.Role</td>
+                            <td>@(row.IsActive ? "Active" : "Deactivated")</td>
+                            <td>@row.CreatedAt.ToString("yyyy-MM-dd") UTC</td>
+                            <td>
+                                @if (confirmToggleId == row.Id)
+                                {
+                                    <span>@(row.IsActive ? "Deactivate this account?" : "Reactivate this account?")</span>
+                                    <button type="button" @onclick="() => ToggleActiveAsync(row)">Yes</button>
+                                    <button type="button" @onclick="() => confirmToggleId = null">Cancel</button>
+                                }
+                                else
+                                {
+                                    <button type="button" @onclick="() => StartEdit(row)">Edit</button>
+                                    @if (!isSelf)
+                                    {
+                                        <button type="button" @onclick="() => confirmToggleId = row.Id">
+                                            @(row.IsActive ? "Deactivate" : "Reactivate")
+                                        </button>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
 
         @if (totalPages > 1)
         {

@@ -10,7 +10,7 @@ Open work is in [TODO.md](TODO.md); older checks are in [the archive](../archive
 | Build and tests | Build succeeds; 111 API, 32 AI and 11 web tests and the JavaScript test pass |
 | CI and images | `ci` and `images` workflows pass on GitHub; images are public |
 | Rehearsal | The deployment steps passed on test setups before the real machine (below) |
-| Web | Boxed zone map with polling; admin pages for zones, cameras, users, reports, polygons and the feeder |
+| Web | Responsive boxed map with polling, zone search, alternatives and reporting. Admin pages include zones, cameras, users, reports, polygons, the feeder and the recording monitor |
 | AI | Slot model (YOLOv8n, `empty` and `occupied`) runs in the worker container; accuracy not measured |
 | Videos | No parking video yet, so no zone shows live data |
 | Database | Production holds the four faculty zones and one active administrator |
@@ -19,9 +19,8 @@ Functional requirements:
 
 | State | Requirements |
 | --- | --- |
-| Working | FR 3, 7, 8, 9, 13, 14, 15, 16, 17 |
+| Implemented for local verification | FR 2 to 9 and FR 13 to 17 |
 | Partly | FR 1 (about 8 to 10 s instead of 5), FR 10 and 11 (technical test only), FR 12 (not saved) |
-| API only, missing in the web | FR 2, 4, 5, 6 |
 | Not built (product goals) | Prediction, usage charts, full-capacity alerts, saved zones |
 
 ## Deployment rehearsal, 2026-11-28
@@ -45,5 +44,5 @@ Open:
 | Real virtual machine | Not run: Azure commands, DNS label, certificate, firewall rules, real swap |
 | Parking videos | None yet, so FR 1, 10, 11 and 12 cannot be shown with video |
 | FR 4 | The API answers, but no suggestion appears while no zone has a live reading |
-| Map page | Search, alternate zone and report form are not on the web page (FR 2, 4, 5, 6) |
+| Map page | Search, alternate-zone suggestions and the report form are restored; verify them over HTTPS on the Azure VM |
 | Production data | Four faculty zones and one administrator set on 2026-11-28; slot polygons and video names open |

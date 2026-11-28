@@ -55,6 +55,9 @@ services:
       Cors__Origins__4: ${SITE_URL:?}
       Cors__Origins__5: ${SITE_URL:?}
       Cors__Origins__6: ${SITE_URL:?}
+      Video__Root: /assets/videos
+    volumes:
+      - ${ASSETS_DIR:?}/videos:/assets/videos:ro
     healthcheck:
       # The .NET images have no curl; bash sends the request. This also checks the database.
       test: &ready ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080; printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; head -1 <&3 | grep -q ' 200'"]

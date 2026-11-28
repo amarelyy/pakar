@@ -6,7 +6,7 @@
 
 <AdminOnly>
     <h1>Cameras</h1>
-    <p><a href="admin">Back to admin</a></p>
+    <p><a href="admin">Back to admin</a> · <a href="admin/video-monitor">Video monitor</a></p>
     <p>
         A camera here is a <strong>video source</strong>: one video file replayed for one zone.
         Put the file name only (for example <code>lot-a.mp4</code>); the file itself lives in the worker's video folder.
@@ -96,48 +96,50 @@
     }
     else
     {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Zone</th>
-                    <th>Video file</th>
-                    <th>Status</th>
-                    <th>Last active</th>
-                    <th>Reference frame</th>
-                    <th>External id</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var row in rows)
-                {
-                    <tr @key="row.Id">
-                        <td>@row.Name</td>
-                        <td>@row.ZoneName</td>
-                        <td>@(string.IsNullOrEmpty(row.VideoFile) ? "Not set" : row.VideoFile)</td>
-                        <td>@(row.IsActive ? "Active" : "Inactive")</td>
-                        <td>@(row.LastActiveTime is { } seen ? $"{seen:yyyy-MM-dd HH:mm} UTC" : "Never")</td>
-                        <td>@(row.HasReferenceFrame ? "Yes" : "No")</td>
-                        <td>@row.ExternalId</td>
-                        <td>
-                            @if (confirmDeleteId == row.Id)
-                            {
-                                <span>Remove this camera?</span>
-                                <button type="button" @onclick="() => DeleteAsync(row)">Yes, remove</button>
-                                <button type="button" @onclick="() => confirmDeleteId = null">Cancel</button>
-                            }
-                            else
-                            {
-                                <button type="button" @onclick="() => StartEdit(row)">Edit</button>
-                                <button type="button" @onclick="() => confirmDeleteId = row.Id">Remove</button>
-                                <a href="admin/polygons">Slot polygons</a>
-                            }
-                        </td>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Zone</th>
+                        <th>Video file</th>
+                        <th>Status</th>
+                        <th>Last active</th>
+                        <th>Reference frame</th>
+                        <th>External id</th>
+                        <th>Actions</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        <tr @key="row.Id">
+                            <td>@row.Name</td>
+                            <td>@row.ZoneName</td>
+                            <td>@(string.IsNullOrEmpty(row.VideoFile) ? "Not set" : row.VideoFile)</td>
+                            <td>@(row.IsActive ? "Active" : "Inactive")</td>
+                            <td>@(row.LastActiveTime is { } seen ? $"{seen:yyyy-MM-dd HH:mm} UTC" : "Never")</td>
+                            <td>@(row.HasReferenceFrame ? "Yes" : "No")</td>
+                            <td>@row.ExternalId</td>
+                            <td>
+                                @if (confirmDeleteId == row.Id)
+                                {
+                                    <span>Remove this camera?</span>
+                                    <button type="button" @onclick="() => DeleteAsync(row)">Yes, remove</button>
+                                    <button type="button" @onclick="() => confirmDeleteId = null">Cancel</button>
+                                }
+                                else
+                                {
+                                    <button type="button" @onclick="() => StartEdit(row)">Edit</button>
+                                    <button type="button" @onclick="() => confirmDeleteId = row.Id">Remove</button>
+                                    <a href="@($"admin/polygons?cameraId={row.Id}")">Slot polygons</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
 </AdminOnly>
 

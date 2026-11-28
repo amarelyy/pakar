@@ -1,117 +1,156 @@
-// Leaflet rendering for the campus parking map. Called from CampusMap.razor through JS interop.
+// Leaflet renders the geography. Blazor owns selection, availability and realtime state.
 window.campusMap = (() => {
-    // Faculty of Engineering, Universitas Gadjah Mada; used until spot coordinates are available.
-    const defaultCenter = [-7.7655, 110.3718];
-    const defaultZoom = 18;
-    // Box colour by the zone status the API computes (available, almost_full, full).
-    const colors = { available: "#2e7d32", almost_full: "#f9a825", full: "#c62828", unknown: "#757575" };
-    const statusLabels = { available: "Available", almost_full: "Almost full", full: "Full" };
-    // The spots of a zone sit in a thin row, so the box is padded to be easy to see and to hold the label.
-    const boxPaddingLat = 0.00008;
-    const boxPaddingLng = 0.00004;
+    const colors = { available: '#0f7a4a', almost_full: '#e39b00', full: '#c42b2b', unknown: '#9aa3ae' };
+    const departmentCodes = { TK: 'DTK', TMI: 'DTMI', TETI: 'DTETI', TNTF: 'TNTF' };
+    const campusLimits = [[-7.7705, 110.3694], [-7.7641, 110.3784]];
+    let campusBounds;
+    let map, zonesLayer, spotsLayer, reference, resizeObserver, selected;
+    let zones = [];
 
-    let map = null;
-    let zoneLayer = null;
-
-    function init(elementId, zones) {
-        if (map) {
-            map.remove();
-        }
-
-        map = L.map(elementId).setView(defaultCenter, defaultZoom);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 20,
-            attribution: "&copy; OpenStreetMap contributors"
-        }).addTo(map);
-
-        zoneLayer = L.featureGroup().addTo(map);
-        renderZones(zones);
-
-        if (zoneLayer.getLayers().length > 0) {
-            map.fitBounds(zoneLayer.getBounds(), { padding: [30, 30], maxZoom: defaultZoom + 1 });
-        }
+    function hasLocation(spot) {
+        return Number.isFinite(spot.latitude) && Number.isFinite(spot.longitude) &&
+            campusBounds.contains([spot.latitude, spot.longitude]);
     }
 
-    // The smallest rectangle around every mapped spot of the zone, or null when no spot has a position.
-    function zoneBounds(zone) {
-        const points = (zone.spots ?? [])
-            .filter(spot => Number.isFinite(spot.latitude) && Number.isFinite(spot.longitude))
-            .map(spot => [spot.latitude, spot.longitude]);
-        if (points.length === 0) {
-            return null;
-        }
+    function points(zone) {
+        return zone.spots.filter(hasLocation).map(spot => [spot.latitude, spot.longitude]);
+    }
 
-        const lats = points.map(point => point[0]);
-        const lngs = points.map(point => point[1]);
+    function zoneBounds(coordinates) {
+        const bounds = L.latLngBounds(coordinates);
+        const southWest = bounds.getSouthWest();
+        const northEast = bounds.getNorthEast();
         return [
-            [Math.min(...lats) - boxPaddingLat, Math.min(...lngs) - boxPaddingLng],
-            [Math.max(...lats) + boxPaddingLat, Math.max(...lngs) + boxPaddingLng]
+            [southWest.lat - .00006, southWest.lng - .000035],
+            [northEast.lat + .00006, northEast.lng + .000035]
         ];
     }
 
-    // Spots taken, so "0 / 10" is an empty zone and "9 / 10" has one spot left. A zone an admin forced to full
-    // reports 0 available, so it reads "10 / 10".
-    function takenSpots(zone) {
-        return Math.min(zone.totalCapacity, Math.max(0, zone.totalCapacity - zone.availableSpots));
+    function init(id, dotnet) {
+        dispose();
+        if (!window.L) throw new Error('Map library unavailable');
+        reference = dotnet;
+        campusBounds = L.latLngBounds(campusLimits);
+        map = L.map(id, {
+            zoomControl: false,
+            minZoom: 16,
+            maxZoom: 19,
+            maxBounds: campusBounds,
+            maxBoundsViscosity: 1,
+            bounceAtZoomLimits: false,
+            zoomSnap: .25
+        }).setView(campusBounds.getCenter(), 17);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        zonesLayer = L.layerGroup().addTo(map);
+        spotsLayer = L.layerGroup().addTo(map);
+        resizeObserver = new ResizeObserver(() => {
+            if (!map) return;
+            map.invalidateSize({ pan: false });
+            if (selected) focusZone(selected);
+            else fit();
+        });
+        resizeObserver.observe(map.getContainer());
+        map.on('zoomend', drawSpots);
     }
 
-    // Builds the label with DOM nodes instead of HTML strings, so a zone name can never inject markup.
-    function boxLabel(zone) {
-        const label = document.createElement("span");
-        // Without a reading the number taken is unknown, not "everything".
-        const taken = zone.status === "unknown" ? "—" : takenSpots(zone);
-        label.textContent = `${taken} / ${zone.totalCapacity}`;
+    function zoneLabel(zone, color) {
+        const label = document.createElement('span');
+        const count = document.createElement('strong');
+        const description = document.createElement('span');
+        const name = document.createElement('small');
+        count.textContent = zone.waitingForSource ? '—' : zone.availableSpots;
+        description.textContent = zone.waitingForSource ? '' : ' free';
+        const note = zone.waitingForSource ? ' · waiting for first update'
+            : zone.stale ? ' · stale data'
+            : zone.unknownSpots > 0 ? ' · ' + zone.unknownSpots + ' with unknown status' : '';
+        const prefix = zone.spots[0]?.name.split('-')[0];
+        const shortName = zone.name.startsWith('Teknik ') ? departmentCodes[prefix] : undefined;
+        name.textContent = (shortName ?? zone.name) + note;
+        label.title = zone.name + note;
+        label.append(count, description, name);
+        label.style.setProperty('--badge-color', color);
         return label;
     }
 
-    function popupContent(zone) {
-        const wrapper = document.createElement("div");
-        const name = document.createElement("strong");
-        name.textContent = zone.name;
-        const detail = document.createElement("div");
-        detail.textContent = zone.status === "unknown"
-            ? "No data"
-            : `${statusLabels[zone.status] ?? "No data"}: ${takenSpots(zone)} of ${zone.totalCapacity} spots taken`;
-        wrapper.append(name, detail);
-        return wrapper;
+    function renderZones(next, selectedId) {
+        if (!map) return;
+        const first = zones.length === 0;
+        zones = next;
+        selected = selectedId;
+        zonesLayer.clearLayers();
+
+        for (const zone of zones) {
+            const coordinates = points(zone);
+            if (coordinates.length === 0) continue;
+
+            const color = zone.stale ? colors.unknown : (colors[zone.status] || colors.unknown);
+            const isSelected = zone.id === selected;
+            const options = {
+                color: isSelected ? '#1f4fd8' : color,
+                weight: isSelected ? 3 : 2,
+                fillColor: color,
+                fillOpacity: zone.stale ? .1 : .2,
+                dashArray: zone.stale ? '4 4' : undefined
+            };
+            const shape = L.rectangle(zoneBounds(coordinates), options);
+            shape.bindTooltip(zoneLabel(zone, color), {
+                permanent: true, direction: 'center', className: 'zone-badge', interactive: true, opacity: 1
+            });
+            const select = () => reference?.invokeMethodAsync('SelectFromMap', zone.id);
+            shape.on('click', select);
+            shape.getTooltip().on('click', select);
+            shape.addTo(zonesLayer);
+        }
+
+        drawSpots();
+        if (first) fit();
     }
 
-    function renderZones(zones) {
-        if (!zoneLayer) {
-            return;
-        }
-
-        zoneLayer.clearLayers();
+    function drawSpots() {
+        if (!spotsLayer) return;
+        spotsLayer.clearLayers();
         for (const zone of zones) {
-            const bounds = zoneBounds(zone);
-            if (!bounds) {
-                continue;
-            }
+            if (zone.id !== selected && map.getZoom() < 19) continue;
 
-            const color = colors[zone.status] ?? colors.unknown;
-            L.rectangle(bounds, {
-                color,
-                weight: 2,
-                fillColor: color,
-                fillOpacity: 0.35
-            })
-                .bindTooltip(boxLabel(zone), {
-                    permanent: true,
-                    direction: "center",
-                    className: "zone-box-label"
-                })
-                .bindPopup(popupContent(zone))
-                .addTo(zoneLayer);
+            for (const spot of zone.spots.filter(hasLocation)) {
+                const spotColor = { occupied: colors.full, available: colors.available };
+                const fillColor = zone.stale ? colors.unknown : (spotColor[spot.observedStatus] || colors.unknown);
+                const label = document.createElement('span');
+                const labels = { occupied: 'Occupied', available: 'Free' };
+                const status = zone.waitingForSource ? 'Unknown' : (labels[spot.observedStatus] || 'Unknown');
+                label.textContent = spot.name + ': ' + status;
+                L.circleMarker([spot.latitude, spot.longitude], {
+                    radius: 4, weight: 1, color: '#fff', fillColor, fillOpacity: 1
+                }).bindTooltip(label).addTo(spotsLayer);
+            }
         }
+    }
+
+    function fit() {
+        const coordinates = zones.flatMap(points);
+        if (!map || !coordinates.length) return;
+        const padding = map.getSize().x < 600 ? [45, 28] : [65, 45];
+        map.fitBounds(coordinates, { padding, maxZoom: 18, animate: false });
+    }
+
+    function focusZone(id) {
+        const zone = zones.find(candidate => candidate.id === id);
+        if (!zone) return;
+        const coordinates = points(zone);
+        if (coordinates.length) map.fitBounds(coordinates, { padding: [40, 40], maxZoom: 19, animate: false });
     }
 
     function dispose() {
-        if (map) {
-            map.remove();
-            map = null;
-            zoneLayer = null;
-        }
+        resizeObserver?.disconnect();
+        map?.remove();
+        map = zonesLayer = spotsLayer = reference = null;
+        zones = [];
+        selected = null;
     }
 
-    return { init, renderZones, dispose };
+    return { init, renderZones, fit, focusZone, dispose };
 })();

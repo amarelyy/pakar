@@ -1,69 +1,644 @@
-/* Campus parking map (CampusMap.razor) */
-.campus-map {
-    height: 500px;
-    width: 100%;
-    border-radius: 8px;
+.parking-page {
+    padding:28px 32px 32px;
+    max-width:1800px;
+    margin:auto
 }
 
-.map-error {
-    color: #c62828;
-    margin-top: 0.5rem;
+.parking-heading {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:24px
+}
+
+.parking-heading .eyebrow {
+    margin-bottom:10px
+}
+
+.parking-heading h1 {
+    font-size:30px
+}
+
+.parking-heading p:last-child {
+    margin-bottom:0
+}
+
+.connection-label {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px;
+    white-space:nowrap;
+    border:1px solid var(--hairline);
+    border-radius:30px;
+    padding:8px 12px;
+    background:white
+}
+
+.connection-label.online {
+    color:#0b5a37
+}
+
+.connection-label.offline {
+    color:var(--muted)
+}
+
+.parking-workspace {
+    display:grid;
+    grid-template-columns:370px minmax(0,1fr);
+    min-height:580px;
+    height:calc(100dvh - 240px);
+    max-height:1000px;
+    border:1px solid var(--hairline);
+    border-radius:14px;
+    overflow:hidden;
+    background:white
+}
+
+.parking-panel {
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    border-right:1px solid var(--hairline)
+}
+
+.parking-search {
+    padding:22px 20px 16px;
+    border-bottom:1px solid var(--hairline)
+}
+
+.parking-search>label {
+    font-size:15px;
+    margin-bottom:10px
+}
+
+.search-row {
+    display:flex;
+    gap:8px
+}
+
+.search-row input {
+    min-width:0
+}
+
+.filter-row {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:14px
+}
+
+.filter-row label {
+    font-size:11px;
+    margin:0
+}
+
+.filter-row select,.filter-row input {
+    font-size:12px;
+    min-height:36px;
+    padding:7px 9px
+}
+
+.zone-list-heading {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 20px 12px
+}
+
+.zone-list-heading h2 {
+    font-size:13px;
+    margin:0
+}
+
+.zone-list-heading>span {
+    font-size:12px;
+    color:var(--muted)
+}
+
+.zone-list {
+    overflow-y:auto;
+    flex:1;
+    padding:0 14px 16px
+}
+
+.zone-card {
+    display:block;
+    width:100%;
+    text-align:left;
+    border:1px solid var(--hairline);
+    border-radius:9px;
+    margin-bottom:10px;
+    padding:16px;
+    background:white;
+    color:var(--ink);
+    font-weight:400;
+    transition:border-color .12s
+}
+
+.zone-card:hover {
+    background:#fafbfe;
+    border-color:#adc0f4
+}
+
+.zone-card.selected {
+    border:1px solid var(--accent);
+    box-shadow:0 0 0 2px var(--accent-soft)
+}
+
+.zone-card-top {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px
+}
+
+.zone-name {
+    font-size:14px;
+    font-weight:650
+}
+
+.zone-count {
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    margin:10px 0
+}
+
+.zone-count strong {
+    font-size:29px;
+    line-height:1.2;
+    letter-spacing:-.8px
+}
+
+.zone-count>span {
+    font-size:12px
+}
+
+.zone-count .zone-arrow {
+    margin-left:auto;
+    color:var(--muted);
+    font-size:19px
+}
+
+.fill-track {
+    height:4px;
+    border-radius:5px;
+    background:#edf0f4;
+    overflow:hidden
+}
+
+.fill-track>span {
+    height:100%;
+    display:block;
+    background:var(--ok)
+}
+
+.fill-track .almost_full {
+    background:var(--warn)
+}
+
+.fill-track .full {
+    background:var(--bad)
+}
+
+.zone-meta {
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    color:var(--ok);
+    margin-top:10px
+}
+
+.stale {
+    color:#7a4d00;
+    font-size:11px
+}
+
+.panel-foot {
+    font-size:10px;
+    color:var(--muted);
+    padding:12px 20px;
+    border-top:1px solid var(--hairline)
+}
+
+.map-panel {
+    position:relative;
+    min-height:420px;
+    isolation:isolate;
+    background:#e9eceb
+}
+
+.map-surface {
+    position:relative;
+    height:100%
+}
+
+.campus-map {
+    width:100%;
+    height:100%;
+    min-height:420px
+}
+
+.leaflet-container {
+    font:inherit;
+    background:#e9eceb
+}
+
+.leaflet-tile-pane {
+    filter:saturate(.2) contrast(.92) brightness(1.04)
+}
+
+.map-top-note {
+    position:absolute;
+    top:16px;
+    left:16px;
+    right:16px;
+    z-index:500;
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    pointer-events:none
+}
+
+.map-top-note>* {
+    pointer-events:auto
+}
+
+.map-location {
+    background:white;
+    padding:9px 12px;
+    border:1px solid var(--hairline);
+    border-radius:7px;
+    font-size:11px;
+    color:var(--muted)
 }
 
 .map-legend {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    position:absolute;
+    bottom:16px;
+    left:16px;
+    z-index:500;
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    border:1px solid var(--hairline);
+    border-radius:8px;
+    background:white;
+    padding:10px 12px;
+    font-size:10px
 }
 
-.legend-dot {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    margin-left: 0.75rem;
+.map-legend span {
+    display:flex;
+    align-items:center;
+    gap:5px
 }
 
-.legend-dot.available {
-    background: #2e7d32;
+.map-legend i {
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    display:inline-block;
+    background:#9aa3ae
 }
 
-.legend-dot.almost-full {
-    background: #f9a825;
+.map-legend .available {
+    background:var(--ok)
 }
 
-.legend-dot.full {
-    background: #c62828;
+.map-legend .almost_full {
+    background:var(--warn)
 }
 
-.legend-note {
-    margin-left: 0.75rem;
-    color: #616161;
+.map-legend .full {
+    background:var(--bad)
 }
 
-/* "free / capacity" text inside each zone box on the map */
-.leaflet-tooltip.zone-box-label {
-    background: transparent;
+.leaflet-tooltip.zone-badge {
+    border:1px solid #e3e6ea;
+    border-radius:8px;
+    background:white;
+    color:var(--ink);
+    padding:6px 10px;
+    box-shadow:0 2px 5px #14181f18;
+    text-align:center
+}
+
+.zone-badge::before {
+    display:none
+}
+
+.zone-badge>span {
+    border-left:3px solid var(--badge-color);
+    padding-left:8px;
+    display:block
+}
+
+.zone-badge strong {
+    font-size:17px
+}
+
+.zone-badge span {
+    font-size:11px
+}
+
+.zone-badge small {
+    display:block;
+    color:var(--muted);
+    font-size:10px
+}
+
+.map-connection {
+    position:absolute;
+    top:66px;
+    left:16px;
+    right:16px;
+    z-index:510;
+    font-size:12px
+}
+
+.zone-detail {
+    position:absolute;
+    bottom:66px;
+    right:20px;
+    width:min(360px,calc(100% - 40px));
+    max-height:70%;
+    overflow-y:auto;
+    z-index:520;
+    box-shadow:0 8px 32px #14181f18
+}
+
+.zone-detail .eyebrow {
+    margin:0
+}
+
+.zone-detail h2 {
+    margin-top:8px
+}
+
+.detail-count {
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:9px;
+    margin-bottom:12px
+}
+
+.detail-count strong {
+    font-size:28px
+}
+
+.detail-count>span {
+    font-size:11px
+}
+
+.alternative {
+    border-top:1px solid var(--hairline);
+    margin-top:16px;
+    padding-top:14px
+}
+
+.alternative-link {
+    display:flex;
+    justify-content:space-between;
+    width:100%;
+    text-align:left;
+    margin-top:8px
+}
+
+.slot-details {
+    border-top:1px solid var(--hairline);
+    padding-top:12px;
+    margin-top:16px;
+    font-size:12px
+}
+
+.slot-details summary {
+    cursor:pointer
+}
+
+.slot-details ul {
+    list-style:none;
+    padding:0;
+    margin:12px 0 0
+}
+
+.slot-details li {
+    display:flex;
+    justify-content:space-between;
+    padding:6px 0;
+    border-top:1px solid var(--hairline)
+}
+
+@media(max-width:1000px) {
+    .parking-workspace {
+        grid-template-columns:320px minmax(0,1fr)
+    }
+
+    .parking-page {
+        padding:24px
+    }
+
+    .parking-heading h1 {
+        font-size:26px
+    }
+
+    .parking-heading {
+        align-items:flex-start
+    }
+
+    .connection-label {
+        font-size:10px
+    }
+
+    .parking-heading .eyebrow {
+        font-size:10px
+    }
+
+}
+
+@media(max-width:700px) {
+    .parking-page {
+        padding:20px 0 0
+    }
+
+    .parking-heading {
+        padding:0 16px;
+        display:block;
+        margin-bottom:16px
+    }
+
+    .parking-heading h1 {
+        font-size:25px
+    }
+
+    .parking-heading p {
+        font-size:12px
+    }
+
+    .connection-label {
+        margin-top:14px;
+        padding:6px 10px
+    }
+
+    .parking-workspace {
+        display:flex;
+        flex-direction:column-reverse;
+        height:auto;
+        max-height:none;
+        border-left:0;
+        border-right:0;
+        border-bottom:0;
+        border-radius:0;
+        min-height:0
+    }
+
+    .map-panel {
+        min-height:330px
+    }
+
+    .map-surface {
+        height:330px
+    }
+
+    .campus-map {
+        min-height:330px
+    }
+
+    .parking-panel {
+        border:0;
+        border-top:1px solid var(--hairline)
+    }
+
+    .parking-search {
+        padding:18px 16px
+    }
+
+    .zone-list {
+        overflow:visible;
+        padding:0 16px 10px
+    }
+
+    .zone-list-heading {
+        padding:18px 16px 12px
+    }
+
+    .zone-card {
+        padding:16px
+    }
+
+    .zone-detail {
+        position:relative;
+        inset:auto;
+        width:auto;
+        max-height:none;
+        margin:12px 16px;
+        padding:16px
+    }
+
+    .map-legend {
+        bottom:26px;
+        left:10px;
+        right:45px;
+        gap:8px;
+        font-size:9px;
+        padding:8px
+    }
+
+    .map-top-note {
+        top:10px;
+        left:10px;
+        right:10px
+    }
+
+    .map-location {
+        font-size:10px;
+        padding:7px 9px
+    }
+
+    .map-top-note .small {
+        font-size:10px;
+        min-height:30px
+    }
+
+    .leaflet-tooltip.zone-badge {
+        padding:4px 7px
+    }
+
+    .zone-badge strong {
+        font-size:14px
+    }
+
+    .zone-badge small {
+        font-size:9px
+    }
+
+    .map-connection {
+        top:50px;
+        left:10px;
+        right:10px;
+        font-size:11px
+    }
+
+    .map-connection button {
+        font-size:10px;
+        min-height:28px;
+        padding:4px 8px
+    }
+
+}
+
+.zone-badge small {
+    max-width:150px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis
+}
+
+@media(max-width:700px) {
+    .zone-badge small {
+        max-width:62px
+    }
+
+}
+
+.parking-page .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.parking-page .text-button {
+    padding: .25rem .4rem;
     border: 0;
-    box-shadow: none;
-    color: #1b1b1b;
-    font-size: 15px;
-    font-weight: 700;
-    text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
-    pointer-events: none;
+    background: transparent;
+    color: var(--accent);
 }
 
-.leaflet-tooltip.zone-box-label::before {
-    display: none;
+.parking-page .text-button:hover { text-decoration: underline; }
+
+.parking-page :is(button, input, select, summary):focus-visible {
+    outline: 3px solid #557cf0;
+    outline-offset: 2px;
 }
 
-.zone-summary {
-    margin-top: 1rem;
-    max-width: 480px;
+#zone-search {
+    flex: 1;
+    padding: .55rem .7rem;
+    border: 1px solid #cdd3dc;
+    border-radius: 7px;
 }
 
-.zone-summary .zone-full td {
-    color: #c62828;
-    font-weight: 600;
+.filter-row .form-control, .filter-row .form-select {
+    margin-top: .35rem;
+}
+.report-entry {
+    border-top: 1px solid var(--hairline);
+    padding-top: .75rem;
+    font-size: .875rem;
+}
+
+.report-entry legend {
+    margin-bottom: .75rem;
 }

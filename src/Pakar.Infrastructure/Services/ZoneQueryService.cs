@@ -110,8 +110,17 @@ public sealed class ZoneQueryService(AppDbContext db, IParkingObservations obser
         var zones = db.Zones.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(query.Q))
         {
-            var term = query.Q.Trim().ToLower();
-            zones = zones.Where(z => z.Name.ToLower().Contains(term) || z.Description.ToLower().Contains(term));
+            var term = query.Q.Trim().ToLowerInvariant();
+            var azureSpotPrefix = term switch
+            {
+                "dtk" => "tk-",
+                "dtmi" => "tmi-",
+                "dteti" => "teti-",
+                "tntf" => "tntf-",
+                _ => null
+            };
+            zones = zones.Where(z => z.Name.ToLower().Contains(term) || z.Description.ToLower().Contains(term) ||
+                (azureSpotPrefix != null && z.Spots.Any(spot => spot.Name.ToLower().StartsWith(azureSpotPrefix))));
         }
 
         var results = (await LoadSummariesAsync(zones, ct))

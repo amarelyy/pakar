@@ -21,7 +21,12 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $web = Join-Path $root "src/Pakar.Web"
 
-if ($ApiUrl -notmatch '^https://') { throw "ApiUrl must be an https:// address (the site is served over https)." }
+$apiAddress = $null
+if (-not [Uri]::TryCreate($ApiUrl, [UriKind]::Absolute, [ref]$apiAddress) -or
+    $apiAddress.Scheme -ne [Uri]::UriSchemeHttps -or
+    $apiAddress.IsLoopback -or $apiAddress.UserInfo -or $apiAddress.Query -or $apiAddress.Fragment) {
+    throw "ApiUrl must be a valid public HTTPS base address without credentials, a query, or a fragment."
+}
 
 # 1. Model and videos go into the git-ignored asset folders of the web project.
 if ($ModelPath) {

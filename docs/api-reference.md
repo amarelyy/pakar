@@ -26,6 +26,7 @@ shared deployment. The original endpoint inventory below remains for legacy cons
 | GET | `/api/feeder/sources` | Admin JWT | Same payload as `/api/internal/video-sources`, for the browser feeder page (the ingest API key must not be sent to a browser). |
 | PUT | `/api/cameras/{id}/reference-frame` | Admin | Multipart `file`, PNG/JPEG signature, <=2 MB; replaces database-backed image. |
 | GET | `/api/cameras/{id}/reference-frame` | Admin | Image bytes/content type; 404 if absent; no-store caching. |
+| GET | `/api/cameras/{id}/video` | Admin | Plays the configured recording from `Video:Root`. Supports byte ranges and private no-store caching. |
 
 ROI coordinates are normalized 0..1, 3–50 distinct points, area >=0.0005,
 non-self-intersecting, rounded to six decimals before validation/save. Every spot

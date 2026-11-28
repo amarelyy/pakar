@@ -55,6 +55,7 @@ window.campusMap = (() => {
         });
         resizeObserver.observe(map.getContainer());
         map.on('zoomend', drawSpots);
+        map.on('moveend', placeZoneLabels);
     }
 
     function zoneLabel(zone, color) {
@@ -69,7 +70,7 @@ window.campusMap = (() => {
             : zone.unknownSpots > 0 ? ' · ' + zone.unknownSpots + ' with unknown status' : '';
         const prefix = zone.spots[0]?.name.split('-')[0];
         const shortName = zone.name.startsWith('Teknik ') ? departmentCodes[prefix] : undefined;
-        name.textContent = (shortName ?? zone.name) + note;
+        name.textContent = shortName ?? zone.name;
         label.title = zone.name + note;
         label.append(count, description, name);
         label.style.setProperty('--badge-color', color);
@@ -108,6 +109,42 @@ window.campusMap = (() => {
 
         drawSpots();
         if (first) fit();
+        placeZoneLabels();
+    }
+
+    // At low zoom, place neighboring labels around their rectangles to keep each zone tappable.
+    function placeZoneLabels() {
+        if (!map || !zonesLayer) return;
+        const placed = [];
+        const size = map.getSize();
+        const gap = 5;
+
+        for (const layer of zonesLayer.getLayers()) {
+            const tooltip = layer.getTooltip();
+            const element = tooltip?.getElement();
+            if (!element) continue;
+
+            const center = map.latLngToContainerPoint(tooltip.getLatLng());
+            const { offsetWidth: width, offsetHeight: height } = element;
+            const horizontal = width + gap;
+            const vertical = height + gap;
+            const offsets = [[0, 0], [0, -vertical], [0, vertical], [-horizontal, 0], [horizontal, 0],
+                [-horizontal, -vertical], [horizontal, -vertical], [-horizontal, vertical], [horizontal, vertical]];
+            const candidates = offsets.map(offset => {
+                const left = center.x + offset[0] - width / 2;
+                const top = center.y + offset[1] - height / 2;
+                return { offset, left, top, right: left + width, bottom: top + height };
+            });
+            const visible = center.x >= 0 && center.x <= size.x && center.y >= 0 && center.y <= size.y;
+            const choice = (visible && candidates.find(box =>
+                box.left >= gap && box.top >= gap && box.right <= size.x - gap && box.bottom <= size.y - gap &&
+                placed.every(other => box.right + gap <= other.left || other.right + gap <= box.left ||
+                    box.bottom + gap <= other.top || other.bottom + gap <= box.top))) || candidates[0];
+
+            tooltip.options.offset = L.point(choice.offset);
+            tooltip.update();
+            if (visible) placed.push(choice);
+        }
     }
 
     function drawSpots() {

@@ -1,5 +1,8 @@
 @page "/admin/zones"
-@inject AdminApiClient Api
+@using Pakar.Application.DTOs
+@using Pakar.Application.Validation
+@using Pakar.Web.Components.Ui
+@inject AuthenticatedApiClient Api
 @inject UserSession Session
 
 <PageTitle>Zones</PageTitle>
@@ -67,6 +70,42 @@
     </div>
 
     <h2>All zones</h2>
+    @if (overrideListError is not null)
+    {
+        <div class="notice warning" role="alert">
+            Could not load status overrides.
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadOverridesAsync">Try again</button>
+        </div>
+    }
+    @if (overrideError is not null)
+    {
+        <div class="notice danger" role="alert">
+            @overrideError.Message
+            @foreach (var message in overrideError.Fields.Values.SelectMany(messages => messages))
+            {
+                <div>@message</div>
+            }
+        </div>
+    }
+    @if (overrideZone is { } zone)
+    {
+        <form class="card p-3 mb-3" @onsubmit="SaveOverrideAsync" @onsubmit:preventDefault>
+            <fieldset disabled="@savingOverride">
+                <legend class="h5">Set status for @zone.Name</legend>
+                <label for="manual-status" class="form-label">Zone status</label>
+                <select id="manual-status" class="form-select mb-3" @ref="overrideStatusInput" @bind="overrideStatus">
+                    <option value="available">Available</option>
+                    <option value="almost_full">Almost full</option>
+                    <option value="full">Full</option>
+                </select>
+                <label for="manual-note" class="form-label">Note (optional)</label>
+                <textarea id="manual-note" class="form-control mb-3" @bind="overrideNote"
+                          maxlength="@ZoneOverrideRules.MaxNoteLength" rows="2"></textarea>
+                <button type="submit" class="btn btn-primary">Save status</button>
+                <button type="button" class="btn btn-light" @onclick="CloseOverride">Cancel</button>
+            </fieldset>
+        </form>
+    }
     @if (loading)
     {
         <p role="status">Loading zones...</p>
@@ -81,7 +120,8 @@
     }
     else
     {
-        <table class="table">
+        <div class="table-responsive" aria-label="Zone list">
+        <table class="table align-middle">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -90,19 +130,35 @@
                     <th>Spots</th>
                     <th>Cameras</th>
                     <th>External id</th>
+                    <th>Status override</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var row in rows)
                 {
-                    <tr>
+                    var manual = overrides.GetValueOrDefault(row.Id);
+                    <tr @key="row.Id">
                         <td>@row.Name</td>
                         <td>@row.Description</td>
                         <td>@row.TotalCapacity</td>
                         <td>@row.SpotCount</td>
                         <td>@row.CameraCount</td>
                         <td>@row.ExternalId</td>
+                        <td>
+                            @if (manual is not null)
+                            {
+                                <StatusChip Status="@manual.Status" />
+                                @if (!string.IsNullOrWhiteSpace(manual.Note))
+                                {
+                                    <span class="cell-sub">@manual.Note</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="muted">@(overrideListError is null ? "Automatic" : "Unknown")</span>
+                            }
+                        </td>
                         <td>
                             @if (confirmDeleteId == row.Id)
                             {
@@ -114,12 +170,21 @@
                             {
                                 <button type="button" @onclick="() => StartEdit(row)">Edit</button>
                                 <button type="button" @onclick="() => confirmDeleteId = row.Id">Remove</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm"
+                                        disabled="@(savingOverride || overrideListError is not null)"
+                                        @onclick="() => EditOverride(row, manual)">Set status</button>
+                                @if (manual is not null && overrideListError is null)
+                                {
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            disabled="@savingOverride" @onclick="() => ClearOverrideAsync(row)">Reset to automatic</button>
+                                }
                             }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        </div>
     }
 </AdminOnly>
 
@@ -135,6 +200,24 @@
     private string? loadError;
     private string? info;
     private ApiError? error;
+    private Dictionary<Guid, ZoneOverrideDto> overrides = new();
+    private ApiError? overrideListError;
+    private ApiError? overrideError;
+    private ZoneRow? overrideZone;
+    private string overrideStatus = "full";
+    private string? overrideNote;
+    private bool savingOverride;
+    private bool focusOverride;
+    private ElementReference overrideStatusInput;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusOverride)
+        {
+            focusOverride = false;
+            await overrideStatusInput.FocusAsync();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,9 +232,74 @@
         loading = true;
         loadError = null;
         var result = await Api.GetAsync<List<ZoneRow>>("api/zones");
-        if (result.Ok) rows = result.Value ?? new();
+        if (result.Ok)
+        {
+            rows = result.Value ?? new();
+            await LoadOverridesAsync();
+        }
         else loadError = result.Error!.Message;
         loading = false;
+    }
+
+    private async Task LoadOverridesAsync()
+    {
+        var result = await Api.GetAsync<List<ZoneOverrideDto>>("api/zones/status-overrides");
+        overrideListError = result.Error;
+        if (result.Ok)
+            overrides = (result.Value ?? []).ToDictionary(value => value.ZoneId);
+    }
+
+    private void EditOverride(ZoneRow row, ZoneOverrideDto? manual)
+    {
+        overrideZone = row;
+        focusOverride = true;
+        overrideStatus = manual?.Status ?? "full";
+        overrideNote = manual?.Note;
+        overrideError = null;
+        info = null;
+    }
+
+    private void CloseOverride()
+    {
+        overrideZone = null;
+        focusOverride = false;
+        overrideError = null;
+    }
+
+    private Task SaveOverrideAsync() => overrideZone is { } row
+        ? ChangeOverrideAsync(row, HttpMethod.Put, new SetZoneOverrideRequest(overrideStatus, overrideNote))
+        : Task.CompletedTask;
+
+    private Task ClearOverrideAsync(ZoneRow row) => ChangeOverrideAsync(row, HttpMethod.Delete);
+
+    private async Task ChangeOverrideAsync(ZoneRow row, HttpMethod method, SetZoneOverrideRequest? request = null)
+    {
+        if (savingOverride)
+            return;
+
+        savingOverride = true;
+        info = null;
+        overrideError = null;
+        try
+        {
+            var result = await Api.SendAsync(method, $"api/zones/{row.Id}/status-override", request);
+            if (!result.Ok)
+            {
+                overrideError = result.Error;
+                return;
+            }
+
+            if (overrideZone?.Id == row.Id)
+                CloseOverride();
+            info = method == HttpMethod.Delete
+                ? $"{row.Name} is back to automatic status."
+                : $"The status override for {row.Name} was saved.";
+            await LoadOverridesAsync();
+        }
+        finally
+        {
+            savingOverride = false;
+        }
     }
 
     private async Task SaveAsync()

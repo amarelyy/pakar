@@ -1,0 +1,124 @@
+@using Pakar.Application.DTOs
+@inject UserSession Session
+@inject AuthenticatedApiClient Api
+
+<div class="report-entry">
+    @if (submitted is not null)
+    {
+        <div class="notice success" role="status">
+            <p class="mb-2">Report submitted for admin review.</p>
+            <a href="reports">View My Reports</a>
+        </div>
+        <button type="button" class="text-button small" @onclick="OpenAsync">Report another space</button>
+    }
+    else if (!open)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="OpenAsync">Report incorrect status</button>
+    }
+    else if (signInRequired)
+    {
+        <p class="mb-2"><a href="login">Log in</a> to submit a report.</p>
+        <button type="button" class="text-button small" @onclick="Close">Close</button>
+    }
+    else
+    {
+        <form @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+            <fieldset disabled="@submitting">
+                <legend class="h6">Report incorrect status</legend>
+                <label for="report-slot" class="form-label">Parking space</label>
+                <select id="report-slot" class="form-select mb-3" @ref="slotInput" @bind="spotId" required>
+                    <option value="">Select a space</option>
+                    @foreach (var spot in Zone.Spots)
+                    {
+                        <option value="@spot.Id">@spot.Name (@ParkingMapState.SpotLabel(spot.ObservedStatus))</option>
+                    }
+                </select>
+                <label for="report-description" class="form-label">What did you see?</label>
+                <textarea id="report-description" class="form-control mb-3" @bind="description" rows="2"
+                          maxlength="1000" placeholder="Example: A car is parked here, but the map shows the space as free." required></textarea>
+
+                @if (error is not null)
+                {
+                    <p class="notice danger" role="alert">@error</p>
+                }
+
+                <button type="submit" class="btn btn-primary btn-sm">@(submitting ? "Submitting…" : "Submit report")</button>
+                <button type="button" class="text-button small" @onclick="Close">Cancel</button>
+            </fieldset>
+        </form>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ZoneDto Zone { get; set; } = null!;
+
+    private Guid? spotId;
+    private string description = "";
+    private string? error;
+    private bool open, signInRequired, submitting, focusSlot;
+    private ElementReference slotInput;
+    private ReportSubmissionDto? submitted;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusSlot)
+        {
+            focusSlot = false;
+            await slotInput.FocusAsync();
+        }
+    }
+
+    private async Task OpenAsync()
+    {
+        signInRequired = await Session.GetUserAsync() is null;
+        submitted = null;
+        spotId = null;
+        description = "";
+        open = true;
+        error = null;
+        focusSlot = !signInRequired;
+    }
+
+    private void Close() => open = false;
+
+    private async Task SubmitAsync()
+    {
+        if (submitting)
+            return;
+
+        if (spotId is not { } id || Zone.Spots.All(spot => spot.Id != id))
+        {
+            error = "Select the parking space you want to report.";
+            return;
+        }
+
+        var text = description.Trim();
+        if (text.Length == 0)
+        {
+            error = "Describe what you saw.";
+            return;
+        }
+
+        submitting = true;
+        error = null;
+        try
+        {
+            var result = await Api.SendAsync<ReportSubmissionDto>(
+                HttpMethod.Post, "api/reports", new SubmitReportRequest(id, text));
+            if (result.Value is { } report)
+                submitted = report;
+            else
+            {
+                var failure = result.Error!;
+                error = failure.Fields.Count == 0
+                    ? failure.Message
+                    : string.Join(" ", failure.Fields.Values.SelectMany(messages => messages));
+                signInRequired = await Session.GetUserAsync() is null;
+            }
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+}

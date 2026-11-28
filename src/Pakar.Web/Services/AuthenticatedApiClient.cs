@@ -18,21 +18,35 @@ public sealed class ApiResult<T> : ApiResult
     public T? Value { get; init; }
 }
 
-/// <summary>Calls the admin endpoints of Pakar.Api with the signed-in user's Bearer token.</summary>
-public sealed class AdminApiClient(IHttpClientFactory factory, UserSession session)
+/// <summary>Calls Pakar.Api with the signed-in user's bearer token.</summary>
+public sealed class AuthenticatedApiClient(IHttpClientFactory factory, UserSession session)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly IReadOnlyDictionary<string, string[]> NoFields =
         new Dictionary<string, string[]>();
 
-    public async Task<ApiResult<T>> GetAsync<T>(string url)
+    public Task<ApiResult<T>> GetAsync<T>(string url) => SendAsync<T>(HttpMethod.Get, url);
+
+    public async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string url, object? body = null)
     {
-        var (response, error) = await SendCoreAsync(HttpMethod.Get, url, null);
+        var (response, error) = await SendCoreAsync(method, url, body);
         using (response)
         {
-            if (error is not null) return new ApiResult<T> { Error = error };
-            var value = await response!.Content.ReadFromJsonAsync<T>(Json);
-            return new ApiResult<T> { Value = value };
+            if (error is not null)
+                return new ApiResult<T> { Error = error };
+
+            try
+            {
+                var value = await response!.Content.ReadFromJsonAsync<T>(Json);
+                if (value is not null)
+                    return new ApiResult<T> { Value = value };
+            }
+            catch (Exception ex) when (ex is JsonException or HttpRequestException or OperationCanceledException)
+            {
+                // A response with an unreadable body is reported through the same UI error path.
+            }
+
+            return new ApiResult<T> { Error = new ApiError("The server response could not be read.", NoFields) };
         }
     }
 

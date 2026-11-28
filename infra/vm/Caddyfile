@@ -1,0 +1,22 @@
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# These must come first, otherwise the page fallback below would answer them with 200.
+	@blocked path /test-db /swagger /swagger/*
+	handle @blocked {
+		respond 404
+	}
+
+	@api path /api/* /hubs/* /health/* /occupancyHub*
+	handle @api {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		root * /srv
+		# Browsers revalidate (ETag) so a redeploy or rollback never mixes old and new app files.
+		header Cache-Control no-cache
+		try_files {path} /index.html
+		file_server
+	}
+}

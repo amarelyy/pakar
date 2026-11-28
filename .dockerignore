@@ -13,4 +13,8 @@ artifacts
 **/*.pt
 **/*.onnx
 **/*.mp4
+**/*.webm
+**/*.avi
+**/*.mov
+**/*.mkv
 **/*.log

@@ -1,6 +1,12 @@
 // Leaflet renders the geography. Blazor owns selection, availability and realtime state.
 window.campusMap = (() => {
     const colors = { available: '#0f7a4a', almost_full: '#e39b00', full: '#c42b2b', unknown: '#9aa3ae' };
+    // Faculty of Engineering, Universitas Gadjah Mada; used until spot coordinates are available.
+    const defaultCenter = [-7.7655, 110.3718];
+    const defaultZoom = 18;
+    // The spots of a zone sit in a thin row, so the box is padded to be easy to see and to hold the label.
+    const boxPaddingLat = 0.00008;
+    const boxPaddingLng = 0.00004;
     let map, zonesLayer, spotsLayer, reference, resizeObserver, selected;
     let zones = [];
 
@@ -14,34 +20,26 @@ window.campusMap = (() => {
         return zone.spots.filter(hasLocation).map(spot => [spot.latitude, spot.longitude]);
     }
 
-    function hull(coordinates) {
-        const sorted = [...new Map(coordinates.map(point => [point.join(','), point])).values()]
-            .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-        if (sorted.length < 3) return [];
+    // The smallest padded rectangle around the mapped spots of a zone.
+    function boxBounds(coordinates) {
+        const lats = coordinates.map(point => point[0]);
+        const lngs = coordinates.map(point => point[1]);
+        return [
+            [Math.min(...lats) - boxPaddingLat, Math.min(...lngs) - boxPaddingLng],
+            [Math.max(...lats) + boxPaddingLat, Math.max(...lngs) + boxPaddingLng]
+        ];
+    }
 
-        function side(ordered) {
-            const boundary = [];
-            for (const point of ordered) {
-                while (boundary.length >= 2) {
-                    const [x, y] = boundary.at(-2);
-                    const [u, v] = boundary.at(-1);
-                    const cross = (u - x) * (point[1] - y) - (v - y) * (point[0] - x);
-                    if (cross > 0) break;
-                    boundary.pop();
-                }
-                boundary.push(point);
-            }
-            return boundary.slice(0, -1);
-        }
-
-        return side(sorted).concat(side([...sorted].reverse()));
+    // A zone an admin forced to full reads as completely taken.
+    function takenSpots(zone) {
+        return zone.isOverridden && zone.status === 'full' ? zone.totalCapacity : zone.occupiedSpots;
     }
 
     function init(id, dotnet) {
         dispose();
         if (!window.L) throw new Error('Map library unavailable');
         reference = dotnet;
-        map = L.map(id, { zoomControl: false }).setView([-7.7685, 110.376], 17);
+        map = L.map(id, { zoomControl: false }).setView(defaultCenter, defaultZoom);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -54,19 +52,20 @@ window.campusMap = (() => {
         map.on('zoomend', drawSpots);
     }
 
-    function zoneLabel(zone, color) {
+    // Builds the label with DOM nodes instead of HTML strings, so a zone name can never inject markup.
+    function zoneLabel(zone) {
         const label = document.createElement('span');
         const count = document.createElement('strong');
-        const description = document.createElement('span');
         const name = document.createElement('small');
-        count.textContent = zone.waitingForSource ? '—' : zone.availableSpots;
-        description.textContent = zone.waitingForSource ? '' : ' free';
+        // Without any current reading the count is unknown, not zero, unless an admin forced the zone to full.
+        const forcedFull = zone.isOverridden && zone.status === 'full';
+        const noReading = zone.waitingForSource || (!forcedFull && zone.unknownSpots >= zone.totalCapacity);
+        count.textContent = (noReading ? '—' : takenSpots(zone)) + ' / ' + zone.totalCapacity;
         const note = zone.waitingForSource ? ' · waiting for first update'
             : zone.stale ? ' · stale data'
             : zone.unknownSpots > 0 ? ' · ' + zone.unknownSpots + ' with unknown status' : '';
         name.textContent = zone.name + note;
-        label.append(count, description, name);
-        label.style.setProperty('--badge-color', color);
+        label.append(count, name);
         return label;
     }
 
@@ -87,16 +86,12 @@ window.campusMap = (() => {
                 color: isSelected ? '#1f4fd8' : color,
                 weight: isSelected ? 3 : 2,
                 fillColor: color,
-                fillOpacity: zone.stale ? .1 : .2,
+                fillOpacity: zone.stale ? .1 : .35,
                 dashArray: zone.stale ? '4 4' : undefined
             };
-            const outline = hull(coordinates);
-            const center = L.latLngBounds(coordinates).getCenter();
-            const shape = outline.length >= 3
-                ? L.polygon(outline, options)
-                : L.circleMarker(center, { ...options, radius: 16 });
-            shape.bindTooltip(zoneLabel(zone, color), {
-                permanent: true, direction: 'center', className: 'zone-badge', interactive: true, opacity: 1
+            const shape = L.rectangle(boxBounds(coordinates), options);
+            shape.bindTooltip(zoneLabel(zone), {
+                permanent: true, direction: 'center', className: 'zone-box-label', interactive: true, opacity: 1
             });
             shape.on('click', () => reference?.invokeMethodAsync('SelectFromMap', zone.id));
             shape.addTo(zonesLayer);

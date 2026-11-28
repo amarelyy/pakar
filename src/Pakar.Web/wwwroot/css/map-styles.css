@@ -311,37 +311,36 @@
     background:var(--bad)
 }
 
-.leaflet-tooltip.zone-badge {
-    border:1px solid #e3e6ea;
-    border-radius:8px;
-    background:white;
+/* "spots taken / capacity" and the zone name inside each zone box */
+.leaflet-tooltip.zone-box-label {
+    border:0;
+    background:transparent;
+    box-shadow:none;
     color:var(--ink);
-    padding:6px 10px;
-    box-shadow:0 2px 5px #14181f18;
-    text-align:center
+    padding:0;
+    text-align:center;
+    text-shadow:0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff
 }
 
-.zone-badge::before {
+.zone-box-label::before {
     display:none
 }
 
-.zone-badge>span {
-    border-left:3px solid var(--badge-color);
-    padding-left:8px;
+.zone-box-label>span {
     display:block
 }
 
-.zone-badge strong {
-    font-size:17px
-}
-
-.zone-badge span {
-    font-size:11px
-}
-
-.zone-badge small {
+.zone-box-label strong {
     display:block;
-    color:var(--muted);
+    font-size:15px
+}
+
+.zone-box-label small {
+    display:block;
+    max-width:150px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
     font-size:10px
 }
 
@@ -554,15 +553,12 @@
         min-height:30px
     }
 
-    .leaflet-tooltip.zone-badge {
-        padding:4px 7px
+    .zone-box-label strong {
+        font-size:13px
     }
 
-    .zone-badge strong {
-        font-size:14px
-    }
-
-    .zone-badge small {
+    .zone-box-label small {
+        max-width:62px;
         font-size:9px
     }
 
@@ -577,20 +573,6 @@
         font-size:10px;
         min-height:28px;
         padding:4px 8px
-    }
-
-}
-
-.zone-badge small {
-    max-width:150px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis
-}
-
-@media(max-width:700px) {
-    .zone-badge small {
-        max-width:62px
     }
 
 }

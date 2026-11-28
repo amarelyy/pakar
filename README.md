@@ -12,7 +12,7 @@ https://www.figma.com/design/Auql4Y3M0MsSFPgexF73C1/PAKAR?node-id=2-2&t=FBpHGCQJ
 
 ## How it fits together
 
-The target is one virtual machine that runs the web app, the API and the video worker with Docker Compose, with the
+The target is one Azure virtual machine that runs the web app, the API and the video worker with Docker Compose, with the
 database on Neon. **It is prepared and rehearsed, not deployed yet.** Until then the earlier Vercel site stays online.
 
 ```
@@ -117,7 +117,7 @@ the compose file replaces every entry with `SITE_URL`; the web app and the API s
 
 1. Every push to the `azure` branch runs the tests and publishes the three images (`.github/workflows`).
 2. The server is set up and updated with the scripts in `infra/vm`; the full steps are in
-   [infra/vm/README.md](infra/vm/README.md). The same guide describes the fallback from a laptop behind a tunnel.
+   [infra/vm/README.md](infra/vm/README.md).
 3. Settings and secrets live in `infra/vm/.env.production` on the deploying computer and in `.env` on the server; neither
    is in git.
 

@@ -1,5 +1,5 @@
 // The two Container Apps: Api (one replica, in-memory realtime state) and Web (Blazor Server).
-// The AI video worker runs on a demo laptop, not here.
+// Not used. The deployment is the virtual machine in infra/vm.
 param location string
 param appName string
 param environmentId string

@@ -1,0 +1,27 @@
+name: ci
+
+# Pull requests are tested here; pushes to azure run these tests through images.yml before any image is built.
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          # Not global-json-file: the action would request SDK 10.0.0 exactly, which does not exist.
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Native libraries of the video worker tests, the same as in its Dockerfile.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libgtk-3-0t64 libgomp1 libdrm2 libatomic1
+      - run: dotnet test Pakar.slnx --configuration Release
+      - run: node tests/js/ai-feeder.test.mjs

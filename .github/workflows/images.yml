@@ -1,0 +1,46 @@
+name: images
+
+# Publishes ghcr.io/<owner>/pakar-{api,ai,web}:<commit hash>. Nothing here connects to the server.
+on:
+  push:
+    branches: [azure]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - { name: api, file: src/Pakar.Api/Dockerfile }
+          - { name: ai, file: src/Pakar.AiInference/Dockerfile }
+          - { name: web, file: src/Pakar.Web/Dockerfile }
+    steps:
+      - uses: actions/checkout@v4
+      # Registry names must be lower case.
+      - run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          # Single image manifest, without a provenance attestation entry.
+          provenance: false
+          tags: ghcr.io/${{ env.OWNER }}/pakar-${{ matrix.name }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

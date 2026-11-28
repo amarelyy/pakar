@@ -19,9 +19,9 @@ prepared and tested, **not yet deployed** on the Azure machine.
 
 | Area | What changed |
 | --- | --- |
-| Map | Dots per parking slot became one box per zone, labelled "spots taken / capacity", with a zone table and legend |
+| Map | Responsive map with one box per zone, a free-space label, zone cards, search, and slot details |
 | Zones | Three sample zones became four faculty zones: Teknik Kimia, Mesin dan Industri, Elektro dan TI, Nuklir dan Fisika |
-| Admin pages | Cameras, Users and Reports pages now work (they were empty); the Zones page can override a zone's status |
+| Admin pages | Cameras, Users, Reports, and manual zone status are available. The recording monitor switches between configured sources. |
 | User pages | New "My Reports" page |
 | Occupancy data | A slot without a recent reading is shown as unknown instead of free |
 | AI worker | Container image fixed; number of inference threads is a setting; one thread and 0.5 frames per second |
@@ -69,7 +69,7 @@ VERCEL VERSION (before)                      AZURE VERSION (branch azure)
 | API | A team computer, reached through a temporary tunnel | Container on the same machine |
 | Address | Two addresses; the API address changes when the tunnel restarts | One fixed address for web and API |
 | AI detection | In the admin's browser; the page must stay open | Separate container that runs by itself |
-| Video source | File chosen on the admin's computer | Recorded files stored on the machine (none collected yet) |
+| Video source | File chosen on the admin's computer | Recorded files on the VM. The local rehearsal uses four demo clips. |
 | HTTPS | Provided by Vercel and the tunnel | Caddy with a Let's Encrypt certificate |
 | Cross-origin setting (CORS) | Must list the Vercel address | Not needed, one address |
 | Secrets | Stored on the team computer | `.env` file on the machine |
@@ -80,5 +80,4 @@ VERCEL VERSION (before)                      AZURE VERSION (branch azure)
 | Map refresh | Every 4 seconds | Every 4 seconds (unchanged) |
 | Database | Neon PostgreSQL | Neon PostgreSQL (unchanged) |
 
-Not on either web version: zone search, alternate zone suggestion and the report form (FR 2, 4, 5, 6). The API supports
-them; see [TODO.md](TODO.md).
+The Azure branch includes zone search, alternate-zone suggestions, report submission and report status. Verification on the Azure VM is tracked in [TODO.md](TODO.md).

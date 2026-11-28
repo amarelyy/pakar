@@ -73,15 +73,6 @@
     margin-bottom:10px
 }
 
-.search-row {
-    display:flex;
-    gap:8px
-}
-
-.search-row input {
-    min-width:0
-}
-
 .filter-row {
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -623,9 +614,9 @@
     outline-offset: 2px;
 }
 
-#zone-search {
-    flex: 1;
-    padding: .55rem .7rem;
+#zone-picker {
+    min-height: 2.75rem;
+    padding: .55rem 2.25rem .55rem .7rem;
     border: 1px solid #cdd3dc;
     border-radius: 7px;
 }

@@ -23,20 +23,19 @@ public partial class CampusMap : IAsyncDisposable
     private DateTimeOffset now = DateTimeOffset.UtcNow;
     private Guid? selectedId;
     private AlternateZoneDto? alternate;
-    private HashSet<Guid>? textMatches;
-    private string query = "";
+    private Guid? zoneFilterId;
     private string status = "";
     private int? minimum;
-    private int searchVersion, alternateVersion;
+    private int alternateVersion;
     private bool loading = true;
-    private bool refreshing, searching, alternateLoading, alternateError;
+    private bool refreshing, alternateLoading, alternateError;
     private bool mapReady, focusDetail, disposed;
-    private string? error, searchError, mapError;
+    private string? error, mapError;
 
-    private bool HasFilters => !string.IsNullOrWhiteSpace(query) || status.Length > 0 || minimum.HasValue;
+    private bool HasFilters => zoneFilterId.HasValue || status.Length > 0 || minimum.HasValue;
     private ZoneDto? Selected => state.Zones.FirstOrDefault(zone => zone.Id == selectedId);
     private IEnumerable<ZoneDto> VisibleZones => state.Zones
-        .Where(zone => (textMatches is null || textMatches.Contains(zone.Id)) &&
+        .Where(zone => (!zoneFilterId.HasValue || zone.Id == zoneFilterId) &&
                        (status.Length == 0 || zone.Status == status) &&
                        (!minimum.HasValue || zone.AvailableSpots >= minimum.Value))
         .OrderByDescending(zone => zone.AvailableSpots)
@@ -82,6 +81,8 @@ public partial class CampusMap : IAsyncDisposable
             using var client = HttpClients.CreateClient("api");
             var zones = await client.GetFromJsonAsync<List<ZoneDto>>("api/parking/zones", lifetime.Token) ?? [];
             state.Reset(zones, DateTimeOffset.UtcNow);
+            if (zoneFilterId is { } id && zones.All(zone => zone.Id != id))
+                zoneFilterId = null;
             error = null;
         }
         catch (Exception ex) when (IsConnectionFailure(ex))
@@ -113,53 +114,11 @@ public partial class CampusMap : IAsyncDisposable
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
     }
 
-    private async Task SearchAsync()
-    {
-        if (disposed)
-            return;
-
-        var version = ++searchVersion;
-        var term = query.Trim();
-        searchError = null;
-        searching = term.Length > 0;
-        try
-        {
-            if (term.Length == 0)
-            {
-                textMatches = null;
-                return;
-            }
-
-            using var client = HttpClients.CreateClient("api");
-            // Text matching uses the API so descriptions are included. Filter live counts and status locally.
-            var path = $"api/parking/zones/search?q={Uri.EscapeDataString(term)}&limit=100";
-            var results = await client.GetFromJsonAsync<List<ZoneSummaryDto>>(path, lifetime.Token) ?? [];
-            if (version == searchVersion)
-                textMatches = results.Select(zone => zone.Id).ToHashSet();
-        }
-        catch (Exception ex) when (IsConnectionFailure(ex))
-        {
-            if (version == searchVersion && !disposed)
-            {
-                searchError = "Could not complete the search. Try again.";
-                textMatches = [];
-            }
-        }
-        finally
-        {
-            if (version == searchVersion)
-                searching = false;
-        }
-    }
-
     private void ResetFilters()
     {
-        ++searchVersion;
-        query = status = "";
+        zoneFilterId = null;
+        status = "";
         minimum = null;
-        textMatches = null;
-        searchError = null;
-        searching = false;
     }
 
     [JSInvokable]

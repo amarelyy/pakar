@@ -129,7 +129,8 @@ Checks after a deploy:
 - Quick tunnels get a new random address on every start. A named tunnel on your own domain keeps one address.
 - The first start with an empty `Admin:Email` account creates that admin in Neon (the password must be 12 characters or more).
 - The migration `AddCameraFrames` (reference picture for the polygon editor) is not applied to Neon yet; apply it deliberately, because the database is shared.
-- The browser model needs a real `best.onnx`; only a synthetic model has been tested.
+- The real `best.onnx` has been tested locally in Edge with WebGPU using the four demo clips. The team deployment still needs to serve the ONNX asset at the configured model URL and reach the API tunnel.
+- The browser feeder requires stronger confidence when switching a previously occupied slot to available. `Ai:AvailableConfirmationConfidence` defaults to 0.35 for the demo clips. Missing or pending slot readings are published as unknown.
 - Vercel deployment protection is on for preview URLs; the production address is public.
 
 ## Local development

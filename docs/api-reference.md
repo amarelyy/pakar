@@ -69,12 +69,14 @@ until map consumers migrate. See [runtime setup](ai/runtime-validation.md).
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/api/parking/zones` | Public | List every zone with capacity, available spots, status (`available`, `almost_full`, `full`), `isOverridden` and its spots (coordinates, occupied flag). Feeds the campus map. When an admin forced the status (FR 17), `status` is that value and a `full` zone shows 0 available spots. |
+| GET | `/api/parking/zones` | Public | List every zone with capacity, confirmed available and occupied counts, `unknownSpots`, status (`available`, `almost_full`, `full`, or `unknown`), `isOverridden`, and its spots. Feeds the campus map. When an admin forced the status (FR 17), `status` is that value and a `full` zone shows 0 available spots. |
 | GET | `/api/parking/zones/search` | Public | Search zones. Optional query: `q` (name or description), `status`, `minAvailable`, `lat` + `lng` (sort by distance), `limit`. |
 | GET | `/api/parking/zones/{id}/alternate` | Public | Nearest other zone that still has free spots, used when a zone is full. Optional `lat` + `lng`; without them the distance starts from the zone's own spots. |
 | GET | `/api/history/zones/{id}` | Public | Occupancy of one zone over time, for charts and prediction. Optional query: `from`, `to` (ISO 8601, default the last 24 hours), `bucket` (`hour` default, or `day`). Ranges: at most 7 days per hour bucket and 92 days per day bucket. Each point has `time` (UTC), `observations`, `occupiedObservations`, `occupancyRate` (0 to 1) and `spotsObserved`; empty buckets are left out. 400 for a bad bucket or range, 404 for an unknown zone. |
 | GET | `/api/history/detections` | Admin | Raw detection records, newest first, paged. Optional query: `zoneId`, `cameraId`, `spotId` (the AI spot id), `status` (`occupied` or `available`), `from`, `to` (default the last 24 hours, at most 31 days), `page`, `pageSize` (max 100). Records of removed zones and cameras are included. |
 | GET | `/api/parking/snapshot` | Public | Current in-memory state of all spots, zones and cameras. Used by a client to sync after connecting or reconnecting. |
+
+Each slot has `observedStatus` (`available`, `occupied`, or `unknown`) and nullable `observedAt`. `isOccupied` and `lastUpdated` describe the last saved status. Current readings count for two minutes and start unknown after an API restart. Search and zone alternatives use the confirmed counts.
 
 ## 3. Reports (FR 5, 6, 16)
 
@@ -128,13 +130,13 @@ The seed and the cameras already in the Neon database were converted to video so
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | POST | `/api/ingest/detections` | API key | The AI pipeline sends spot detections (`cameraId`, `areaId`, `type` = `change` or `heartbeat`, `timestamp`, `spots[]` max 500). Updates spot and zone state, stores detections, and pushes SignalR events. 404 if the camera is not registered. |
-| POST | `/api/feeder/detections` | Admin JWT | Same payload and effect as `/api/ingest/detections`; used by the browser feeder (`/admin/feeder`) that runs the model in the browser. |
+| POST | `/api/feeder/detections` | Admin JWT | Same payload and effect as `/api/ingest/detections`. The browser feeder (`/admin/feeder`) sends a batch with each configured slot's current reading. A slot with uncertain evidence has status `unknown` and does not replace the last confirmed history entry. |
 
 ## 7. Realtime (SignalR)
 
 | Hub | Auth | Purpose |
 | --- | --- | --- |
-| `/hubs/parking` | Public | Guest live updates. Server events: `SpotStatusChanged`, `ZoneUpdated` (also the "full" alert), `CameraStatusChanged`. Client methods: `JoinArea(areaId)`, `LeaveArea(areaId)`, `GetSnapshot()`. |
+| `/hubs/parking` | Public | Guest live updates. Server events: `SpotObservationsUpdated` (batches including unknown and refreshed readings), `SpotStatusChanged` (changes to known statuses), `ZoneUpdated` (also the "full" alert), `CameraStatusChanged`. Client methods: `JoinArea(areaId)`, `LeaveArea(areaId)`, `GetSnapshot()`. |
 | `/hubs/frames` | Admin | Browser camera sends JPEG frames with `AnalyzeFrame(cameraId, jpeg)` (max 512 KB) and gets bounding boxes back. The API forwards the frame to the inference service. Token may be passed as `?access_token=`. |
 | `/occupancyHub` | Public | Legacy hub (`ReceiveSpotUpdate`). Only kept for the old map page. |
 

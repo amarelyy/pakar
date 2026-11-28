@@ -19,7 +19,7 @@ https://www.figma.com/design/Auql4Y3M0MsSFPgexF73C1/PAKAR?node-id=2-2&t=FBpHGCQJ
 | Database | PostgreSQL | Neon (project `pakar-senpro`); a postgres container for local work |
 | Slot detection | ONNX model + `Pakar.Vision` rules | An admin's browser (`/admin/feeder`), or the .NET worker (`src/Pakar.AiInference`) on the API laptop |
 
-Details and trade-offs are in [decisions.md](decisions.md); the endpoint list is in [docs/api-reference.md](docs/api-reference.md);
+The endpoint list is in [docs/api-reference.md](docs/api-reference.md);
 what works and what is open is in [docs/status-and-issues.md](docs/status-and-issues.md).
 
 ## Run it locally

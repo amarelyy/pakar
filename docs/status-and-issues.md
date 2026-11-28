@@ -28,7 +28,7 @@ distribution URL is still pending.
 Checked on 2026-11-15 against the code in `main` (commit `0024db6`), a live run of `Pakar.Api`
 on a local PostgreSQL 18 and then on the new Neon project, and `TODO.md`. Updated on 2026-11-23 against `main` at
 commit `22c3fd1` (build, unit tests and a code review only; the API was **not** run again, so the live results below
-are still those of 2026-11-15). See `docs/api-reference.md` for the endpoint list and `decisions.md` for the deployment options.
+are still those of 2026-11-15). See `docs/api-reference.md` for the endpoint list.
 
 ## 1. What was verified in this run
 
@@ -52,7 +52,7 @@ are still those of 2026-11-15). See `docs/api-reference.md` for the endpoint lis
 | --- | --- |
 | `dotnet build Pakar.slnx` | OK |
 | Unit tests (`dotnet test`) | 80 passed, 0 failed (unchanged since 2026-11-15) |
-| New since 2026-11-15 | Admin **Zones page** `Admin/Zones.razor` and `Services/AdminApiClient.cs` (Deva, PRs #39 and #40); `src/Pakar.Api/Dockerfile` and `.dockerignore`; Bicep in `infra/`; `decisions.md` (deployment and AI location options) |
+| New since 2026-11-15 | Admin **Zones page** `Admin/Zones.razor` and `Services/AdminApiClient.cs` (Deva, PRs #39 and #40); `src/Pakar.Api/Dockerfile` and `.dockerignore`; Bicep in `infra/` |
 | Not merged | Branch `ai-dotnet` (Nabil, commits `deaa635` and `ddeb383`): ONNX engine, video worker, polygon editor, worker-config and reference-frame endpoints, `AddCameraFrames` migration. Latest migration on `main` is `AddVideoSourceRoi` |
 | Not exercised in this check | The running API, Neon, SignalR, the Web app in a browser (so the Zones page is only known to build) |
 
@@ -209,7 +209,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 | 15b | Medium | **Production secrets are not set up yet.** `.env.local` holds the Neon password locally only. `DATABASE_URL` and `DATABASE_URL_UNPOOLED` still have to be stored as Container App secrets or Key Vault entries (TODO #28). |
 | 15c | Low | The first start after linking needs `npm install` in the repo root (`@neon/config`) or `neon deploy` fails; the root `package.json` has no script that does this. |
 | 15d | Done | ~~The seeded admin on Neon used the local development password~~: rotated on 2026-11-15. Production still needs its own secret (`Admin--Password` in Key Vault, TODO #28); changing the password later means updating the `Users` row, since the seeder skips an existing account. |
-| 15e | High | **Hosting is not decided.** The Bicep targets Azure, but it was never deployed and Azure may not be available to the team. Vercel can host only a Blazor WebAssembly build of `Pakar.Web` (it is Blazor Server today) and never the API. Options, trade-offs and the AI location are in `decisions.md`. |
+| 15e | High | **Final hosting is not deployed yet.** The chosen target is one course Azure virtual machine for web, API and AI, with the database on Neon. The Bicep files describe Container Apps and are not used. |
 | 15f | High | **Hosting depends on one laptop and a quick tunnel.** If either is off, or the tunnel address changes, the site cannot reach the API until the site is rebuilt and redeployed. |
 | 15g | Medium | **Neon is shared.** The API run by the laptop writes to the team database (a new admin account was created there on the first start). Use a separate Neon branch for experiments. |
 | 15h | Low | Two stale preview deployments of `pakar-web` remain in Vercel and can be deleted. |
@@ -238,7 +238,7 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 
 ## 4. Suggested order
 
-1. Decide hosting and where the AI runs (`decisions.md`, item 15e) with the team; it blocks Dockerfiles, CI and the first deployment.
+1. Deploy to the course Azure virtual machine (item 15e): containers, compose file, CI and the setup runbook.
 2. FR 17 override endpoint (item 1; `PUT`, list endpoints for zones and cameras are done).
 3. Build the remaining admin web pages: Users, Cameras, Reports (item 8).
 4. Review and merge `ai-dotnet`.

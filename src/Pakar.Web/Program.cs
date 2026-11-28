@@ -28,7 +28,7 @@ builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<AuthApiClient>();
 builder.Services.AddScoped<UserSession>();
-builder.Services.AddScoped<AdminApiClient>();
+builder.Services.AddScoped<AuthenticatedApiClient>();
 builder.Services.AddScoped<RoiApiClient>();
 builder.Services.AddScoped<FeederApiClient>();
 builder.Services.AddScoped<BrowserDetector>();

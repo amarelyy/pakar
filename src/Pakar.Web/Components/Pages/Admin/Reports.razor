@@ -1,0 +1,254 @@
+@page "/admin/reports"
+@using Pakar.Application.Common
+@using Pakar.Application.DTOs
+@using Pakar.Web.Components.Ui
+@inject AuthenticatedApiClient Api
+@inject UserSession Session
+
+<PageTitle>Review Parking Reports · PAKAR</PageTitle>
+
+<AdminOnly>
+    <a href="admin">Back to admin</a>
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
+        <div>
+            <h1 class="mt-2 mb-1">Review parking reports</h1>
+            <p class="muted mb-0">Review user reports about inaccurate parking space status.</p>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@busy" @onclick="ReloadAsync">Refresh reports</button>
+    </div>
+
+    @if (success)
+    {
+        <p class="notice success" role="status">Review saved.</p>
+    }
+    @if (queueError is not null)
+    {
+        <p class="notice danger" role="alert">@queueError</p>
+    }
+
+    <div class="row g-3">
+        <section class="@(selected is null ? "col-12" : "col-12 col-lg-7")" aria-label="Report list">
+            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                <div>
+                    <label for="report-filter" class="form-label">Report status</label>
+                    <select id="report-filter" class="form-select" @bind="filter" @bind:after="FilterAsync" disabled="@busy">
+                        <option value="">All statuses</option>
+                        <option value="PendingReview">Pending review</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Dismissed">Dismissed</option>
+                    </select>
+                </div>
+                @if (queue is not null)
+                {
+                    <span class="muted">@queue.TotalCount @(queue.TotalCount == 1 ? "report" : "reports")</span>
+                }
+            </div>
+            @if (busy && queue is null)
+            {
+                <p role="status">Loading reports…</p>
+            }
+            @if (queue is { } data)
+            {
+                @if (data.Items.Count == 0)
+                {
+                    <p class="card p-3">No reports match this status.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr><th scope="col">Space and zone</th><th scope="col">Reported by</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var report in data.Items)
+                                {
+                                    <tr @key="report.Id">
+                                        <td><strong>@report.SpotName</strong><span class="cell-sub">@report.ZoneName</span></td>
+                                        <td>@report.SubmittedByName</td>
+                                        <td><StatusChip Status="@report.Status" /></td>
+                                        <td><button type="button" class="btn btn-outline-primary btn-sm" disabled="@busy"
+                                                    @onclick="() => OpenReport(report)">View details</button></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                @if (data.TotalPages > 1)
+                {
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@(busy || data.Page <= 1)"
+                                @onclick="() => LoadAsync(data.Page - 1)">Previous</button>
+                        <span>Page @data.Page of @data.TotalPages</span>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@(busy || data.Page >= data.TotalPages)"
+                                @onclick="() => LoadAsync(data.Page + 1)">Next</button>
+                    </div>
+                }
+            }
+        </section>
+
+        @if (selected is { } current)
+        {
+            <div class="col-12 col-lg-5">
+                <section class="card p-3" aria-label="Report details">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <h2 class="h5" tabindex="-1" @ref="detailsHeading">@current.SpotName · @current.ZoneName</h2>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@busy"
+                                @onclick="CloseReport">Close</button>
+                    </div>
+                    <p><StatusChip Status="@current.Status" /></p>
+                    <p class="muted small">
+                        @current.SubmittedByName · <time datetime="@current.SubmittedAt.ToString("O")">@current.SubmittedAt.AddHours(7).ToString("dd/MM/yyyy, HH:mm") WIB</time>
+                    </p>
+                    <p class="report-text">@current.Description</p>
+                    @if (Uri.TryCreate(current.EvidenceImageUrl, UriKind.Absolute, out var evidence) && evidence.Scheme is "https" or "http")
+                    {
+                        <p><a href="@evidence.AbsoluteUri" target="_blank" rel="noopener noreferrer">View attached evidence</a></p>
+                    }
+                    @if (current.Status == "PendingReview")
+                    {
+                        <form @onsubmit="ReviewAsync" @onsubmit:preventDefault>
+                            <fieldset disabled="@busy">
+                                <label for="review-decision" class="form-label">Decision</label>
+                                <select id="review-decision" class="form-select mb-3" @bind="decision" required>
+                                    <option value="">Select a decision</option>
+                                    <option value="Resolved">Resolve report</option>
+                                    <option value="Dismissed">Dismiss report</option>
+                                </select>
+                                <label for="review-note" class="form-label">Note for the reporter (optional)</label>
+                                <textarea id="review-note" class="form-control mb-3" @bind="note" maxlength="500" rows="3"></textarea>
+                                @if (reviewError is not null)
+                                {
+                                    <p class="notice danger" role="alert">@reviewError</p>
+                                }
+                                <button type="submit" class="btn btn-primary">Save decision</button>
+                            </fieldset>
+                        </form>
+                    }
+                    else
+                    {
+                        <p class="muted mb-1">Reviewed by @current.ReviewedByName</p>
+                        @if (!string.IsNullOrWhiteSpace(current.AdminNote))
+                        {
+                            <p class="report-text mb-0">@current.AdminNote</p>
+                        }
+                    }
+                </section>
+            </div>
+        }
+    </div>
+</AdminOnly>
+
+@code {
+    private string filter = "PendingReview";
+    private string decision = "";
+    private string note = "";
+    private string? queueError, reviewError;
+    private bool busy, success, focusDetails;
+    private PagedResult<ReportDto>? queue;
+    private ReportDto? selected;
+    private ElementReference detailsHeading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if ((await Session.GetUserAsync())?.IsAdmin == true)
+            await LoadAsync(1);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusDetails)
+        {
+            focusDetails = false;
+            await detailsHeading.FocusAsync();
+        }
+    }
+
+    private Task ReloadAsync()
+    {
+        CloseReport();
+        success = false;
+        return LoadAsync(queue?.Page ?? 1);
+    }
+
+    private Task FilterAsync()
+    {
+        CloseReport();
+        success = false;
+        queue = null;
+        return LoadAsync(1);
+    }
+
+    private async Task LoadAsync(int page)
+    {
+        busy = true;
+        try
+        {
+            await RefreshQueueAsync(page);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task RefreshQueueAsync(int page)
+    {
+        var query = $"api/reports?status={Uri.EscapeDataString(filter)}";
+        var result = await Api.GetAsync<PagedResult<ReportDto>>($"{query}&page={page}");
+        if (result.Value is { } data && data.Page > Math.Max(1, data.TotalPages))
+            result = await Api.GetAsync<PagedResult<ReportDto>>($"{query}&page={Math.Max(1, data.TotalPages)}");
+
+        queue = result.Value;
+        queueError = result.Error?.Message;
+    }
+
+    private void OpenReport(ReportDto report)
+    {
+        selected = report;
+        decision = note = "";
+        reviewError = null;
+        success = false;
+        focusDetails = true;
+    }
+
+    private void CloseReport()
+    {
+        selected = null;
+        reviewError = null;
+        focusDetails = false;
+    }
+
+    private async Task ReviewAsync()
+    {
+        if (busy || selected is not { } report || report.Status != "PendingReview" || decision.Length == 0)
+            return;
+
+        busy = true;
+        reviewError = null;
+        success = false;
+        try
+        {
+            var result = await Api.SendAsync<ReportDto>(HttpMethod.Post, $"api/reports/{report.Id}/review",
+                new ReviewReportRequest(decision, note.Trim()));
+            if (result.Value is { } reviewed)
+            {
+                selected = reviewed;
+                success = true;
+                await RefreshQueueAsync(queue?.Page ?? 1);
+            }
+            else
+            {
+                var failure = result.Error!;
+                reviewError = failure.Fields.Count == 0
+                    ? failure.Message
+                    : string.Join(" ", failure.Fields.Values.SelectMany(messages => messages));
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

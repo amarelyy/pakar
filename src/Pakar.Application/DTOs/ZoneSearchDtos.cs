@@ -24,7 +24,8 @@ public sealed record ZoneSummaryDto(
     double? Latitude,
     double? Longitude,
     double? DistanceMeters,
-    bool IsOverridden = false);
+    bool IsOverridden = false,
+    int UnknownSpots = 0);
 
 /// <summary>
 /// FR 4: the nearest zone with free spots. Alternative is null when no other zone has space.

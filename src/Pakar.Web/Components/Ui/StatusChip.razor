@@ -1,0 +1,17 @@
+<span class="status-chip @Status"><span aria-hidden="true">●</span> @Label</span>
+
+@code {
+    [Parameter, EditorRequired] public string Status { get; set; } = "unknown";
+
+    private string Label => Status switch
+    {
+        "available" => "Available",
+        "almost_full" => "Almost full",
+        "full" => "Full",
+        "unknown" => "Unknown",
+        "PendingReview" => "Pending review",
+        "Resolved" => "Resolved",
+        "Dismissed" => "Dismissed",
+        _ => "Unknown"
+    };
+}

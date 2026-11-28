@@ -94,3 +94,6 @@ src/Pakar.Web/wwwroot/models/*
 src/Pakar.Web/wwwroot/videos/*
 !src/Pakar.Web/wwwroot/models/.gitkeep
 !src/Pakar.Web/wwwroot/videos/.gitkeep
+
+# Agents
+context and rules/*

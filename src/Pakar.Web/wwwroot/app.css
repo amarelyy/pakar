@@ -87,3 +87,106 @@ h1:focus {
 .app-loading {
     padding: 2rem;
 }
+
+:root {
+    --ground:#f4f5f7;
+    --card:#fff;
+    --hairline:#e3e6ea;
+    --ink:#14181f;
+    --muted:#5b6470;
+    --accent:#1f4fd8;
+    --accent-soft:#e8eeff;
+    --ok:#0f7a4a;
+    --ok-soft:#e3f3ea;
+    --warn:#e39b00;
+    --warn-soft:#fff3d6;
+    --bad:#c42b2b;
+    --bad-soft:#fce9e9
+}
+
+.muted {
+    color:var(--muted)
+}
+
+.eyebrow {
+    font-size:11px;
+    letter-spacing:.12em;
+    color:var(--muted);
+    font-weight:700
+}
+
+.tnum {
+    font-variant-numeric:tabular-nums
+}
+
+.cell-sub {
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-top:3px
+}
+
+.status-chip {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+    font-size:11px;
+    font-weight:650;
+    padding:4px 8px;
+    border-radius:5px;
+    background:#eef0f3;
+    color:var(--muted)
+}
+
+.notice {
+    padding:12px 16px;
+    border:1px solid var(--hairline);
+    border-radius:8px;
+    background:white;
+    margin-bottom:16px
+}
+
+.notice.danger {
+    background:var(--bad-soft);
+    color:#9b1c1c;
+    border-color:#f0c8c8
+}
+
+.notice.warning {
+    background:var(--warn-soft);
+    color:#7a4d00
+}
+
+body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.page-body:not(:has(.parking-page)) {
+    width: min(100%, 78rem);
+    margin-inline: auto;
+    padding: 1.5rem 2rem;
+}
+
+.status-chip.available { background: var(--ok-soft); color: #0b5a37; }
+.status-chip.almost_full { background: var(--warn-soft); color: #7a4d00; }
+.status-chip.full { background: var(--bad-soft); color: #9b1c1c; }
+
+@media (max-width: 700px) {
+    .page-body:not(:has(.parking-page)) { padding: 1rem; }
+}
+.status-chip.PendingReview { background: var(--warn-soft); color: #7a4d00; }
+.status-chip.Resolved { background: var(--ok-soft); color: #0b5a37; }
+.status-chip.Dismissed { background: var(--bad-soft); color: #9b1c1c; }
+
+.notice.success {
+    background: var(--ok-soft);
+    color: #0b5a37;
+}
+
+.report-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

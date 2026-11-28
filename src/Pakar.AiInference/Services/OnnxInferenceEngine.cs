@@ -13,6 +13,8 @@ public sealed class ModelOptions
     public string Path { get; set; } = "models/best.onnx";
     public float Confidence { get; set; } = .10f;
     public float NmsIou { get; set; } = .70f;
+    /// <summary>CPU threads per inference. Use no more than the CPU limit of the machine or container.</summary>
+    public int Threads { get; set; } = 4;
 }
 
 /// <summary>Fixed FP32 YOLOv8 slot model, [1,3,640,640] -> [1,6,8400]. CPU provider.</summary>
@@ -30,7 +32,14 @@ public sealed class OnnxInferenceEngine : IInferenceEngine, IDisposable
         if (!float.IsFinite(options.Confidence) || options.Confidence is < 0 or > 1 ||
             !float.IsFinite(options.NmsIou) || options.NmsIou is < 0 or > 1)
             throw new ArgumentException("Model thresholds must be in 0..1.");
-        using var settings = new Microsoft.ML.OnnxRuntime.SessionOptions { IntraOpNumThreads = 4 };
+        if (options.Threads is < 1 or > 64) throw new ArgumentException("Model threads must be in 1..64.");
+        using var settings = new Microsoft.ML.OnnxRuntime.SessionOptions
+        {
+            IntraOpNumThreads = options.Threads,
+            InterOpNumThreads = 1
+        };
+        // Idle threads must sleep: busy waiting uses up the CPU limit between frames.
+        settings.AddSessionConfigEntry("session.intra_op.allow_spinning", "0");
         try { session = new InferenceSession(options.Path, settings); }
         catch (OnnxRuntimeException) { throw new ModelNotLoadedException("The ONNX slot model could not be loaded."); }
         try

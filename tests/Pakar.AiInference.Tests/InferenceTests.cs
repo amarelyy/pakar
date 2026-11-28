@@ -20,4 +20,20 @@ public class InferenceTests
     [Fact]
     public void MissingModelFailsExplicitly() => Assert.Throws<ModelNotLoadedException>(() =>
         new OnnxInferenceEngine(Options.Create(new ModelOptions { Path = "missing-model.onnx" })));
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(65)]
+    public void ThreadCountOutsideRangeIsRejected(int threads)
+    {
+        // The file only has to exist: the options are checked before the model is opened.
+        var path = Path.GetTempFileName();
+        try
+        {
+            var error = Assert.Throws<ArgumentException>(() =>
+                new OnnxInferenceEngine(Options.Create(new ModelOptions { Path = path, Threads = threads })));
+            Assert.Contains("threads", error.Message);
+        }
+        finally { File.Delete(path); }
+    }
 }

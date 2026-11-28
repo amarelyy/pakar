@@ -74,8 +74,10 @@ services:
       Worker__ApiBaseUrl: http://api:8080/
       Worker__ApiKey: ${Ingest__ApiKey:?}
       Worker__VideoRoot: /assets/videos
-      Worker__SampleFps: ${WORKER_SAMPLE_FPS:-2}
+      Worker__SampleFps: ${WORKER_SAMPLE_FPS:-0.5}
       Model__Path: /assets/models/best.onnx
+      # One inference thread matches the CPU limit below; more threads only compete for it.
+      Model__Threads: ${MODEL_THREADS:-1}
     volumes:
       - ${ASSETS_DIR:?}:/assets:ro
     depends_on:

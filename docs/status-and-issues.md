@@ -1,5 +1,29 @@
 # PAKAR Status: Done, Problems and Mismatches
 
+## Current state, 2026-11-28 (branch `azure`)
+
+The sections below this one are history; where they disagree, this section and [TODO.md](../TODO.md) apply.
+
+| Area | State |
+| --- | --- |
+| Target | One virtual machine with Docker Compose (web, API, video worker), database on Neon. Not deployed yet |
+| Build and tests | Build succeeds; 111 API, 32 AI and 11 web tests and the JavaScript test pass |
+| CI and images | `ci` and `images` workflows pass on GitHub; images are public |
+| Rehearsal | Passed on a laptop, on a stand-in machine and through a tunnel (last section) |
+| Web | Boxed zone map with polling; admin pages for zones, cameras, users, reports, polygons and the feeder |
+| AI | Slot model (YOLOv8n, `empty` and `occupied`) runs in the worker container; accuracy not measured |
+| Videos | No parking video yet, so no zone shows live data |
+| Database | Production holds the four faculty zones and one active administrator |
+
+Functional requirements:
+
+| State | Requirements |
+| --- | --- |
+| Working | FR 3, 7, 8, 9, 13, 14, 15, 16, 17 |
+| Partly | FR 1 (about 8 to 10 s instead of 5), FR 10 and 11 (technical test only), FR 12 (not saved) |
+| API only, missing in the web | FR 2, 4, 5, 6 |
+| Not built (product goals) | Prediction, usage charts, full-capacity alerts, saved zones |
+
 ## Current AI branch verification — 2026-11-15
 
 `ai-dotnet` implements ONNX inference, C# ROI/debounce, looped video

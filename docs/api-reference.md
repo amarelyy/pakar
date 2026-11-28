@@ -134,6 +134,9 @@ The seed and the cameras already in the Neon database were converted to video so
 
 ## 7. Realtime (SignalR)
 
+Since 2026-11-28 the web app does not connect to these hubs: the map polls `GET /api/parking/zones` every 4 seconds. The
+hubs stay available in the API.
+
 | Hub | Auth | Purpose |
 | --- | --- | --- |
 | `/hubs/parking` | Public | Guest live updates. Server events: `SpotObservationsUpdated` (batches including unknown and refreshed readings), `SpotStatusChanged` (changes to known statuses), `ZoneUpdated` (also the "full" alert), `CameraStatusChanged`. Client methods: `JoinArea(areaId)`, `LeaveArea(areaId)`, `GetSnapshot()`. |
@@ -144,13 +147,18 @@ The seed and the cameras already in the Neon database were converted to video so
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| GET | `/health/live` | Public | Process is up (Container Apps liveness probe). |
-| GET | `/health/ready` | Public | Database is reachable (readiness probe). |
+| GET | `/health/live` | Public | Process is up (liveness). |
+| GET | `/health/ready` | Public | Database is reachable (readiness; used by the container health check). |
 | GET | `/test-db` | Public, Development only | Returns "DB Connected!" and the zone count. Not registered in other environments; use `/health/ready` there. |
 | POST | `/api/inference/trigger-update` | Dev | Simulate a detection for one spot (`spotId`, `isOccupied`) and broadcast it on `/occupancyHub`. |
 | GET | `/test-signalr` | Dev | Browser page that shows `/hubs/parking` events. |
 
+On the server the web container is the only public address. It forwards `/api`, `/hubs`, `/health` and `/occupancyHub`
+to the API and answers `404` for `/test-db` and `/swagger`.
+
 ## 9. Pakar.AiInference (separate service)
+
+In the compose deployment this service runs as the video worker and has no public address.
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |

@@ -12,15 +12,26 @@ https://www.figma.com/design/Auql4Y3M0MsSFPgexF73C1/PAKAR?node-id=2-2&t=FBpHGCQJ
 
 ## How it fits together
 
+The target is one virtual machine that runs the web app, the API and the video worker with Docker Compose, with the
+database on Neon. **It is prepared and rehearsed, not deployed yet.** Until then the earlier Vercel site stays online.
+
+```
+Browser --HTTPS--> Virtual machine (Ubuntu, Docker Compose)
+                    |- web   Caddy: TLS, Blazor WebAssembly files, proxy of /api, /hubs, /health
+                    |- api   ASP.NET Core, one process  ------TLS------> Neon PostgreSQL
+                    `- ai    .NET worker, ONNX Runtime: recorded videos -> slot status -> api
+```
+
 | Part | Technology | Where it runs |
 | --- | --- | --- |
-| Web app (`src/Pakar.Web`) | Blazor WebAssembly | Vercel, static files: https://pakar-parkir.vercel.app |
-| API (`src/Pakar.Api`) | ASP.NET Core .NET 10, SignalR | One always-on process; at the moment the team laptop behind a tunnel |
-| Database | PostgreSQL | Neon (project `pakar-senpro`); a postgres container for local work |
-| Slot detection | ONNX model + `Pakar.Vision` rules | An admin's browser (`/admin/feeder`), or the .NET worker (`src/Pakar.AiInference`) on the API laptop |
+| Web app (`src/Pakar.Web`) | Blazor WebAssembly served by Caddy; the map polls the API every 4 seconds | `web` container |
+| API (`src/Pakar.Api`) | ASP.NET Core .NET 10 | `api` container, one process (live state is in memory) |
+| Slot detection (`src/Pakar.AiInference`) | ONNX model + `Pakar.Vision` rules on recorded video | `ai` container; the browser feeder (`/admin/feeder`) is the fallback |
+| Database | PostgreSQL | Neon; separate branches for production and rehearsal |
+| Images | Built and published by GitHub Actions | `ghcr.io` |
 
-The endpoint list is in [docs/api-reference.md](docs/api-reference.md);
-what works and what is open is in [docs/status-and-issues.md](docs/status-and-issues.md).
+Deployment guide: [infra/vm/README.md](infra/vm/README.md). Endpoints: [docs/api-reference.md](docs/api-reference.md).
+Status: [docs/status-and-issues.md](docs/status-and-issues.md). Open work: [TODO.md](TODO.md).
 
 ## Run it locally
 
@@ -31,6 +42,19 @@ what works and what is open is in [docs/status-and-issues.md](docs/status-and-is
 First time only: create `infra/.env` from `infra/.env.example`, then set the API's user-secrets (next section).
 To use the browser detection, put `best.onnx` in `src/Pakar.Web/wwwroot/models/` and demo videos in `src/Pakar.Web/wwwroot/videos/`
 (both are git-ignored). Tests: `dotnet test` and `node tests/js/ai-feeder.test.mjs`.
+
+### With Docker, as on the server
+
+1. Copy `infra/vm/.env.example` to `infra/vm/.env` and fill it. Use a test database, never production.
+2. Put the model in `artifacts/vm-assets/models/best.onnx` and the videos in `artifacts/vm-assets/videos/`.
+3. Start and stop:
+
+```powershell
+docker compose -f infra/vm/compose.yml up -d --build --wait
+docker compose -f infra/vm/compose.yml down
+```
+
+The web app answers on `https://localhost` (or the port set with `HTTPS_PORT`); accept the local certificate.
 
 ## Configuration
 
@@ -68,8 +92,8 @@ dotnet user-secrets set "Admin:Password" "<at least 12 characters>"
 ```
 
 Health endpoints: `/health/live` (process) and `/health/ready` (database). When `DATABASE_URL` is set (Neon), it wins over
-`ConnectionStrings:DefaultConnection`. `Cors:Origins` lists the web addresses allowed to call the API; deployed hosts add the
-Vercel address with `Cors__Origins__0`.
+`ConnectionStrings:DefaultConnection`. `Cors:Origins` lists the web addresses allowed to call the API. On the server
+the compose file replaces every entry with `SITE_URL`; the web app and the API share that one address.
 
 ### Pakar.AiInference (the .NET worker, used when no browser runs the model)
 
@@ -78,6 +102,8 @@ Vercel address with `Cors__Origins__0`.
 | `Worker__Enabled` | Must be `true`; it defaults to `false` and then the worker does nothing. |
 | `Worker__ApiBaseUrl`, `Worker__ApiKey` | The API address and the API's `Ingest:ApiKey` (at least 32 characters). |
 | `Worker__VideoRoot`, `Model__Path` | Folder with the videos and the exported `best.onnx`. |
+| `Worker__SampleFps` | Frames analysed per second and per video (default 2; the compose file uses 0.5). |
+| `Model__Threads` | CPU threads per inference (default 4; the compose file uses 1). |
 
 ### Pakar.Web
 
@@ -89,9 +115,14 @@ Vercel address with `Cors__Origins__0`.
 
 ## Deployment
 
-The team does not use Azure. The web app is published to Vercel with `scripts/publish-vercel.ps1` and the API runs behind a
-tunnel with `scripts/run-api-tunnel.ps1`. The full runbook, including the commands that were used for the live site, is
-[infra/vercel/README.md](infra/vercel/README.md). The Bicep files in `infra/` are kept only as a reference ([infra/README.md](infra/README.md)).
+1. Every push to the `azure` branch runs the tests and publishes the three images (`.github/workflows`).
+2. The server is set up and updated with the scripts in `infra/vm`; the full steps are in
+   [infra/vm/README.md](infra/vm/README.md). The same guide describes the fallback from a laptop behind a tunnel.
+3. Settings and secrets live in `infra/vm/.env.production` on the deploying computer and in `.env` on the server; neither
+   is in git.
+
+The earlier Vercel setup is described in [infra/vercel/README.md](infra/vercel/README.md). The Bicep files in `infra/`
+target another Azure design and are not used ([infra/README.md](infra/README.md)).
 
 ## Database Migrations
 

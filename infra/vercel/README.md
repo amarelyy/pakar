@@ -1,5 +1,8 @@
 # PAKAR on Vercel (Blazor WebAssembly) with a separate API host
 
+> **Earlier setup (2026-11-28).** The deployment is moving to one virtual machine, see [`../vm/README.md`](../vm/README.md).
+> The site on Vercel stays online until then and still runs the older web build. This guide is not maintained.
+
 The web app (`src/Pakar.Web`) is a **Blazor WebAssembly** site: static files that Vercel serves, with the code running in the
 visitor's browser. The API (`src/Pakar.Api`) is **not** on Vercel (it is one long-running process with SignalR); it needs its own host.
 The slot model also runs in the browser (ONNX Runtime Web), on the admin's `/admin/feeder` page.

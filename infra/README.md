@@ -1,7 +1,8 @@
 # PAKAR infrastructure (Azure)
 
-> **Note (2026-11-23):** the team decided not to use Azure. The web app is now Blazor WebAssembly on Vercel and the API runs on another host;
-> see `infra/vercel/README.md`. The Bicep files below, including the Web container app, are kept only as a reference.
+> **Not used (2026-11-28).** The deployment is one virtual machine with Docker Compose: see
+> [`vm/README.md`](vm/README.md). The Bicep files below describe an earlier design with several Azure services, which the
+> course rules do not allow. They are kept only as a reference.
 
 Bicep templates for issue #28 and the secret handling for issue #29.
 The database is **Neon** (outside Azure), so there is no SQL resource.

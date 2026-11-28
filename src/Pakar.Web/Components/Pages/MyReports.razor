@@ -6,9 +6,9 @@
 
 <PageTitle>My Reports · PAKAR</PageTitle>
 
-<div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
     <h1 class="mb-0">My Reports</h1>
-    <a class="btn btn-outline-secondary btn-sm" href="">Back to the map</a>
+    <a class="btn btn-ui" href="">Back to the map</a>
 </div>
 
 @if (loading)
@@ -22,7 +22,7 @@ else if (!signedIn)
 else if (error is not null)
 {
     <div class="notice danger" role="alert">
-        @error <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Try again</button>
+        @error <button type="button" class="btn btn-ui btn-sm" @onclick="LoadAsync">Try again</button>
     </div>
 }
 else if (reports.Count == 0)
@@ -35,7 +35,7 @@ else if (reports.Count == 0)
 else
 {
     <div class="mb-3">
-        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">Refresh reports</button>
+        <button type="button" class="btn btn-ui btn-sm" @onclick="LoadAsync">Refresh reports</button>
     </div>
     <div class="row row-cols-1 row-cols-lg-2 g-3">
         @foreach (var report in reports)

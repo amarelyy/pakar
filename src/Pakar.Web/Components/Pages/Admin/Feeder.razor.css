@@ -1,22 +1,10 @@
-.feeder-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: end;
-    margin-bottom: 0.75rem;
-}
-
-.feeder-controls .form-select {
-    max-width: 24rem;
+.feeder-select {
+    flex: 1 1 17rem;
 }
 
 .feeder-local {
     max-width: 32rem;
     margin-bottom: 0.5rem;
-}
-
-.feeder-note {
-    margin: 0.25rem 0 0;
 }
 
 .feeder-stage {

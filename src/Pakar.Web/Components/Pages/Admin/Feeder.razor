@@ -5,6 +5,7 @@
 @using Pakar.Domain.Services
 @using Pakar.Shared.Dtos
 @using Pakar.Vision
+@using Pakar.Web.Components.Admin
 @inject FeederApiClient Api
 @inject BrowserDetector Detector
 @inject IOptions<AiOptions> AiSettings
@@ -13,7 +14,7 @@
 <PageTitle>Browser feeder · PAKAR</PageTitle>
 
 <AdminOnly>
-    <h1>Browser feeder</h1>
+    <AdminPageHeader Title="Browser feeder" />
     <p>
         Plays a demo video, finds occupied and empty slots with the model in this browser, and sends the result
         to the API like the video worker does. Keep this tab open and visible while it runs: if it stops, the
@@ -25,30 +26,36 @@
         <p class="text-danger" role="alert">@error</p>
     }
 
-    <div class="feeder-controls">
-        <label for="source" class="form-label">Video source</label>
-        <select id="source" class="form-select" @bind="selectedCameraId" disabled="@running">
-            <option value="0">Select a source</option>
-            @foreach (var item in sources)
-            {
-                <option value="@item.CameraId">@item.Name (@item.VideoFile)</option>
-            }
-        </select>
-        <button type="button" class="btn btn-primary" @onclick="StartAsync" disabled="@(running || starting || selected is null)">
-            @(starting ? "Starting..." : "Start")
-        </button>
-        <button type="button" class="btn btn-outline-secondary" @onclick="StopAsync" disabled="@(!running)">Stop</button>
-        <button type="button" class="btn btn-link" @onclick="LoadSourcesAsync" disabled="@(running || starting)">Reload sources</button>
+    <div class="admin-panel admin-toolbar">
+        <label for="source" class="admin-label">Video source</label>
+        <div class="admin-inline">
+            <select id="source" class="form-select admin-input feeder-select" @bind="selectedCameraId" disabled="@running">
+                <option value="0">Select a source</option>
+                @foreach (var item in sources)
+                {
+                    <option value="@item.CameraId">@item.Name (@item.VideoFile)</option>
+                }
+            </select>
+            <div class="admin-inline">
+                <button type="button" class="btn btn-ui btn-ui-primary" @onclick="StartAsync" disabled="@(running || starting || selected is null)">
+                    @(starting ? "Starting..." : "Start")
+                </button>
+                <button type="button" class="btn btn-ui" @onclick="StopAsync" disabled="@(!running)">Stop</button>
+                <button type="button" class="btn btn-ui" @onclick="LoadSourcesAsync" disabled="@(running || starting)">Reload sources</button>
+            </div>
+        </div>
     </div>
 
     <div class="feeder-local">
-        <label for="local-video" class="form-label">Video from this computer (processed locally in your browser)</label>
-        <input id="local-video" type="file" accept="video/*" class="form-control" @ref="localInput"
+        <label for="local-video" class="admin-label">Video from this computer (processed locally in your browser)</label>
+        <input id="local-video" type="file" accept="video/*" class="form-control rounded-3" @ref="localInput"
                @onchange="OnLocalVideoAsync" disabled="@(running || starting)" />
         @if (localName is not null)
         {
-            <p class="feeder-note">Using <strong>@localName</strong> (@FormatSize(localSize)).
-                <button type="button" class="btn btn-link" @onclick="ClearLocalVideoAsync" disabled="@(running || starting)">Use the site video</button></p>
+            <div class="admin-inline mt-2">
+                <span>Using <strong>@localName</strong> (@FormatSize(localSize)).</span>
+                <button type="button" class="btn btn-ui btn-sm" @onclick="ClearLocalVideoAsync" disabled="@(running || starting)">Use the site video</button>
+            </div>
         }
     </div>
 

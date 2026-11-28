@@ -1,6 +1,7 @@
 @page "/admin/zones"
 @using Pakar.Application.DTOs
 @using Pakar.Application.Validation
+@using Pakar.Web.Components.Admin
 @using Pakar.Web.Components.Ui
 @inject AuthenticatedApiClient Api
 @inject UserSession Session
@@ -8,73 +9,106 @@
 <PageTitle>Zones</PageTitle>
 
 <AdminOnly>
-    <h1>Zones</h1>
-    <p><a href="admin">Back to admin</a></p>
+    <AdminPageHeader Title="Zones" />
 
     @if (info is not null)
     {
-        <p role="status">@info</p>
+        <p class="notice success" role="status">@info</p>
     }
 
-    @if (error is not null)
-    {
-        <div role="alert">
-            @if (error.Fields.Count == 0)
+    <form class="admin-panel admin-form" aria-labelledby="zone-form-title" novalidate
+          @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <div class="admin-form-body">
+            <h2 id="zone-form-title" class="admin-section-title">@(editingId is null ? "Add a zone" : "Edit zone")</h2>
+
+            @if (error is not null)
             {
-                <p>@error.Message</p>
+                <div class="notice danger" role="alert">
+                    <div>@(error.Fields.Count == 0 ? error.Message : "Please fix the problems below.")</div>
+                    @foreach (var message in OtherMessages)
+                    {
+                        <div>@message</div>
+                    }
+                </div>
             }
-            else
-            {
-                <p>Please fix the problems below.</p>
+
+            @{
+                var nameMessages = FieldMessages("name");
+                var capacityMessages = FieldMessages("totalCapacity");
+                var descriptionMessages = FieldMessages("description");
             }
-            @foreach (var message in OtherMessages)
-            {
-                <p>@message</p>
-            }
+            <fieldset class="admin-form-fields zone-fields" disabled="@saving">
+                <div>
+                    <label class="admin-label" for="zone-name">Zone name</label>
+                    <input id="zone-name" class="form-control admin-input" @ref="zoneNameInput" @bind="form.Name"
+                           maxlength="100" required placeholder="e.g. DTSL"
+                           aria-invalid="@(nameMessages.Length > 0 ? "true" : null)"
+                           aria-describedby="@(nameMessages.Length > 0 ? "zone-name-errors" : null)" />
+                    @if (nameMessages.Length > 0)
+                    {
+                        <div id="zone-name-errors" class="admin-field-error">
+                            @foreach (var message in nameMessages)
+                            {
+                                <div>@message</div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div>
+                    <label class="admin-label" for="zone-capacity">Capacity</label>
+                    <input id="zone-capacity" class="form-control admin-input tnum" type="number" min="1" max="500"
+                           required @bind="form.TotalCapacity"
+                           aria-invalid="@(capacityMessages.Length > 0 ? "true" : null)"
+                           aria-describedby="@(capacityMessages.Length > 0 ? "zone-capacity-hint zone-capacity-errors" : "zone-capacity-hint")" />
+                    <div id="zone-capacity-hint" class="form-text">1–500 parking spaces</div>
+                    @if (capacityMessages.Length > 0)
+                    {
+                        <div id="zone-capacity-errors" class="admin-field-error">
+                            @foreach (var message in capacityMessages)
+                            {
+                                <div>@message</div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="admin-form-wide">
+                    <label class="admin-label" for="zone-description">Description <span>(optional)</span></label>
+                    <textarea id="zone-description" class="form-control admin-input" @bind="form.Description"
+                              maxlength="500" rows="2" placeholder="e.g. Entrance beside the main gate"
+                              aria-invalid="@(descriptionMessages.Length > 0 ? "true" : null)"
+                              aria-describedby="@(descriptionMessages.Length > 0 ? "zone-description-errors" : null)"></textarea>
+                    @if (descriptionMessages.Length > 0)
+                    {
+                        <div id="zone-description-errors" class="admin-field-error">
+                            @foreach (var message in descriptionMessages)
+                            {
+                                <div>@message</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </fieldset>
         </div>
-    }
 
-    <h2>@(editingId is null ? "Add a zone" : "Edit zone")</h2>
-    <div>
-        <label for="zone-name">Name</label>
-        <input id="zone-name" @bind="form.Name" maxlength="100" />
-        @foreach (var m in FieldMessages("name"))
-        {
-            <span role="alert"> @m</span>
-        }
-    </div>
-    <div>
-        <label for="zone-description">Description</label>
-        <input id="zone-description" @bind="form.Description" maxlength="500" />
-        @foreach (var m in FieldMessages("description"))
-        {
-            <span role="alert"> @m</span>
-        }
-    </div>
-    <div>
-        <label for="zone-capacity">Capacity (1 to 500)</label>
-        <input id="zone-capacity" type="number" min="1" max="500" @bind="form.TotalCapacity" />
-        @foreach (var m in FieldMessages("totalCapacity"))
-        {
-            <span role="alert"> @m</span>
-        }
-    </div>
-    <div>
-        <button type="button" disabled="@saving" @onclick="SaveAsync">
-            @(saving ? "Saving..." : editingId is null ? "Add zone" : "Save changes")
-        </button>
-        @if (editingId is not null)
-        {
-            <button type="button" @onclick="CancelEdit">Cancel</button>
-        }
-    </div>
+        <div class="admin-inline admin-form-footer">
+            <div class="admin-inline admin-form-actions">
+                @if (editingId is not null)
+                {
+                    <button type="button" class="btn btn-ui" disabled="@saving" @onclick="CancelEdit">Cancel</button>
+                }
+                <button type="submit" class="btn btn-ui btn-ui-primary" disabled="@saving">
+                    @(saving ? "Saving..." : editingId is null ? "Add zone" : "Save changes")
+                </button>
+            </div>
+        </div>
+    </form>
 
-    <h2>All zones</h2>
+    <h2 class="admin-section-title">All zones</h2>
     @if (overrideListError is not null)
     {
         <div class="notice warning" role="alert">
             Could not load status overrides.
-            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="LoadOverridesAsync">Try again</button>
+            <button type="button" class="btn btn-ui btn-sm" @onclick="LoadOverridesAsync">Try again</button>
         </div>
     }
     @if (overrideError is not null)
@@ -89,20 +123,22 @@
     }
     @if (overrideZone is { } zone)
     {
-        <form class="card p-3 mb-3" @onsubmit="SaveOverrideAsync" @onsubmit:preventDefault>
+        <form class="admin-panel p-3 mb-3" @onsubmit="SaveOverrideAsync" @onsubmit:preventDefault>
             <fieldset disabled="@savingOverride">
                 <legend class="h5">Set status for @zone.Name</legend>
-                <label for="manual-status" class="form-label">Zone status</label>
-                <select id="manual-status" class="form-select mb-3" @ref="overrideStatusInput" @bind="overrideStatus">
+                <label for="manual-status" class="admin-label">Zone status</label>
+                <select id="manual-status" class="form-select admin-input mb-3" @ref="overrideStatusInput" @bind="overrideStatus">
                     <option value="available">Available</option>
                     <option value="almost_full">Almost full</option>
                     <option value="full">Full</option>
                 </select>
-                <label for="manual-note" class="form-label">Note (optional)</label>
-                <textarea id="manual-note" class="form-control mb-3" @bind="overrideNote"
+                <label for="manual-note" class="admin-label">Note <span>(optional)</span></label>
+                <textarea id="manual-note" class="form-control admin-input mb-3" @bind="overrideNote"
                           maxlength="@ZoneOverrideRules.MaxNoteLength" rows="2"></textarea>
-                <button type="submit" class="btn btn-primary">Save status</button>
-                <button type="button" class="btn btn-light" @onclick="CloseOverride">Cancel</button>
+                <div class="admin-inline">
+                    <button type="submit" class="btn btn-ui btn-ui-primary">Save status</button>
+                    <button type="button" class="btn btn-ui" @onclick="CloseOverride">Cancel</button>
+                </div>
             </fieldset>
         </form>
     }
@@ -120,71 +156,74 @@
     }
     else
     {
-        <div class="table-responsive" aria-label="Zone list">
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Capacity</th>
-                    <th>Spots</th>
-                    <th>Cameras</th>
-                    <th>External id</th>
-                    <th>Status override</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var row in rows)
-                {
-                    var manual = overrides.GetValueOrDefault(row.Id);
-                    <tr @key="row.Id">
-                        <td>@row.Name</td>
-                        <td>@row.Description</td>
-                        <td>@row.TotalCapacity</td>
-                        <td>@row.SpotCount</td>
-                        <td>@row.CameraCount</td>
-                        <td>@row.ExternalId</td>
-                        <td>
-                            @if (manual is not null)
-                            {
-                                <StatusChip Status="@manual.Status" />
-                                @if (!string.IsNullOrWhiteSpace(manual.Note))
-                                {
-                                    <span class="cell-sub">@manual.Note</span>
-                                }
-                            }
-                            else
-                            {
-                                <span class="muted">@(overrideListError is null ? "Automatic" : "Unknown")</span>
-                            }
-                        </td>
-                        <td>
-                            @if (confirmDeleteId == row.Id)
-                            {
-                                <span>Remove this zone?</span>
-                                <button type="button" @onclick="() => DeleteAsync(row)">Yes, remove</button>
-                                <button type="button" @onclick="() => confirmDeleteId = null">Cancel</button>
-                            }
-                            else
-                            {
-                                <button type="button" @onclick="() => StartEdit(row)">Edit</button>
-                                <button type="button" @onclick="() => confirmDeleteId = row.Id">Remove</button>
-                                <button type="button" class="btn btn-outline-primary btn-sm"
-                                        disabled="@(savingOverride || overrideListError is not null)"
-                                        @onclick="() => EditOverride(row, manual)">Set status</button>
-                                @if (manual is not null && overrideListError is null)
-                                {
-                                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                                            disabled="@savingOverride" @onclick="() => ClearOverrideAsync(row)">Reset to automatic</button>
-                                }
-                            }
-                        </td>
+        <AdminTableRegion Label="All zones">
+            <table class="table admin-table admin-table-zones">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col" class="admin-cell-detail">Description</th>
+                        <th scope="col" class="admin-cell-number">Capacity</th>
+                        <th scope="col" class="admin-cell-number">Spots</th>
+                        <th scope="col" class="admin-cell-number">Cameras</th>
+                        <th scope="col" class="admin-cell-number">External ID</th>
+                        <th scope="col">Status override</th>
+                        <th scope="col" class="admin-action-cell">Actions</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-        </div>
+                </thead>
+                <tbody>
+                    @foreach (var row in rows)
+                    {
+                        var manual = overrides.GetValueOrDefault(row.Id);
+                        <tr @key="row.Id">
+                            <th scope="row" class="admin-cell-name">@row.Name</th>
+                            <td class="admin-cell-wrap">@row.Description</td>
+                            <td class="admin-cell-number">@row.TotalCapacity</td>
+                            <td class="admin-cell-number">@row.SpotCount</td>
+                            <td class="admin-cell-number">@row.CameraCount</td>
+                            <td class="admin-cell-number">@row.ExternalId</td>
+                            <td class="admin-cell-wrap">
+                                @if (manual is not null)
+                                {
+                                    <StatusChip Status="@manual.Status" />
+                                    @if (!string.IsNullOrWhiteSpace(manual.Note))
+                                    {
+                                        <span class="cell-sub">@manual.Note</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="muted">@(overrideListError is null ? "Automatic" : "Unknown")</span>
+                                }
+                            </td>
+                            <td class="admin-action-cell">
+                                <div class="admin-row-actions">
+                                    @if (confirmDeleteId == row.Id)
+                                    {
+                                        <span class="admin-confirmation">Remove this zone?</span>
+                                        <button type="button" class="btn btn-ui btn-ui-danger btn-sm" @onclick="() => DeleteAsync(row)">Yes, remove</button>
+                                        <button type="button" class="btn btn-ui btn-sm" @onclick="() => confirmDeleteId = null">Cancel</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-ui btn-sm" disabled="@saving" @onclick="() => StartEdit(row)">Edit</button>
+                                        <button type="button" class="btn btn-ui btn-sm"
+                                                disabled="@(savingOverride || overrideListError is not null)"
+                                                @onclick="() => EditOverride(row, manual)">Set status</button>
+                                        <button type="button" class="btn btn-ui btn-ui-danger btn-sm" disabled="@saving"
+                                                @onclick="() => confirmDeleteId = row.Id">Remove</button>
+                                        @if (manual is not null && overrideListError is null)
+                                        {
+                                            <button type="button" class="btn btn-ui btn-sm"
+                                                    disabled="@savingOverride" @onclick="() => ClearOverrideAsync(row)">Reset to automatic</button>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </AdminTableRegion>
     }
 </AdminOnly>
 
@@ -209,9 +248,16 @@
     private bool savingOverride;
     private bool focusOverride;
     private ElementReference overrideStatusInput;
+    private ElementReference zoneNameInput;
+    private bool focusZoneForm;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (focusZoneForm)
+        {
+            focusZoneForm = false;
+            await zoneNameInput.FocusAsync();
+        }
         if (focusOverride)
         {
             focusOverride = false;
@@ -304,17 +350,15 @@
 
     private async Task SaveAsync()
     {
+        if (saving)
+            return;
+
         saving = true;
         error = null;
         info = null;
 
         var wasEdit = editingId is not null;
-        var body = new
-        {
-            name = form.Name.Trim(),
-            description = form.Description?.Trim() ?? "",
-            totalCapacity = form.TotalCapacity
-        };
+        var body = new ZoneRequest(form.Name.Trim(), form.Description?.Trim() ?? "", form.TotalCapacity);
 
         var result = editingId is { } id
             ? await Api.SendAsync(HttpMethod.Put, $"api/zones/{id}", body)
@@ -355,6 +399,7 @@
         error = null;
         info = null;
         form = new ZoneForm { Name = row.Name, Description = row.Description ?? "", TotalCapacity = row.TotalCapacity };
+        focusZoneForm = true;
     }
 
     private void CancelEdit()
@@ -369,12 +414,11 @@
         form = new ZoneForm();
     }
 
-    private IEnumerable<string> FieldMessages(string field) =>
+    private string[] FieldMessages(string field) =>
         error is not null && error.Fields.TryGetValue(field, out var messages)
             ? messages
-            : Enumerable.Empty<string>();
+            : [];
 
-    // Errors whose field name is not one of the three inputs are shown at the top instead.
     private IEnumerable<string> OtherMessages =>
         error is null
             ? Enumerable.Empty<string>()

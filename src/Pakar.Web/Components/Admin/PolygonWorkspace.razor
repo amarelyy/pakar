@@ -4,42 +4,51 @@
 @using Pakar.Application.Validation
 @inject RoiApiClient Api
 
-<h1>Slot polygons</h1>
-<p>Mark each parking slot on a still image from its video. <a href="admin">Back to admin</a></p>
+<AdminPageHeader Title="Slot polygons">
+    <Actions><a class="btn btn-ui" href="admin/cameras">Manage video sources</a></Actions>
+</AdminPageHeader>
+<p>Mark each parking slot on a still image from its video.</p>
 @if(error is not null){<p class="alert alert-danger" role="alert">@error</p>}
 @if(message is not null){<p class="alert alert-success" role="status">@message</p>}
 @if(busy){<p role="status">Loading or saving…</p>}
 <fieldset disabled="@busy">
-    <label>Video source
-        <select aria-label="Video source" value="@cameraId" @onchange="SelectCamera" disabled="@dirty">
-            <option value="">Choose a video source</option>
-            @foreach(var camera in cameras){<option value="@camera.Id">@camera.Name · @camera.ZoneName</option>}
-        </select>
-    </label>
-    <button type="button" @onclick="Reload">@(dirty?"Discard changes and reload":"Reload saved polygons")</button>
+    <div class="admin-panel admin-toolbar">
+        <label for="polygon-source" class="admin-label">Video source</label>
+        <div class="admin-inline">
+            <select id="polygon-source" class="form-select admin-input polygon-select" value="@cameraId" @onchange="SelectCamera" disabled="@dirty">
+                <option value="">Choose a video source</option>
+                @foreach(var camera in cameras){<option value="@camera.Id">@camera.Name · @camera.ZoneName</option>}
+            </select>
+            <button type="button" class="btn btn-ui" @onclick="Reload">@(dirty?"Discard changes and reload":"Reload saved polygons")</button>
+        </div>
+    </div>
     @if(cameras.Count==0 && !busy){<p>No video sources found. Add one in video source management first.</p>}
     @if(config is not null)
     {
-        <div class="frame-upload">
-            <label>Reference image (PNG or JPEG, up to 2 MB)<InputFile OnChange="Upload" accept="image/png,image/jpeg" /></label>
-            <p>Use a screenshot from this source's video. Existing polygons stay in place when the image is replaced.</p>
+        <div class="admin-panel admin-toolbar">
+            <label for="polygon-frame" class="admin-label">Reference image (PNG or JPEG, up to 2 MB)</label>
+            <InputFile id="polygon-frame" class="form-control rounded-3" OnChange="Upload" accept="image/png,image/jpeg" aria-describedby="polygon-frame-help" />
+            <p id="polygon-frame-help" class="form-text mb-0">Use a screenshot from this source's video. Existing polygons stay in place when the image is replaced.</p>
         </div>
         @if(config.Spots.Count==0){<p>This zone has no parking spots. Add spots before drawing polygons.</p>}
         else
         {
-            <label>Parking spot
-                <select aria-label="Parking spot" value="@spotId" @onchange="SelectSpot">
+            <div class="mb-3 polygon-spot">
+                <label for="polygon-spot" class="admin-label">Parking spot</label>
+                <select id="polygon-spot" class="form-select admin-input" value="@spotId" @onchange="SelectSpot">
                     @foreach(var spot in config.Spots){<option value="@spot.Id">@spot.Name @(polygons.ContainsKey(spot.Id)?"· configured":"· no polygon")</option>}
                 </select>
-            </label>
+            </div>
             @if(imageUrl is not null)
             {
                 <SvgPolygonEditor @key="spotId" ImageUrl="@imageUrl" ImageWidth="@imageWidth" ImageHeight="@imageHeight"
                     Points="@currentPoints" Changed="MarkDirty" OtherPolygons="@Others" />
             }
             else{<p>Upload a reference image to start drawing.</p>}
-            <button type="button" class="btn btn-primary" @onclick="Save" disabled="@(!dirty)">Save polygons</button>
-            <span role="status">@(dirty?" Unsaved changes":" Saved")</span>
+            <div class="admin-inline">
+                <button type="button" class="btn btn-ui btn-ui-primary" @onclick="Save" disabled="@(!dirty)">Save polygons</button>
+                <span class="muted" role="status">@(dirty?"Unsaved changes":"Saved")</span>
+            </div>
         }
     }
 </fieldset>

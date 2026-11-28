@@ -1,6 +1,7 @@
 @page "/admin/reports"
 @using Pakar.Application.Common
 @using Pakar.Application.DTOs
+@using Pakar.Web.Components.Admin
 @using Pakar.Web.Components.Ui
 @inject AuthenticatedApiClient Api
 @inject UserSession Session
@@ -8,14 +9,11 @@
 <PageTitle>Review Parking Reports · PAKAR</PageTitle>
 
 <AdminOnly>
-    <a href="admin">Back to admin</a>
-    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
-        <div>
-            <h1 class="mt-2 mb-1">Review parking reports</h1>
-            <p class="muted mb-0">Review user reports about inaccurate parking space status.</p>
-        </div>
-        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@busy" @onclick="ReloadAsync">Refresh reports</button>
-    </div>
+    <AdminPageHeader Title="Review parking reports">
+        <Actions>
+            <button type="button" class="btn btn-ui" disabled="@busy" @onclick="ReloadAsync">Refresh reports</button>
+        </Actions>
+    </AdminPageHeader>
 
     @if (success)
     {
@@ -28,20 +26,21 @@
 
     <div class="row g-3">
         <section class="@(selected is null ? "col-12" : "col-12 col-lg-7")" aria-label="Report list">
-            <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
-                <div>
-                    <label for="report-filter" class="form-label">Report status</label>
-                    <select id="report-filter" class="form-select" @bind="filter" @bind:after="FilterAsync" disabled="@busy">
+            <div class="admin-panel admin-toolbar">
+                <label for="report-filter" class="admin-label">Report status</label>
+                <div class="admin-inline gap-3">
+                    <select id="report-filter" class="form-select admin-input admin-report-filter"
+                            @bind="filter" @bind:after="FilterAsync" disabled="@busy">
                         <option value="">All statuses</option>
                         <option value="PendingReview">Pending review</option>
                         <option value="Resolved">Resolved</option>
                         <option value="Dismissed">Dismissed</option>
                     </select>
+                    @if (queue is not null)
+                    {
+                        <span class="admin-report-count" role="status">@queue.TotalCount @(queue.TotalCount == 1 ? "report" : "reports")</span>
+                    }
                 </div>
-                @if (queue is not null)
-                {
-                    <span class="muted">@queue.TotalCount @(queue.TotalCount == 1 ? "report" : "reports")</span>
-                }
             </div>
             @if (busy && queue is null)
             {
@@ -51,37 +50,42 @@
             {
                 @if (data.Items.Count == 0)
                 {
-                    <p class="card p-3">No reports match this status.</p>
+                    <p class="notice">No reports match this status.</p>
                 }
                 else
                 {
-                    <div class="table-responsive">
-                        <table class="table align-middle">
+                    <AdminTableRegion Label="Reports table">
+                        <table class="table admin-table">
                             <thead>
-                                <tr><th scope="col">Space and zone</th><th scope="col">Reported by</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
+                                <tr>
+                                    <th scope="col">Space and zone</th>
+                                    <th scope="col" class="admin-cell-detail">Reported by</th>
+                                    <th scope="col" class="admin-cell-compact">Status</th>
+                                    <th scope="col" class="admin-action-cell">Actions</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 @foreach (var report in data.Items)
                                 {
                                     <tr @key="report.Id">
-                                        <td><strong>@report.SpotName</strong><span class="cell-sub">@report.ZoneName</span></td>
-                                        <td>@report.SubmittedByName</td>
-                                        <td><StatusChip Status="@report.Status" /></td>
-                                        <td><button type="button" class="btn btn-outline-primary btn-sm" disabled="@busy"
+                                        <th scope="row" class="admin-cell-name">@report.SpotName<span class="cell-sub">@report.ZoneName</span></th>
+                                        <td class="admin-cell-wrap">@report.SubmittedByName</td>
+                                        <td class="admin-cell-compact"><StatusChip Status="@report.Status" /></td>
+                                        <td class="admin-action-cell"><button type="button" class="btn btn-ui btn-sm" disabled="@busy"
                                                     @onclick="() => OpenReport(report)">View details</button></td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
-                    </div>
+                    </AdminTableRegion>
                 }
                 @if (data.TotalPages > 1)
                 {
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@(busy || data.Page <= 1)"
+                    <div class="admin-inline">
+                        <button type="button" class="btn btn-ui btn-sm" disabled="@(busy || data.Page <= 1)"
                                 @onclick="() => LoadAsync(data.Page - 1)">Previous</button>
-                        <span>Page @data.Page of @data.TotalPages</span>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@(busy || data.Page >= data.TotalPages)"
+                        <span class="muted">Page @data.Page of @data.TotalPages</span>
+                        <button type="button" class="btn btn-ui btn-sm" disabled="@(busy || data.Page >= data.TotalPages)"
                                 @onclick="() => LoadAsync(data.Page + 1)">Next</button>
                     </div>
                 }
@@ -91,10 +95,10 @@
         @if (selected is { } current)
         {
             <div class="col-12 col-lg-5">
-                <section class="card p-3" aria-label="Report details">
-                    <div class="d-flex justify-content-between align-items-start gap-2">
-                        <h2 class="h5" tabindex="-1" @ref="detailsHeading">@current.SpotName · @current.ZoneName</h2>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@busy"
+                <section class="admin-panel p-3" aria-label="Report details">
+                    <div class="admin-inline justify-content-between mb-2">
+                        <h2 class="h5 mb-0" tabindex="-1" @ref="detailsHeading">@current.SpotName · @current.ZoneName</h2>
+                        <button type="button" class="btn btn-ui btn-sm" disabled="@busy"
                                 @onclick="CloseReport">Close</button>
                     </div>
                     <p><StatusChip Status="@current.Status" /></p>
@@ -104,25 +108,25 @@
                     <p class="report-text">@current.Description</p>
                     @if (Uri.TryCreate(current.EvidenceImageUrl, UriKind.Absolute, out var evidence) && evidence.Scheme is "https" or "http")
                     {
-                        <p><a href="@evidence.AbsoluteUri" target="_blank" rel="noopener noreferrer">View attached evidence</a></p>
+                        <p><a class="btn btn-ui btn-sm" href="@evidence.AbsoluteUri" target="_blank" rel="noopener noreferrer">View attached evidence</a></p>
                     }
                     @if (current.Status == "PendingReview")
                     {
                         <form @onsubmit="ReviewAsync" @onsubmit:preventDefault>
                             <fieldset disabled="@busy">
-                                <label for="review-decision" class="form-label">Decision</label>
-                                <select id="review-decision" class="form-select mb-3" @bind="decision" required>
+                                <label for="review-decision" class="admin-label">Decision</label>
+                                <select id="review-decision" class="form-select admin-input mb-3" @bind="decision" required>
                                     <option value="">Select a decision</option>
                                     <option value="Resolved">Resolve report</option>
                                     <option value="Dismissed">Dismiss report</option>
                                 </select>
-                                <label for="review-note" class="form-label">Note for the reporter (optional)</label>
-                                <textarea id="review-note" class="form-control mb-3" @bind="note" maxlength="500" rows="3"></textarea>
+                                <label for="review-note" class="admin-label">Note for the reporter <span>(optional)</span></label>
+                                <textarea id="review-note" class="form-control admin-input mb-3" @bind="note" maxlength="500" rows="3"></textarea>
                                 @if (reviewError is not null)
                                 {
                                     <p class="notice danger" role="alert">@reviewError</p>
                                 }
-                                <button type="submit" class="btn btn-primary">Save decision</button>
+                                <button type="submit" class="btn btn-ui btn-ui-primary">Save decision</button>
                             </fieldset>
                         </form>
                     }

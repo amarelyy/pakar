@@ -96,6 +96,7 @@ h1:focus {
     --muted:#5b6470;
     --accent:#1f4fd8;
     --accent-soft:#e8eeff;
+    --accent-hover:#1944bb;
     --ok:#0f7a4a;
     --ok-soft:#e3f3ea;
     --warn:#e39b00;
@@ -189,4 +190,85 @@ body {
 .report-text {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+.btn-ui {
+    --bs-btn-color: var(--ink);
+    --bs-btn-bg: var(--card);
+    --bs-btn-border-color: #cfd5de;
+    --bs-btn-hover-color: var(--ink);
+    --bs-btn-hover-bg: var(--ground);
+    --bs-btn-hover-border-color: #aeb8c6;
+    --bs-btn-active-color: var(--ink);
+    --bs-btn-active-bg: #e8ebf0;
+    --bs-btn-active-border-color: #aeb8c6;
+    --bs-btn-disabled-color: var(--ink);
+    --bs-btn-disabled-bg: var(--card);
+    --bs-btn-disabled-border-color: #cfd5de;
+    --bs-btn-font-size: .875rem;
+    --bs-btn-font-weight: 600;
+    --bs-btn-border-radius: .5rem;
+
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    padding-inline: .875rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.btn-ui.btn-sm {
+    min-height: 2.125rem;
+    padding-inline: .625rem;
+    font-size: .8125rem;
+}
+
+.btn-ui-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--accent);
+    --bs-btn-border-color: var(--accent);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--accent-hover);
+    --bs-btn-hover-border-color: var(--accent-hover);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--accent-hover);
+    --bs-btn-active-border-color: var(--accent-hover);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--accent);
+    --bs-btn-disabled-border-color: var(--accent);
+}
+
+.btn-ui-danger {
+    --bs-btn-color: #9b1c1c;
+    --bs-btn-border-color: #edcbcb;
+    --bs-btn-hover-color: #9b1c1c;
+    --bs-btn-hover-bg: var(--bad-soft);
+    --bs-btn-hover-border-color: #dcaaaa;
+    --bs-btn-active-color: #9b1c1c;
+    --bs-btn-active-bg: var(--bad-soft);
+    --bs-btn-active-border-color: #dcaaaa;
+}
+
+.btn-ui-quiet {
+    --bs-btn-color: var(--muted);
+    --bs-btn-bg: transparent;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: var(--accent);
+    --bs-btn-active-bg: var(--accent-soft);
+    --bs-btn-active-border-color: transparent;
+}
+
+.btn-ui:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+@media (max-width: 700px) {
+    .btn-ui.btn-sm {
+        min-height: 2.375rem;
+    }
 }

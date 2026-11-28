@@ -1,145 +1,168 @@
 @page "/admin/cameras"
+@using Pakar.Web.Components.Admin
 @inject AuthenticatedApiClient Api
 @inject UserSession Session
 
 <PageTitle>Cameras</PageTitle>
 
 <AdminOnly>
-    <h1>Cameras</h1>
-    <p><a href="admin">Back to admin</a> · <a href="admin/video-monitor">Video monitor</a></p>
-    <p>
-        A camera here is a <strong>video source</strong>: one video file replayed for one zone.
-        Put the file name only (for example <code>lot-a.mp4</code>); the file itself lives in the worker's video folder.
-    </p>
+    <AdminPageHeader Title="Cameras">
+        <Actions><a class="btn btn-ui" href="admin/video-monitor">Video monitor</a></Actions>
+    </AdminPageHeader>
 
     @if (info is not null)
     {
-        <p role="status">@info</p>
+        <p class="notice success" role="status">@info</p>
     }
 
-    @if (error is not null)
-    {
-        <div role="alert">
-            @if (error.Fields.Count == 0)
+    <form class="admin-panel admin-form" aria-labelledby="camera-form-title"
+          @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <div class="admin-form-body">
+            <h2 id="camera-form-title" class="admin-section-title">@(editingId is null ? "Add a camera" : "Edit camera")</h2>
+
+            @if (error is not null)
             {
-                <p>@error.Message</p>
+                <div class="notice danger" role="alert">
+                    <div>@(error.Fields.Count == 0 ? error.Message : "Please fix the problems below.")</div>
+                    @foreach (var message in OtherMessages)
+                    {
+                        <div>@message</div>
+                    }
+                </div>
             }
-            else
-            {
-                <p>Please fix the problems below.</p>
-            }
-            @foreach (var message in OtherMessages)
-            {
-                <p>@message</p>
-            }
+
+            <fieldset class="admin-form-fields" disabled="@saving">
+                <div>
+                    <label for="camera-name" class="admin-label">Camera name</label>
+                    <input id="camera-name" class="form-control admin-input" @ref="cameraNameInput" @bind="form.Name"
+                           maxlength="100" placeholder="e.g. DTSL Camera" />
+                    @foreach (var message in FieldMessages("name"))
+                    {
+                        <div class="admin-field-error" role="alert">@message</div>
+                    }
+                </div>
+                <div>
+                    <label for="camera-zone" class="admin-label">Parking zone</label>
+                    <select id="camera-zone" class="form-select admin-input" @bind="form.ZoneId">
+                        <option value="@Guid.Empty">Choose a zone</option>
+                        @foreach (var zone in zones)
+                        {
+                            <option value="@zone.Id">@zone.Name</option>
+                        }
+                    </select>
+                    @foreach (var message in FieldMessages("zoneId"))
+                    {
+                        <div class="admin-field-error" role="alert">@message</div>
+                    }
+                </div>
+                <div class="admin-form-wide">
+                    <label for="camera-video" class="admin-label">Video file <span>(optional)</span></label>
+                    <input id="camera-video" class="form-control admin-input" @bind="form.VideoFile"
+                           maxlength="255" placeholder="lot-a.mp4" aria-describedby="camera-video-hint" />
+                    <div id="camera-video-hint" class="form-text">Enter the name of a file in the worker’s video folder.</div>
+                    @foreach (var message in FieldMessages("videoFile"))
+                    {
+                        <div class="admin-field-error" role="alert">@message</div>
+                    }
+                </div>
+            </fieldset>
         </div>
-    }
-
-    <h2>@(editingId is null ? "Add a camera" : "Edit camera")</h2>
-    <div>
-        <label for="camera-name">Name</label>
-        <input id="camera-name" @bind="form.Name" maxlength="100" />
-        @foreach (var m in FieldMessages("name"))
-        {
-            <span role="alert"> @m</span>
-        }
-    </div>
-    <div>
-        <label for="camera-zone">Zone</label>
-        <select id="camera-zone" @bind="form.ZoneId">
-            <option value="@Guid.Empty">Choose a zone</option>
-            @foreach (var zone in zones)
+        <div class="admin-inline admin-form-footer">
+            @if (!loading && zones.Count == 0)
             {
-                <option value="@zone.Id">@zone.Name</option>
+                <a class="btn btn-ui" href="admin/zones">Add a parking zone first</a>
             }
-        </select>
-        @foreach (var m in FieldMessages("zoneId"))
-        {
-            <span role="alert"> @m</span>
-        }
-    </div>
-    <div>
-        <label for="camera-video">Video file (optional)</label>
-        <input id="camera-video" @bind="form.VideoFile" maxlength="255" placeholder="lot-a.mp4" />
-        @foreach (var m in FieldMessages("videoFile"))
-        {
-            <span role="alert"> @m</span>
-        }
-    </div>
-    <div>
-        <button type="button" disabled="@(saving || zones.Count == 0)" @onclick="SaveAsync">
-            @(saving ? "Saving..." : editingId is null ? "Add camera" : "Save changes")
-        </button>
-        @if (editingId is not null)
-        {
-            <button type="button" @onclick="CancelEdit">Cancel</button>
-        }
-        @if (!loading && zones.Count == 0)
-        {
-            <span> Add a zone first: <a href="admin/zones">Zones</a>.</span>
-        }
-    </div>
+            <div class="admin-inline admin-form-actions">
+                @if (editingId is not null)
+                {
+                    <button type="button" class="btn btn-ui" disabled="@saving" @onclick="CancelEdit">Cancel</button>
+                }
+                <button type="submit" class="btn btn-ui btn-ui-primary" disabled="@(saving || zones.Count == 0)">
+                    @(saving ? "Saving..." : editingId is null ? "Add camera" : "Save changes")
+                </button>
+            </div>
+        </div>
+    </form>
 
-    <h2>All cameras</h2>
+    <h2 class="admin-section-title">All cameras</h2>
     @if (loading)
     {
         <p role="status">Loading cameras...</p>
     }
     else if (loadError is not null)
     {
-        <p role="alert">@loadError</p>
-        <button type="button" @onclick="LoadAsync">Try again</button>
+        <div class="notice danger admin-inline" role="alert">
+            @loadError
+            <button type="button" class="btn btn-ui btn-sm" @onclick="LoadAsync">Try again</button>
+        </div>
     }
     else if (rows.Count == 0)
     {
-        <p>No cameras yet.</p>
+        <p class="notice">No cameras yet.</p>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table">
+        <AdminTableRegion Label="All cameras">
+            <table class="table admin-table admin-table-cameras">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Zone</th>
-                        <th>Video file</th>
-                        <th>Status</th>
-                        <th>Last active</th>
-                        <th>Reference frame</th>
-                        <th>External id</th>
-                        <th>Actions</th>
+                        <th scope="col">Name</th>
+                        <th scope="col" class="admin-cell-detail">Zone</th>
+                        <th scope="col" class="camera-file">Video file</th>
+                        <th scope="col" class="admin-cell-compact">Status</th>
+                        <th scope="col" class="admin-cell-compact">Last active</th>
+                        <th scope="col">Reference frame</th>
+                        <th scope="col" class="admin-cell-number">External ID</th>
+                        <th scope="col" class="admin-action-cell">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var row in rows)
                     {
                         <tr @key="row.Id">
-                            <td>@row.Name</td>
-                            <td>@row.ZoneName</td>
-                            <td>@(string.IsNullOrEmpty(row.VideoFile) ? "Not set" : row.VideoFile)</td>
-                            <td>@(row.IsActive ? "Active" : "Inactive")</td>
-                            <td>@(row.LastActiveTime is { } seen ? $"{seen:yyyy-MM-dd HH:mm} UTC" : "Never")</td>
-                            <td>@(row.HasReferenceFrame ? "Yes" : "No")</td>
-                            <td>@row.ExternalId</td>
-                            <td>
-                                @if (confirmDeleteId == row.Id)
+                            <th scope="row" class="admin-cell-name">@row.Name</th>
+                            <td class="admin-cell-wrap">@row.ZoneName</td>
+                            <td class="admin-cell-wrap">@(string.IsNullOrEmpty(row.VideoFile) ? "Not set" : row.VideoFile)</td>
+                            <td class="admin-cell-compact">
+                                <span class="status-chip @(row.IsActive ? "available" : null)">@(row.IsActive ? "Active" : "Inactive")</span>
+                            </td>
+                            <td class="admin-cell-compact tnum">
+                                @if (row.LastActiveTime is { } seen)
                                 {
-                                    <span>Remove this camera?</span>
-                                    <button type="button" @onclick="() => DeleteAsync(row)">Yes, remove</button>
-                                    <button type="button" @onclick="() => confirmDeleteId = null">Cancel</button>
+                                    <time datetime="@seen.ToString("O")">
+                                        @seen.ToString("yyyy-MM-dd")
+                                        <span class="cell-sub">@seen.ToString("HH:mm") UTC</span>
+                                    </time>
                                 }
                                 else
                                 {
-                                    <button type="button" @onclick="() => StartEdit(row)">Edit</button>
-                                    <button type="button" @onclick="() => confirmDeleteId = row.Id">Remove</button>
-                                    <a href="@($"admin/polygons?cameraId={row.Id}")">Slot polygons</a>
+                                    <span class="muted">Never</span>
                                 }
+                            </td>
+                            <td>@(row.HasReferenceFrame ? "Yes" : "No")</td>
+                            <td class="admin-cell-number">@row.ExternalId</td>
+                            <td class="admin-action-cell">
+                                <div class="admin-row-actions">
+                                    @if (confirmDeleteId == row.Id)
+                                    {
+                                        <span class="admin-confirmation">Remove this camera?</span>
+                                        <button type="button" class="btn btn-ui btn-ui-danger btn-sm" @onclick="() => DeleteAsync(row)">Yes, remove</button>
+                                        <button type="button" class="btn btn-ui btn-sm" @onclick="() => confirmDeleteId = null">Cancel</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-ui btn-sm" disabled="@saving" @onclick="() => StartEdit(row)">Edit</button>
+                                        <a class="btn btn-ui btn-sm" href="@($"admin/polygons?cameraId={row.Id}")">Slot polygons</a>
+                                        <button type="button" class="btn btn-ui btn-ui-danger btn-sm" disabled="@saving"
+                                                @onclick="() => confirmDeleteId = row.Id">Remove</button>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
-        </div>
+        </AdminTableRegion>
     }
 </AdminOnly>
 
@@ -156,6 +179,17 @@
     private string? loadError;
     private string? info;
     private ApiError? error;
+    private ElementReference cameraNameInput;
+    private bool focusEditor;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusEditor)
+        {
+            focusEditor = false;
+            await cameraNameInput.FocusAsync();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -184,6 +218,9 @@
 
     private async Task SaveAsync()
     {
+        if (saving || zones.Count == 0)
+            return;
+
         error = null;
         info = null;
 
@@ -243,6 +280,7 @@
         error = null;
         info = null;
         form = new CameraForm { Name = row.Name, ZoneId = row.ZoneId, VideoFile = row.VideoFile };
+        focusEditor = true;
     }
 
     private void CancelEdit()

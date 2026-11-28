@@ -2,7 +2,6 @@
 @inject UserSession Session
 @inject NavigationManager Navigation
 
-@* Top bar: "Logged in as" with logout, or login and register links for guests (FR 3, FR 8). *@
 @if (!loaded)
 {
     return;
@@ -10,16 +9,16 @@
 
 @if (user is null)
 {
-    <a href="login">Log in</a>
-    <a href="register">Register</a>
+    <NavLink class="btn btn-ui btn-ui-quiet btn-sm" href="login">Log in</NavLink>
+    <a class="btn btn-ui btn-sm" href="register">Register</a>
 }
 else
 {
-    <NavLink href="reports">My Reports</NavLink>
     <span class="account-name" title="@user.Email">
-        Logged in as <strong>@user.Name</strong>@(user.IsAdmin ? " (Admin)" : null)
+        <strong>@user.Name</strong>@(user.IsAdmin ? " (Admin)" : null)
     </span>
-    <button type="button" class="btn btn-link" @onclick="LogoutAsync">Log out</button>
+    <NavLink class="btn btn-ui btn-ui-quiet btn-sm" href="reports">My Reports</NavLink>
+    <button type="button" class="btn btn-ui btn-sm" @onclick="LogoutAsync">Log out</button>
 }
 
 @code {

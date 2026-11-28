@@ -1,0 +1,133 @@
+@implements IAsyncDisposable
+@using Pakar.Application.DTOs
+@inject UserSession Session
+@inject IHttpClientFactory Clients
+@inject IJSRuntime Js
+
+<article class="monitor-tile" @ref="tile" aria-labelledby="@headingId">
+    <header class="monitor-tile-heading">
+        <div class="monitor-tile-details">
+            <h2 id="@headingId">@Source.ZoneName</h2>
+            <div class="monitor-tile-meta">
+                <span>@Source.Name</span>
+                <span class="monitor-feed @(Source.IsActive ? "active" : null)">
+                    Detection feed @(Source.IsActive ? "active" : "inactive")
+                </span>
+            </div>
+        </div>
+        <button type="button" class="btn btn-sm monitor-fullscreen" disabled="@(module is null)"
+                @onclick="ToggleFullscreenAsync">
+            <span class="monitor-expand">Full screen</span>
+            <span class="monitor-collapse">Exit full screen</span>
+            <span class="visually-hidden">(@Source.ZoneName)</span>
+        </button>
+    </header>
+    @if (fullscreenFailed)
+    {
+        <p class="monitor-fullscreen-message" role="status">Full screen is unavailable in this browser window.</p>
+    }
+    <div class="monitor-stage">
+        <video @ref="video" aria-label="@Source.Name" controls controlslist="nofullscreen"
+               muted loop playsinline preload="metadata" hidden="@(!ready)" @onerror="OnMediaError"></video>
+        @if (!ready)
+        {
+            <p role="@(error is null ? "status" : "alert")">@(error ?? "Loading recording…")</p>
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public CameraAdminDto Source { get; set; } = default!;
+
+    private readonly string playerKey = Guid.NewGuid().ToString("N");
+    private string headingId => $"monitor-title-{playerKey}";
+    private ElementReference tile, video;
+    private IJSObjectReference? module;
+    private bool ready, disposed, fullscreenFailed;
+    private string? error;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            var player = await Js.InvokeAsync<IJSObjectReference>("import", "./js/admin-video.js?v=2");
+            if (disposed)
+            {
+                await player.DisposeAsync();
+                return;
+            }
+
+            module = player;
+            StateHasChanged();
+
+            if (string.IsNullOrEmpty(Source.VideoFile))
+            {
+                error = "No video file configured.";
+                return;
+            }
+
+            var token = await Session.GetTokenAsync();
+            if (disposed)
+                return;
+            if (token is null)
+            {
+                error = "Your session expired. Please sign in again.";
+                return;
+            }
+
+            using var client = Clients.CreateClient("api");
+            var url = new Uri(client.BaseAddress!, $"api/cameras/{Source.Id}/video");
+            var response = await player.InvokeAsync<int>("load", playerKey, video, url.AbsoluteUri, token);
+            if (disposed)
+                return;
+
+            if (response == 200 && error is null)
+                ready = true;
+            else if (response != 200)
+                error = response switch
+                {
+                    401 or 403 => "Sign in again with an administrator account.",
+                    404 => "Video file not found.",
+                    _ => "The recording could not be loaded."
+                };
+        }
+        catch (JSException)
+        {
+            error = "The recording could not be loaded.";
+        }
+        finally
+        {
+            if (!disposed)
+                StateHasChanged();
+        }
+    }
+
+    private async Task ToggleFullscreenAsync()
+    {
+        if (module is not null)
+            fullscreenFailed = !await module.InvokeAsync<bool>("toggleFullscreen", tile);
+    }
+
+    private void OnMediaError()
+    {
+        if (disposed)
+            return;
+
+        ready = false;
+        error = "This browser could not play the recording.";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        if (module is null)
+            return;
+
+        await module.InvokeVoidAsync("release", playerKey);
+        await module.DisposeAsync();
+    }
+}

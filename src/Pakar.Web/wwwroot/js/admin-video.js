@@ -1,5 +1,20 @@
 const loads = new Map();
 
+export async function toggleFullscreen(tile) {
+    try {
+        if (document.fullscreenElement === tile) {
+            await document.exitFullscreen();
+        } else if (document.fullscreenEnabled) {
+            await tile.requestFullscreen();
+        } else {
+            return false;
+        }
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export async function load(key, video, url, token) {
     release(key);
     const state = { video, controller: new AbortController(), objectUrl: null };

@@ -22,7 +22,7 @@ foreach ($path in $required) {
     if (-not (Test-Path $path)) { throw "Not found: $path" }
 }
 $videos = @(Get-ChildItem "$Assets/videos" -File -ErrorAction SilentlyContinue)
-if ($videos.Count -eq 0) { throw "No video in $Assets/videos" }
+if ($videos.Count -eq 0) { Write-Warning "No video in $Assets/videos; the map will show no live data until videos are added." }
 if ((Split-Path -Leaf $Assets) -ne "vm-assets") { throw "The assets folder must be named vm-assets (the runbook expects it)." }
 
 $target = "$User@$VmHost"

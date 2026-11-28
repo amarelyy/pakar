@@ -10,14 +10,23 @@ public static class PolygonRules
         if (points.Select(p => (p[0], p[1])).Distinct().Count() != points.Length)
             return "Polygon vertices must be distinct; do not repeat the first point.";
         if (Area(points) < .0005) return "Polygon area must be at least 0.0005.";
+        return HasIntersectingEdges(points) ? "Polygon edges must not intersect." : null;
+    }
+
+    public static bool HasIntersectingEdges(double[][] points)
+    {
         for (int i = 0; i < points.Length; i++)
-            for (int j = i + 1; j < points.Length; j++)
+        {
+            for (int j = i + 2; j < points.Length; j++)
             {
-                if (j == i + 1 || (i == 0 && j == points.Length - 1)) continue;
+                if (i == 0 && j == points.Length - 1)
+                    continue;
                 if (Intersects(points[i], points[(i + 1) % points.Length], points[j], points[(j + 1) % points.Length]))
-                    return "Polygon edges must not intersect.";
+                    return true;
             }
-        return null;
+        }
+
+        return false;
     }
 
     public static double Area(double[][] p) => Math.Abs(Enumerable.Range(0, p.Length)

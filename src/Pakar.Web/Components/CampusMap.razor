@@ -100,26 +100,28 @@
         </section>
 
         <section class="map-panel" aria-label="Peta parkir Fakultas Teknik UGM">
-            <div id="campus-map" class="campus-map"></div>
-            <div class="map-top-note">
-                <span class="map-location">FT UGM · Yogyakarta</span>
-                <button type="button" class="btn btn-light small" @onclick="FitMapAsync" disabled="@(!mapReady)">Lihat semua zona</button>
-            </div>
-            <div class="map-legend">
-                <span><i class="available"></i> Tersedia</span><span><i class="almost_full"></i> Hampir penuh</span>
-                <span><i class="full"></i> Penuh</span><span><i class="unknown"></i> Data lama</span>
-            </div>
-            @if (mapError is not null)
-            {
-                <p class="map-connection notice warning" role="status">@mapError</p>
-            }
-            else if (!IsLive && !loading)
-            {
-                <div class="map-connection notice warning" role="status">
-                    Pembaruan berkala aktif.
-                    <button type="button" class="text-button small" @onclick="ConnectAsync" disabled="@connecting">Sambungkan kembali</button>
+            <div class="map-surface">
+                <div id="campus-map" class="campus-map"></div>
+                <div class="map-top-note">
+                    <span class="map-location">FT UGM · Yogyakarta</span>
+                    <button type="button" class="btn btn-light small" @onclick="FitMapAsync" disabled="@(!mapReady)">Lihat semua zona</button>
                 </div>
-            }
+                <div class="map-legend">
+                    <span><i class="available"></i> Tersedia</span><span><i class="almost_full"></i> Hampir penuh</span>
+                    <span><i class="full"></i> Penuh</span><span><i class="unknown"></i> Data lama</span>
+                </div>
+                @if (mapError is not null)
+                {
+                    <p class="map-connection notice warning" role="status">@mapError</p>
+                }
+                else if (!IsLive && !loading)
+                {
+                    <div class="map-connection notice warning" role="status">
+                        Pembaruan berkala aktif.
+                        <button type="button" class="text-button small" @onclick="ConnectAsync" disabled="@connecting">Sambungkan kembali</button>
+                    </div>
+                }
+            </div>
             @if (Selected is { } selected)
             {
                 <section class="zone-detail card" aria-label="Detail zona">

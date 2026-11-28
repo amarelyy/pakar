@@ -238,6 +238,9 @@ namespace Pakar.Migrations.Postgres.Migrations
                     b.Property<int>("ExternalId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("MapAreaJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Pakar.Application.Common;
 using Pakar.Application.DTOs;
 using Pakar.Application.Interfaces;
+using Pakar.Application.Validation;
 using Pakar.Domain.Entities;
 using Pakar.Domain.Services;
 using Pakar.Infrastructure.Persistence;
@@ -32,6 +33,7 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
     public async Task<OperationResult<ZoneAdminDto>> CreateZoneAsync(ZoneRequest request, CancellationToken ct = default)
     {
         var errors = FacilityRules.ValidateZone(request.Name, request.Description, request.TotalCapacity, existingSpotCount: 0);
+        ValidateMapArea(request.MapArea, errors);
         if (errors.Count > 0)
             return OperationResult<ZoneAdminDto>.Invalid(errors);
 
@@ -40,6 +42,7 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
             Name = request.Name!.Trim(),
             Description = request.Description?.Trim() ?? string.Empty,
             TotalCapacity = request.TotalCapacity,
+            MapAreaJson = ZoneMapAreaStorage.Serialize(request.MapArea),
             ExternalId = (await db.Zones.IgnoreQueryFilters().MaxAsync(z => (int?)z.ExternalId, ct) ?? 0) + 1
         };
         db.Zones.Add(zone);
@@ -58,12 +61,15 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
 
         var spotCount = await db.Spots.CountAsync(s => s.ZoneId == id, ct);
         var errors = FacilityRules.ValidateZone(request.Name, request.Description, request.TotalCapacity, spotCount);
+        ValidateMapArea(request.MapArea, errors);
         if (errors.Count > 0)
             return OperationResult<ZoneAdminDto>.Invalid(errors);
 
         zone.Name = request.Name!.Trim();
         zone.Description = request.Description?.Trim() ?? string.Empty;
         zone.TotalCapacity = request.TotalCapacity;
+        if (request.MapArea is not null)
+            zone.MapAreaJson = ZoneMapAreaStorage.Serialize(request.MapArea);
         await db.SaveChangesAsync(ct);
 
         var cameraCount = await db.Cameras.CountAsync(c => c.ZoneId == id, ct);
@@ -167,13 +173,20 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
 
     // ---- helpers ----
 
+    private static void ValidateMapArea(ZoneMapAreaDto? area, Dictionary<string, string[]> errors)
+    {
+        if (area is not null && ZoneMapAreaRules.Validate(area) is { } error)
+            errors["mapArea"] = [error];
+    }
+
     private static readonly System.Linq.Expressions.Expression<Func<ParkingZone, ZoneAdminDto>> ZoneToDtoExpression =
         z => new ZoneAdminDto(z.Id, z.Name, z.Description, z.TotalCapacity, z.ExternalId, z.Spots.Count, z.Cameras.Count,
             z.StatusOverride == null ? null
                 : z.StatusOverride == ZoneOccupancyStatus.Full ? "full"
                 : z.StatusOverride == ZoneOccupancyStatus.AlmostFull ? "almost_full" : "available",
             z.StatusOverrideNote,
-            z.StatusOverrideSetAt);
+            z.StatusOverrideSetAt,
+            ZoneMapAreaStorage.Deserialize(z.MapAreaJson));
 
     private IQueryable<Camera> CameraQuery() => db.Cameras.AsNoTracking();
 
@@ -189,7 +202,8 @@ public sealed class FacilityAdminService(AppDbContext db, TimeProvider clock) : 
 
     private static ZoneAdminDto ToDto(ParkingZone zone, int spotCount, int cameraCount) => new(
         zone.Id, zone.Name, zone.Description, zone.TotalCapacity, zone.ExternalId, spotCount, cameraCount,
-        zone.StatusOverride?.ToApiValue(), zone.StatusOverrideNote, zone.StatusOverrideSetAt);
+        zone.StatusOverride?.ToApiValue(), zone.StatusOverrideNote, zone.StatusOverrideSetAt,
+        ZoneMapAreaStorage.Deserialize(zone.MapAreaJson));
 
     private async Task<bool> TrySaveAsync(CancellationToken ct)
     {

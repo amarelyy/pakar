@@ -28,6 +28,7 @@ public sealed class ZoneQueryService(AppDbContext db) : IZoneQueryService
                 z.Id,
                 z.Name,
                 z.TotalCapacity,
+                z.MapAreaJson,
                 z.StatusOverride,
                 z.ExternalId,
                 Sources = z.Cameras.Select(c => new ZoneSourceDto(c.ExternalId, c.LastActiveTime)).ToList(),
@@ -60,6 +61,7 @@ public sealed class ZoneQueryService(AppDbContext db) : IZoneQueryService
                 Status = resolved.Status.ToApiValue(),
                 IsOverridden = resolved.IsOverridden,
                 ExternalId = z.ExternalId,
+                MapArea = ZoneMapAreaStorage.Deserialize(z.MapAreaJson),
                 Spots = z.Spots,
                 Sources = z.Sources
             };

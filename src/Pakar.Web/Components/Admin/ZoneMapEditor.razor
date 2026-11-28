@@ -1,0 +1,73 @@
+@using Microsoft.JSInterop
+@using Pakar.Application.DTOs
+@using Pakar.Application.Validation
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<section class="zone-map-editor" aria-label="Map area">
+    <h3 class="h5">Map area</h3>
+    <p id="zone-map-instructions">Zoom to the parking area and click its corners in order. Drag a point to adjust it, or use Add point at center while moving the map with the arrow keys.</p>
+    <div class="zone-map-canvas" @ref="surface" aria-label="Campus map" aria-describedby="zone-map-instructions"></div>
+    @if (loadFailed)
+    {
+        <p role="alert">Could not load the map editor. Reload the page to try again.</p>
+    }
+    else
+    {
+        <div class="zone-map-actions">
+            <button type="button" class="btn btn-ui btn-sm" disabled="@(module is null)" @onclick='() => ChangeAsync("addAtCenter")'>Add point at center</button>
+            <button type="button" class="btn btn-ui btn-sm" disabled="@(module is null)" @onclick='() => ChangeAsync("undo")'>Undo last point</button>
+            <button type="button" class="btn btn-ui btn-ui-danger btn-sm" disabled="@(module is null)" @onclick='() => ChangeAsync("clear")'>Clear boundary</button>
+            <span role="status" @ref="pointStatus"></span>
+        </div>
+        <label for="zone-map-label" class="admin-label">Short label on the map <span>(optional)</span></label>
+        <input id="zone-map-label" class="form-control admin-input" maxlength="@ZoneMapAreaRules.MaxLabelLength" placeholder="e.g. DTSL" @bind="label" @bind:event="oninput" />
+    }
+</section>
+
+@code {
+    [Parameter] public ZoneMapAreaDto? ExistingArea { get; set; }
+
+    private ElementReference surface, pointStatus;
+    private IJSObjectReference? module;
+    private string? label;
+    private bool loadFailed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        label = ExistingArea?.Label;
+        try
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/ZoneMapEditor.js");
+            await module.InvokeVoidAsync("mount", surface, pointStatus, ZoneMapAreaRules.CampusBounds,
+                ExistingArea?.Points ?? [], ZoneMapAreaRules.MaxPoints);
+        }
+        catch (JSException)
+        {
+            loadFailed = true;
+        }
+        StateHasChanged();
+    }
+
+    public async ValueTask<ZoneMapAreaDto?> ReadAsync() => module is null || loadFailed
+        ? null
+        : new ZoneMapAreaDto(await module.InvokeAsync<ZoneMapPoint[]>("read", surface), label);
+
+    private async Task ChangeAsync(string action)
+    {
+        if (module is not null)
+            await module.InvokeVoidAsync(action, surface);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("unmount", surface);
+            await module.DisposeAsync();
+        }
+    }
+}

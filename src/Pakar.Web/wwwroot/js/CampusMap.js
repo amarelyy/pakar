@@ -14,6 +14,11 @@ window.campusMap = (() => {
         return zone.spots.filter(hasLocation).map(spot => [spot.latitude, spot.longitude]);
     }
 
+    function zoneCoordinates(zone) {
+        const area = zone.mapArea?.points;
+        return area?.length >= 3 ? area.map(point => [point.latitude, point.longitude]) : points(zone);
+    }
+
     function hull(coordinates) {
         const sorted = [...new Map(coordinates.map(point => [point.join(','), point])).values()]
             .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -37,16 +42,31 @@ window.campusMap = (() => {
         return side(sorted).concat(side([...sorted].reverse()));
     }
 
-    function init(id, dotnet) {
-        dispose();
+    function createMap(element, bounds, options = {}) {
         if (!window.L) throw new Error('Map library unavailable');
-        reference = dotnet;
-        map = L.map(id, { zoomControl: false }).setView([-7.7685, 110.376], 17);
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        const campus = bounds ? L.latLngBounds(bounds) : null;
+        const limits = campus ? {
+            minZoom: 16,
+            maxZoom: 19,
+            maxBounds: campus,
+            maxBoundsViscosity: 1,
+            bounceAtZoomLimits: false,
+            zoomSnap: .25
+        } : {};
+        const instance = L.map(element, { zoomControl: false, ...limits, ...options })
+            .setView(campus?.getCenter() ?? [-7.7685, 110.376], 17);
+        L.control.zoom({ position: 'bottomright' }).addTo(instance);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
+        }).addTo(instance);
+        return instance;
+    }
+
+    function init(id, dotnet) {
+        dispose();
+        reference = dotnet;
+        map = createMap(id);
         zonesLayer = L.layerGroup().addTo(map);
         spotsLayer = L.layerGroup().addTo(map);
         resizeObserver = new ResizeObserver(() => map?.invalidateSize());
@@ -61,7 +81,8 @@ window.campusMap = (() => {
         const name = document.createElement('small');
         count.textContent = zone.availableSpots;
         description.textContent = ' kosong';
-        name.textContent = zone.name + (zone.stale ? ' · data lama' : '');
+        name.textContent = (zone.mapArea?.label ?? zone.name) + (zone.stale ? ' · data lama' : '');
+        label.title = zone.name;
         label.append(count, description, name);
         label.style.setProperty('--badge-color', color);
         return label;
@@ -75,7 +96,7 @@ window.campusMap = (() => {
         zonesLayer.clearLayers();
 
         for (const zone of zones) {
-            const coordinates = points(zone);
+            const coordinates = zoneCoordinates(zone);
             if (coordinates.length === 0) continue;
 
             const color = zone.stale ? colors.unknown : (colors[zone.status] || colors.unknown);
@@ -87,7 +108,7 @@ window.campusMap = (() => {
                 fillOpacity: zone.stale ? .1 : .2,
                 dashArray: zone.stale ? '4 4' : undefined
             };
-            const outline = hull(coordinates);
+            const outline = zone.mapArea?.points?.length >= 3 ? coordinates : hull(coordinates);
             const center = L.latLngBounds(coordinates).getCenter();
             const shape = outline.length >= 3
                 ? L.polygon(outline, options)
@@ -121,14 +142,14 @@ window.campusMap = (() => {
     }
 
     function fit() {
-        const coordinates = zones.flatMap(points);
+        const coordinates = zones.flatMap(zoneCoordinates);
         if (coordinates.length) map.fitBounds(coordinates, { padding: [65, 65], maxZoom: 18 });
     }
 
     function focusZone(id) {
         const zone = zones.find(candidate => candidate.id === id);
         if (!zone) return;
-        const coordinates = points(zone);
+        const coordinates = zoneCoordinates(zone);
         if (coordinates.length) map.fitBounds(coordinates, { padding: [90, 90], maxZoom: 19 });
     }
 
@@ -140,5 +161,5 @@ window.campusMap = (() => {
         selected = null;
     }
 
-    return { init, renderZones, fit, focusZone, dispose };
+    return { createMap, init, renderZones, fit, focusZone, dispose };
 })();

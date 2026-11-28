@@ -14,13 +14,16 @@
     </div>
 
     <div class="parking-workspace">
-        <section class="parking-panel" aria-label="Pencarian dan daftar zona">
-            <form @onsubmit="SearchAsync" @onsubmit:preventDefault class="parking-search">
-                <label for="zone-search">Mau parkir di mana?</label>
-                <div class="search-row">
-                    <input id="zone-search" @bind="query" placeholder="Cari zona atau gedung…" maxlength="100" />
-                    <button type="submit" class="btn btn-primary" disabled="@searching">Cari</button>
-                </div>
+        <section class="parking-panel" aria-label="Daftar zona parkir">
+            <div class="parking-search" role="group" aria-label="Filter zona parkir">
+                <label for="zone-picker">Mau parkir di mana?</label>
+                <select id="zone-picker" class="form-select" @bind="zoneFilterId" disabled="@(state.Zones.Count == 0)">
+                    <option value="">Semua zona</option>
+                    @foreach (var zone in state.Zones.OrderBy(zone => zone.Name))
+                    {
+                        <option @key="zone.Id" value="@zone.Id">@zone.Name</option>
+                    }
+                </select>
                 <div class="filter-row">
                     <div>
                         <label for="zone-status">Status</label>
@@ -40,14 +43,14 @@
                 {
                     <button type="button" class="text-button small" @onclick="ResetFilters">Reset filter</button>
                 }
-            </form>
+            </div>
             @{
                 var visible = VisibleZones.ToList();
             }
             <div class="zone-list-heading">
-                <h2>@(HasFilters ? "Hasil pencarian" : "Zona parkir")</h2><span>@visible.Count zona</span>
+                <h2>@(HasFilters ? "Hasil filter" : "Zona parkir")</h2><span role="status">@visible.Count zona</span>
             </div>
-            <div class="zone-list" aria-busy="@(loading || searching)">
+            <div class="zone-list" aria-busy="@loading">
                 @if (loading)
                 {
                     <p class="empty-state" role="status">Memuat zona parkir…</p>
@@ -58,21 +61,13 @@
                         @error <button type="button" class="text-button small" @onclick="ConnectAsync">Coba lagi</button>
                     </div>
                 }
-                @if (searchError is not null)
-                {
-                    <p class="notice danger" role="alert">@searchError</p>
-                }
-                @if (searching)
-                {
-                    <p class="muted" role="status">Mencari zona…</p>
-                }
-                @if (!loading && !searching && error is null && searchError is null && visible.Count == 0)
+                @if (!loading && error is null && visible.Count == 0)
                 {
                     <div class="empty-state">
-                        <h2>@(state.Zones.Count == 0 ? "Belum ada zona" : "Zona tidak ditemukan")</h2>
+                        <h2>@(state.Zones.Count == 0 ? "Belum ada zona" : "Tidak ada zona yang cocok dengan filter")</h2>
                         @if (HasFilters)
                         {
-                            <button type="button" class="text-button" @onclick="ResetFilters">Reset pencarian</button>
+                            <button type="button" class="text-button" @onclick="ResetFilters">Reset filter</button>
                         }
                     </div>
                 }

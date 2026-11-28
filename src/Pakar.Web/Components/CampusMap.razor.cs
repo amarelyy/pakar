@@ -25,23 +25,23 @@ public partial class CampusMap : IAsyncDisposable
     private ElementReference detailHeading;
     private DateTimeOffset now = DateTimeOffset.UtcNow;
     private DateTimeOffset nextMapRefresh = DateTimeOffset.UtcNow;
+    private DateTimeOffset nextZoneRefresh;
     private Guid? selectedId;
     private AlternateZoneDto? alternate;
-    private HashSet<Guid>? textMatches;
-    private string query = "";
+    private Guid? zoneFilterId;
     private string status = "";
     private int? minimum;
-    private int searchVersion, alternateVersion;
+    private int alternateVersion;
     private bool loading = true;
-    private bool connecting, subscribed, syncing, searching, alternateLoading, alternateError;
+    private bool connecting, subscribed, syncing, alternateLoading, alternateError;
     private bool mapReady, focusDetail, disposed;
-    private string? error, searchError, mapError;
+    private string? error, mapError;
 
     private bool IsLive => subscribed && hub?.State == HubConnectionState.Connected;
-    private bool HasFilters => !string.IsNullOrWhiteSpace(query) || status.Length > 0 || minimum.HasValue;
+    private bool HasFilters => zoneFilterId.HasValue || status.Length > 0 || minimum.HasValue;
     private ZoneDto? Selected => state.Zones.FirstOrDefault(zone => zone.Id == selectedId);
     private IEnumerable<ZoneDto> VisibleZones => state.Zones
-        .Where(zone => (textMatches is null || textMatches.Contains(zone.Id)) &&
+        .Where(zone => (!zoneFilterId.HasValue || zone.Id == zoneFilterId) &&
                        (status.Length == 0 || zone.Status == status) &&
                        (!minimum.HasValue || zone.AvailableSpots >= minimum.Value))
         .OrderByDescending(zone => zone.AvailableSpots)
@@ -167,6 +167,8 @@ public partial class CampusMap : IAsyncDisposable
             using var client = HttpClients.CreateClient("api");
             var zones = await client.GetFromJsonAsync<List<ZoneDto>>("api/parking/zones", ct) ?? [];
             state.Reset(zones);
+            if (zoneFilterId is { } id && zones.All(zone => zone.Id != id))
+                zoneFilterId = null;
             if (joinHub)
             {
                 subscribed = false;
@@ -193,6 +195,7 @@ public partial class CampusMap : IAsyncDisposable
             foreach (var update in pendingUpdates)
                 update();
             pendingUpdates.Clear();
+            nextZoneRefresh = DateTimeOffset.UtcNow.AddSeconds(15);
             syncing = false;
             loading = false;
         }
@@ -206,62 +209,22 @@ public partial class CampusMap : IAsyncDisposable
         {
             while (await refreshTimer.WaitForNextTickAsync(ct))
             {
-                if (!IsLive && !connecting)
+                var currentTime = DateTimeOffset.UtcNow;
+                // Occupancy events do not announce when an administrator changes the zone list.
+                if (!connecting && (!IsLive || currentTime >= nextZoneRefresh))
                     await SynchronizeAsync(joinHub: hub?.State == HubConnectionState.Connected);
-                else if (DateTimeOffset.UtcNow >= nextMapRefresh)
+                else if (currentTime >= nextMapRefresh)
                     await UpdateViewAsync();
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
     }
 
-    private async Task SearchAsync()
-    {
-        if (disposed)
-            return;
-
-        var version = ++searchVersion;
-        var term = query.Trim();
-        searchError = null;
-        searching = term.Length > 0;
-        try
-        {
-            if (term.Length == 0)
-            {
-                textMatches = null;
-                return;
-            }
-
-            using var client = HttpClients.CreateClient("api");
-            // Text matching uses the API so descriptions are included. Filter live counts and status locally.
-            var path = $"api/parking/zones/search?q={Uri.EscapeDataString(term)}&limit=100";
-            var results = await client.GetFromJsonAsync<List<ZoneSummaryDto>>(path, lifetime.Token) ?? [];
-            if (version == searchVersion)
-                textMatches = results.Select(zone => zone.Id).ToHashSet();
-        }
-        catch (Exception ex) when (IsConnectionFailure(ex))
-        {
-            if (version == searchVersion && !disposed)
-            {
-                searchError = "Pencarian belum berhasil. Coba lagi.";
-                textMatches = [];
-            }
-        }
-        finally
-        {
-            if (version == searchVersion)
-                searching = false;
-        }
-    }
-
     private void ResetFilters()
     {
-        ++searchVersion;
-        query = status = "";
+        zoneFilterId = null;
+        status = "";
         minimum = null;
-        textMatches = null;
-        searchError = null;
-        searching = false;
     }
 
     [JSInvokable]

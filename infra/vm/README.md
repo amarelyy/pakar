@@ -105,6 +105,35 @@ az vm deallocate -g <resource group> -n <vm name>
 
 Shutting down from inside the machine does not release it. Configuration, files and the static address are kept.
 
+## Fallback: run from a laptop
+
+When the machine cannot be used, the same system runs on a laptop with Docker Desktop and a temporary public address.
+
+1. `cloudflared` installed (`winget install Cloudflare.cloudflared`), `infra/vm/.env` filled (see `.env.example`) and
+   `models/best.onnx` in its `ASSETS_DIR`. If ports 80 or 443 are taken: `HTTP_PORT=8081`, `HTTPS_PORT=8443`.
+2. In a first PowerShell window, start the tunnel and keep it open; it prints an `https://...trycloudflare.com` address:
+
+   ```powershell
+   cloudflared tunnel --url https://localhost:8443 --no-tls-verify --http-host-header localhost --origin-server-name localhost
+   ```
+
+   Keep `SITE_ADDRESS=localhost`. Use port 443 in the command if the ports were not changed.
+3. In a second window, give the web app that address and start (a value set here overrides `.env`):
+
+   ```powershell
+   $env:SITE_URL = "https://<the printed address>"
+   docker compose -f infra/vm/compose.yml up -d --build --wait
+   ```
+
+   `--build` builds from the local source. If `.env` names published images (`IMAGE_PREFIX`, `IMAGE_TAG`), use
+   `--no-build` instead, so that a local build does not replace them under the same tag.
+
+4. Check `<address>/health/ready` on a phone with mobile data. Open the web through this address on the laptop too;
+   `https://localhost` no longer reaches the API from the browser.
+5. Afterwards stop the tunnel with `Ctrl+C` and run `docker compose -f infra/vm/compose.yml down`.
+
+The address changes at every tunnel start; repeat step 3 then. The web is public while the tunnel runs.
+
 ## Problems
 
 Run the `docker compose` commands below on the server inside `/opt/pakar`.

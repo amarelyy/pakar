@@ -245,3 +245,28 @@ Severity: **High** blocks a requirement or the demo, **Medium** wrong or risky b
 5. Move the map to `ParkingHub` and remove `/occupancyHub` (item 7), and settle the id mapping (item 6).
 6. Per-camera API keys and secret rotation (items 9, 13, 14).
 7. API integration tests against PostgreSQL.
+
+## Deployment rehearsal, 2026-11-28
+
+Target: web, API and video worker on one machine with Docker Compose (`infra/vm`), database on Neon (test branch).
+Images: published by the `images` workflow for commit `744aa5d` (all jobs passed).
+
+| Check | Result |
+| --- | --- |
+| Published images pulled and started on a laptop | Passed, three services healthy |
+| Runbook from nothing on a stand-in machine (Ubuntu 24.04 container with systemd, SSH and Docker) | Passed, 304 s from upload to running (setup 121 s, deploy 169 s) |
+| Return after a reboot of the stand-in machine | Passed, healthy again after 23 s without commands |
+| Requirement checks through the API (FR 2 to 9, 13 to 17) | 30 of 30 passed |
+| Browser: register, log in, admin pages | Passed |
+| Test and Swagger routes | 404 |
+| Fallback: laptop behind a temporary tunnel | Passed from the laptop and from a phone through the public address |
+
+Open:
+
+| Item | Detail |
+| --- | --- |
+| Real virtual machine | Not run: Azure commands, DNS label, certificate, firewall rules, real swap |
+| Parking videos | None yet, so FR 1, 10, 11 and 12 cannot be shown with video |
+| FR 4 | The API answers, but no suggestion appears while no zone has a live reading |
+| Map page | Search, alternate zone and report form are not on the web page (FR 2, 4, 5, 6) |
+| Production data | Zones and cameras of the production database not updated yet |

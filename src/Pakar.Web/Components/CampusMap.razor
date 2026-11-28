@@ -113,26 +113,28 @@
         </section>
 
         <section class="map-panel" aria-label="Parking map for the UGM Faculty of Engineering">
-            <div id="campus-map" class="campus-map"></div>
-            <div class="map-top-note">
-                <span class="map-location">FT UGM · Yogyakarta</span>
-                <button type="button" class="btn btn-light small" @onclick="FitMapAsync" disabled="@(!mapReady)">Show all zones</button>
-            </div>
-            <div class="map-legend">
-                <span><i class="available"></i> Available</span><span><i class="almost_full"></i> Almost full</span>
-                <span><i class="full"></i> Full</span><span><i class="unknown"></i> Missing or stale data</span>
-            </div>
-            @if (mapError is not null)
-            {
-                <p class="map-connection notice warning" role="status">@mapError</p>
-            }
-            else if (!IsLive && !loading)
-            {
-                <div class="map-connection notice warning" role="status">
-                    The map is refreshing periodically.
-                    <button type="button" class="text-button small" @onclick="ConnectAsync" disabled="@connecting">Reconnect</button>
+            <div class="map-surface">
+                <div id="campus-map" class="campus-map"></div>
+                <div class="map-top-note">
+                    <span class="map-location">FT UGM · Yogyakarta</span>
+                    <button type="button" class="btn btn-light small" @onclick="FitMapAsync" disabled="@(!mapReady)">Show all zones</button>
                 </div>
-            }
+                <div class="map-legend">
+                    <span><i class="available"></i> Available</span><span><i class="almost_full"></i> Almost full</span>
+                    <span><i class="full"></i> Full</span><span><i class="unknown"></i> Missing or stale data</span>
+                </div>
+                @if (mapError is not null)
+                {
+                    <p class="map-connection notice warning" role="status">@mapError</p>
+                }
+                else if (!IsLive && !loading)
+                {
+                    <div class="map-connection notice warning" role="status">
+                        The map is refreshing periodically.
+                        <button type="button" class="text-button small" @onclick="ConnectAsync" disabled="@connecting">Reconnect</button>
+                    </div>
+                }
+            </div>
             @if (Selected is { } selected)
             {
                 var waitingForSource = state.IsWaitingForSource(selected);

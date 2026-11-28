@@ -654,3 +654,18 @@ The video wall is not part of Ursula's frontend work; its owner is still to be d
 - [ ] Who builds it (not Ursula).
 - [ ] Where the admin's browser gets the video files from (the same folder as the worker, or served by the API to admins only).
 - [ ] Whether the admin can start and stop the loop from the dashboard (the worker would read a start/stop flag from the API).
+
+---
+
+## 6. Web features to restore (added 2026-11-28)
+
+The map page was replaced by the boxed version on 2026-11-28. The API still provides these functions; the web page does not.
+
+| Done | FR | Task | What exists | Done when |
+| --- | --- | --- | --- | --- |
+| [ ] | 2 | Search and filter zones on the map page (building proximity and availability) | `GET /api/parking/zones/search` | A search shows filtered results within 2 seconds |
+| [ ] | 4 | Suggest the nearest available zone when the selected zone is full | `GET /api/parking/zones/{id}/alternate` | Selecting a full zone shows a suggestion within 3 seconds |
+| [ ] | 5 | Report wrong occupancy from the map | `UserReportForm.razor` (unused), `POST /api/reports` | A signed-in user submits a report in 3 interactions or fewer; a guest is asked to log in |
+| [ ] | 6 | Show the submission status right after sending | The API returns status and message; `My Reports` page | The message appears immediately and the report is listed in My Reports |
+
+The web does not use SignalR; these tasks use normal API calls.

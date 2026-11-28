@@ -269,4 +269,4 @@ Open:
 | Parking videos | None yet, so FR 1, 10, 11 and 12 cannot be shown with video |
 | FR 4 | The API answers, but no suggestion appears while no zone has a live reading |
 | Map page | Search, alternate zone and report form are not on the web page (FR 2, 4, 5, 6) |
-| Production data | Zones and cameras of the production database not updated yet |
+| Production data | Four faculty zones and one administrator set on 2026-11-28; slot polygons and video names open |
